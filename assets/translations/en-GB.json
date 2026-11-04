@@ -54,8 +54,12 @@
         }
       },
       "bar": {
+        "dynamic-center": {
+          "label": "Dynamic Centre",
+          "description": "Animate changes in size of the configured centre widgets; contents are managed in the widget editor"
+        },
         "surface-mode": {
-          "description": "Choose one continuous bar background or separate capsule surfaces for the bar lanes",
+          "description": "Choose one continuous background or one rounded island around each complete bar section",
           "label": "Bar Surface"
         },
         "widget-icon-color": {
@@ -95,6 +99,10 @@
         }
       },
       "settings": {
+        "vertical-title": {
+          "label": "Show Vertical Title",
+          "description": "Show the focused window title rotated anticlockwise on vertical bars; animate title and length changes"
+        },
         "active-color": {
           "label": "Active Colour"
         },

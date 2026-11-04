@@ -3,6 +3,7 @@
 #include "compositors/compositor_platform.h"
 #include "config/config_service.h"
 #include "i18n/i18n.h"
+#include "render/animation/animation_manager.h"
 #include "render/scene/input_area.h"
 #include "render/scene/node.h"
 #include "system/app_identity.h"
@@ -16,14 +17,20 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 #include <string_view>
 
 ActiveWindowWidget::ActiveWindowWidget(ConfigService& config, CompositorPlatform& platform, Options options)
     : m_config(config), m_platform(platform), m_maxWidth(static_cast<float>(options.maxWidth)),
       m_minWidth(static_cast<float>(options.minWidth)), m_iconSize(static_cast<float>(options.iconSize)),
       m_titleScrollMode(options.titleScrollMode), m_displayMode(options.displayMode),
-      m_showEmptyLabel(options.showEmptyLabel) {
+      m_showEmptyLabel(options.showEmptyLabel), m_verticalTitle(options.verticalTitle) {
   buildDesktopIconIndex();
+}
+
+ActiveWindowWidget::~ActiveWindowWidget() {
+  if (m_animations != nullptr)
+    m_animations->cancelForOwner(m_title);
 }
 
 void ActiveWindowWidget::create() {
@@ -47,7 +54,20 @@ void ActiveWindowWidget::create() {
       })
   );
 
-  rootNode->addChild(
+  auto titleClip = ui::node({.clipChildren = true});
+  m_titleClip = titleClip.get();
+  titleClip->addChild(
+      ui::label({
+          .out = &m_previousTitle,
+          .fontSize = Style::fontSizeBody * fontScale(),
+          .fontWeight = labelFontWeight(),
+          .fontFamily = labelFontFamily(),
+          .color = widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurface)),
+          .maxWidth = m_maxWidth * m_contentScale,
+          .maxLines = 1,
+      })
+  );
+  titleClip->addChild(
       ui::label({
           .out = &m_title,
           .fontSize = Style::fontSizeBody * fontScale(),
@@ -59,6 +79,8 @@ void ActiveWindowWidget::create() {
           .autoScroll = false,
       })
   );
+
+  rootNode->addChild(std::move(titleClip));
 
   m_appIconColorizeConn = shellAppIconColorizationChanged().connect([this] {
     m_iconColorizeRefreshPending = true;
@@ -88,13 +110,60 @@ void ActiveWindowWidget::doLayout(Renderer& renderer, float containerWidth, floa
 
   m_title->setColor(widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurface)));
 
-  if (isVertical && !showingEmptyPlaceholder) {
-    m_title->setVisible(false);
-    applyTitleScrollMode(false);
-    m_icon->setVisible(true);
-    m_icon->setPosition(0.0F, 0.0F);
-    rootNode->setSize(m_icon->width(), m_icon->height());
+  if (m_vertical != isVertical) {
+    m_lengthInitialized = false;
+    m_vertical = isVertical;
+  }
+  if (isVertical) {
+    const bool showTitle =
+        m_verticalTitle && m_displayMode != ActiveWindowDisplayMode::IconOnly && !m_lastTitle.empty();
+    const bool showIcon =
+        !showingEmptyPlaceholder && (m_displayMode != ActiveWindowDisplayMode::TextOnly || !showTitle);
+    const float iconMain = showIcon ? iconSize : 0.0F;
+    const float spacing = showIcon && showTitle ? Style::spaceXs : 0.0F;
+    const float labelMax = std::max(0.0F, maxLength - iconMain - spacing);
+    for (auto* label : {m_title, m_previousTitle}) {
+      label->setMaxWidth(labelMax);
+      label->measure(renderer);
+      label->setVisible(showTitle);
+      label->setColor(widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurface)));
+      label->setTransformOrigin(0.0F, 0.0F);
+      label->setRotation(-std::numbers::pi_v<float> * 0.5F);
+    }
+    applyTitleScrollMode(showTitle);
+    const float target = showTitle ? std::clamp(iconMain + spacing + m_title->width(), minLength, maxLength) : iconMain;
+    if (!m_lengthInitialized || m_animations == nullptr) {
+      m_titleLength = m_titleTargetLength = target;
+      m_lengthInitialized = true;
+    } else if (std::abs(target - m_titleTargetLength) > 0.5F) {
+      m_titleTargetLength = target;
+      m_animations->cancelForOwner(this);
+      m_animations->animate(
+          m_titleLength, target, Style::animNormal, Easing::EaseOutCubic,
+          [this](float value) {
+            m_titleLength = value;
+            requestUpdate();
+          },
+          {}, this
+      );
+      requestFrameTick();
+    }
+    const float cross = std::min(containerWidth, std::max(iconMain, showTitle ? m_title->height() : 0.0F));
+    m_icon->setVisible(showIcon);
+    m_icon->setPosition((cross - iconSize) * 0.5F, 0.0F);
+    m_titleClip->setPosition(0.0F, iconMain + spacing);
+    const float titleExtent = std::max(0.0F, m_titleLength - iconMain - spacing);
+    m_titleClip->setSize(cross, titleExtent);
+    for (auto* label : {m_title, m_previousTitle})
+      label->setPosition((cross - label->height()) * 0.5F, titleExtent);
+    m_title->setOpacity(m_titleBlend);
+    m_previousTitle->setOpacity(1.0F - m_titleBlend);
+    rootNode->setSize(cross, m_titleLength);
   } else {
+    m_titleClip->setPosition(0.0F, 0.0F);
+    m_title->setRotation(0.0F);
+    m_title->setOpacity(1.0F);
+    m_previousTitle->setVisible(false);
     const bool showIcon = !showingEmptyPlaceholder && m_displayMode != ActiveWindowDisplayMode::TextOnly;
     const bool showTitle =
         showingEmptyPlaceholder || (m_displayMode != ActiveWindowDisplayMode::IconOnly && !m_lastTitle.empty());
@@ -118,6 +187,7 @@ void ActiveWindowWidget::doLayout(Renderer& renderer, float containerWidth, floa
 
     const float contentWidth = showTitle ? m_title->x() + m_title->width() : iconWidth;
     rootNode->setSize(std::clamp(contentWidth, minLength, maxLength), contentHeight);
+    m_titleClip->setSize(rootNode->width(), rootNode->height());
   }
 }
 
@@ -235,6 +305,20 @@ void ActiveWindowWidget::syncState(Renderer& renderer) {
 
   std::string iconPath = emptyState ? std::string{} : resolveIconPath(appId, m_lastIconRenderScale);
 
+  if (m_title->text() != m_lastTitle && m_vertical && m_verticalTitle && m_animations != nullptr) {
+    m_previousTitle->setText(m_title->text());
+    m_animations->cancelForOwner(m_title);
+    m_titleBlend = 0.0F;
+    m_animations->animate(
+        0.0F, 1.0F, Style::animNormal, Easing::EaseOutCubic,
+        [this](float value) {
+          m_titleBlend = value;
+          requestUpdate();
+        },
+        {}, m_title
+    );
+    requestFrameTick();
+  }
   m_title->setText(m_lastTitle);
   m_title->setColor(widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurface)));
   m_title->setVisible(!m_lastTitle.empty());

@@ -11,6 +11,7 @@
 #include "ui/signal.h"
 #include "wayland/layer_surface.h"
 
+#include <array>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -89,6 +90,10 @@ struct BarInstance {
 
   // Bar background, shadow, and layout sections (start/center/end along main axis)
   Box* bg = nullptr;
+  std::array<Box*, 3> islandBackgrounds{};
+  float centerExtent = 0.0F;
+  float centerTargetExtent = 0.0F;
+  bool centerExtentInitialized = false;
   Box* shadow = nullptr;
   Node* shadowLeftClip = nullptr;
   Node* shadowRightClip = nullptr;

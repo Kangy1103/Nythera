@@ -71,6 +71,14 @@ const noctalia::bar::WidgetDefinition<ActiveWindowWidget::Options>& activeWindow
                       .descriptionKey = "settings.widgets.settings.display.active-window-description",
                   },
           }),
+          field<&Options::verticalTitle>({
+              .key = "vertical_title",
+              .presentation =
+                  settings::WidgetSettingPresentation{
+                      .labelKey = "settings.widgets.settings.vertical-title.label",
+                      .descriptionKey = "settings.widgets.settings.vertical-title.description",
+                  },
+          }),
           field<&Options::showEmptyLabel>({
               .key = "show_empty_label",
           }),

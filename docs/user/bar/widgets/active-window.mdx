@@ -13,7 +13,8 @@ Shows the active window icon and title for the current output. The window icon u
 | `max_length`       | number | `260`             | Maximum widget length in pixels                                                                                                                 |
 | `icon_size`        | number | `16`              | Icon size in pixels                                                                                                                             |
 | `title_scroll`     | string | `"none"`          | Title scrolling mode: `"none"`, `"always"`, or `"on_hover"`                                                                                     |
-| `display`          | string | `"icon_and_text"` | Content mode on horizontal bars: `"icon_and_text"`, `"icon_only"`, or `"text_only"`. Vertical bars show the icon only when a window is focused. |
+| `display`          | string | `"icon_and_text"` | Content mode: `"icon_and_text"`, `"icon_only"`, or `"text_only"`. Vertical titles rotate 90° anticlockwise when enabled. |
+| `vertical_title` | bool | `true` | Show the rotated focused-window title on vertical bars; turn off for the original icon-only vertical presentation. Respects `display = "icon_only"`. |
 | `show_empty_label` | bool   | `false`           | When enabled, show "No active window" instead of hiding the widget when no window is focused                                                    |
 
 ```toml
@@ -24,4 +25,7 @@ icon_size = 16
 title_scroll = "on_hover"
 display = "icon_and_text"
 show_empty_label = true
+vertical_title = true
 ```
+
+Vertical title changes crossfade while the widget smoothly resizes along the bar. Font size stays fixed. Existing minimum/maximum length and title scrolling controls still apply; animations follow global motion preferences. In the widget settings, use **Show Vertical Title** to hide or show the rotated text.

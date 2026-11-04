@@ -38,10 +38,12 @@ public:
     ActiveWindowTitleScrollMode titleScrollMode = ActiveWindowTitleScrollMode::None;
     ActiveWindowDisplayMode displayMode = ActiveWindowDisplayMode::IconAndText;
     bool showEmptyLabel = false;
+    bool verticalTitle = true;
   };
 
   ActiveWindowWidget(ConfigService& config, CompositorPlatform& platform, Options options);
 
+  ~ActiveWindowWidget() override;
   void create() override;
 
 private:
@@ -62,6 +64,14 @@ private:
   ActiveWindowTitleScrollMode m_titleScrollMode = ActiveWindowTitleScrollMode::None;
   ActiveWindowDisplayMode m_displayMode = ActiveWindowDisplayMode::IconAndText;
   bool m_showEmptyLabel = false;
+  bool m_verticalTitle = true;
+  bool m_vertical = false;
+  bool m_lengthInitialized = false;
+  float m_titleLength = 0.0F;
+  float m_titleTargetLength = 0.0F;
+  float m_titleBlend = 1.0F;
+  Node* m_titleClip = nullptr;
+  Label* m_previousTitle = nullptr;
   InputArea* m_area = nullptr;
   Image* m_icon = nullptr;
   Label* m_title = nullptr;

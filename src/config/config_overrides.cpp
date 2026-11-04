@@ -187,6 +187,8 @@ namespace {
     if (ovr.backgroundOpacity) {
       resolved.backgroundOpacity = *ovr.backgroundOpacity;
     }
+    if (ovr.surfaceMode) resolved.surfaceMode = *ovr.surfaceMode;
+    if (ovr.dynamicCenter) resolved.dynamicCenter = *ovr.dynamicCenter;
     if (ovr.compositorBlur) {
       resolved.compositorBlur = *ovr.compositorBlur;
     }

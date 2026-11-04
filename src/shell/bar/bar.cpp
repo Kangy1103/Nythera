@@ -998,6 +998,21 @@ namespace {
     }
   }
 
+  std::vector<InputRect> islandRegions(const BarInstance& instance) {
+    std::vector<InputRect> regions;
+    for (const auto* bg : instance.islandBackgrounds) {
+      if (bg == nullptr || !bg->visible()) continue;
+      float x = 0, y = 0;
+      Node::absolutePosition(bg, x, y);
+      auto strips = Surface::tessellateRoundedRect(
+          static_cast<int>(std::lround(x)), static_cast<int>(std::lround(y)),
+          static_cast<int>(std::lround(bg->width())), static_cast<int>(std::lround(bg->height())),
+          std::min(static_cast<float>(instance.barConfig.radius), std::min(bg->width(), bg->height()) * 0.5F));
+      regions.insert(regions.end(), strips.begin(), strips.end());
+    }
+    return regions;
+  }
+
   void layoutBarSections(
       BarInstance& instance, Renderer& renderer, float barAreaW, float barAreaH, float padding, bool isVertical
   ) {
@@ -1181,10 +1196,20 @@ namespace {
     finalizeCapsules(instance.startCapsuleRuns);
     finalizeCapsules(instance.centerCapsuleRuns);
     finalizeCapsules(instance.endCapsuleRuns);
+    if (instance.barConfig.surfaceMode == "islands") {
+      // The section owns the surface in this mode; capsule groups retain layout and hover only.
+      for (auto* runs : {&instance.startCapsuleRuns, &instance.centerCapsuleRuns, &instance.endCapsuleRuns}) {
+        for (auto& run : *runs) {
+          if (run.bg != nullptr) run.bg->setVisible(false);
+          run.hasPaintedCapsuleBackground = false;
+        }
+      }
+    }
 
     // When bar touches screen edge, put the padding inside the sections, and extend the hit targets of
     // the first/last widgets to cover the area. So clicking on the screen edge still triggers the widget.
-    const bool screenEdgeClick = instance.barConfig.marginEnds == 0 && padding > 0;
+    const bool islands = instance.barConfig.surfaceMode == "islands";
+    const bool screenEdgeClick = !islands && instance.barConfig.marginEnds == 0 && padding > 0;
     const float paddingInsideSection = screenEdgeClick ? padding : 0.0F;
     const float contentMainStart = screenEdgeClick ? 0.0F : padding;
     const float contentMainEnd =
@@ -1239,9 +1264,18 @@ namespace {
       instance.endSection->setPadding(0.0F);
     }
 
+    if (islands) {
+      for (auto* section : {instance.startSection, instance.centerSection, instance.endSection}) {
+        if (isVertical) section->setPadding(6.0F, 0.0F, 6.0F, 0.0F);
+        else section->setPadding(0.0F, 6.0F, 0.0F, 6.0F);
+      }
+    } else {
+      instance.centerSection->setPadding(0.0F);
+    }
+
     configureSection(instance.startSection, FlexJustify::Start);
-    configureSection(instance.centerSection, FlexJustify::Center);
     configureSection(instance.endSection, FlexJustify::End);
+    configureSection(instance.centerSection, FlexJustify::Center);
 
     // Anchor mode: if a center widget is flagged as the anchor, pin its center to the
     // bar midline so surrounding siblings growing/shrinking cannot drift it sideways.
@@ -1254,7 +1288,29 @@ namespace {
     }
 
     const float barMidline = contentMainStart + contentMainSpan * 0.5F;
-    const float centerNaturalMain = isVertical ? instance.centerSection->height() : instance.centerSection->width();
+    const float centerContentMain = isVertical ? instance.centerSection->height() : instance.centerSection->width();
+    const float outerMain = std::max(isVertical ? instance.startSection->height() : instance.startSection->width(),
+                                     isVertical ? instance.endSection->height() : instance.endSection->width());
+    const float centerBudget = instance.barConfig.dynamicCenter
+        ? std::max(0.0F, contentMainSpan - 2.0F * (outerMain + 8.0F)) : contentMainSpan;
+    const float targetMain = std::min(centerBudget, centerContentMain);
+    if (!instance.centerExtentInitialized || !instance.barConfig.dynamicCenter) {
+      instance.animations.cancelForOwner(instance.centerSlot);
+      instance.centerExtent = targetMain;
+      instance.centerTargetExtent = targetMain;
+      instance.centerExtentInitialized = true;
+    } else if (std::abs(targetMain - instance.centerTargetExtent) > 0.5F) {
+      instance.centerTargetExtent = targetMain;
+      instance.animations.cancelForOwner(instance.centerSlot);
+      instance.animations.animate(instance.centerExtent, targetMain, Style::animNormal, Easing::EaseOutCubic,
+          [inst = &instance](float value) {
+            inst->centerExtent = value;
+            if (inst->surface != nullptr) inst->surface->requestLayout();
+          }, {}, instance.centerSlot);
+      if (instance.surface != nullptr) instance.surface->requestFrameTick();
+    }
+    const float centerNaturalMain = instance.barConfig.dynamicCenter
+        ? std::min(centerBudget, instance.centerExtent) : centerContentMain;
 
     float centerSlotStart;
     float centerSlotMain;
@@ -1274,7 +1330,7 @@ namespace {
     } else {
       centerSlotMain = std::min(contentMainSpan, centerNaturalMain);
       centerSlotStart = contentMainStart + std::max(0.0F, (contentMainSpan - centerSlotMain) * 0.5F);
-      centerSectionOffset = (centerSlotMain - centerNaturalMain) * 0.5F;
+      centerSectionOffset = (centerSlotMain - centerContentMain) * 0.5F;
     }
     const float centerSlotEnd = centerSlotStart + centerSlotMain;
     float startSlotMain;
@@ -1325,7 +1381,30 @@ namespace {
       );
     }
 
-    applyBarWidgetHitTargets(instance.startSection, instance.startSlot, isVertical);
+    const std::array<Node*, 3> slots{instance.startSlot, instance.centerSlot, instance.endSlot};
+    const std::array<Flex*, 3> sections{instance.startSection, instance.centerSection, instance.endSection};
+    for (std::size_t i = 0; i < slots.size(); ++i) {
+      auto* bg = instance.islandBackgrounds[i];
+      if (bg == nullptr) continue;
+      auto* slot = slots[i];
+      auto* section = sections[i];
+      const bool content = std::ranges::any_of(section->children(), [](const auto& child) {
+        return child->visible() && child->participatesInLayout() && child->width() > 0 && child->height() > 0;
+      });
+      const float begin = std::max(0.0F, isVertical ? section->y() : section->x());
+      const float slotMain = isVertical ? slot->height() : slot->width();
+      const float size = std::max(0.0F, std::min(slotMain - begin,
+          isVertical ? section->height() : section->width()));
+      bg->setVisible(islands && content && size > 0.0F);
+      const float paintedBegin = i == 1 ? 0.0F : begin;
+      const float paintedSize = i == 1 ? slotMain : size;
+      bg->setPosition(slot->x() + (isVertical ? 0.0F : paintedBegin), slot->y() + (isVertical ? paintedBegin : 0.0F));
+      bg->setSize(isVertical ? slotCross : paintedSize, isVertical ? paintedSize : slotCross);
+      bg->setFill(colorForRole(ColorRole::Surface, instance.barConfig.backgroundOpacity));
+      bg->setBorder(resolveColorSpec(instance.barConfig.border), instance.barConfig.borderWidth);
+      bg->setRadius(std::min(static_cast<float>(instance.barConfig.radius), std::min(bg->width(), bg->height()) * 0.5F));
+    }
+
     applyBarWidgetHitTargets(instance.startSection, instance.startSlot, isVertical);
     applyBarWidgetHitTargets(instance.centerSection, instance.centerSlot, isVertical);
     applyBarWidgetHitTargets(instance.endSection, instance.endSlot, isVertical);
@@ -2098,6 +2177,7 @@ void Bar::syncBarExclusiveZone(BarInstance& instance) {
 void Bar::syncBarSurfaceChrome(BarInstance& instance) {
   syncBarExclusiveZone(instance);
   applyBarCompositorBlur(instance);
+  if (instance.barConfig.surfaceMode == "islands") syncBarAutoHideInputRegion(instance);
 }
 
 std::optional<LayerPopupParentContext> Bar::popupParentContextForSurface(wl_surface* surface) const noexcept {
@@ -3223,6 +3303,11 @@ void Bar::applyBackgroundPalette(BarInstance& instance) {
   }
   auto style = instance.bg->style();
   const bool islands = instance.barConfig.surfaceMode == "islands";
+  for (auto* bg : instance.islandBackgrounds) {
+    if (bg == nullptr) continue;
+    bg->setFill(colorForRole(ColorRole::Surface, instance.barConfig.backgroundOpacity));
+    bg->setBorder(resolveColorSpec(instance.barConfig.border), instance.barConfig.borderWidth);
+  }
   style.fill = colorForRole(ColorRole::Surface, islands ? 0.0F : instance.barConfig.backgroundOpacity);
   style.border = resolveColorSpec(instance.barConfig.border);
   style.borderWidth = islands ? 0.0F : instance.barConfig.borderWidth;
@@ -3238,6 +3323,18 @@ void Bar::syncBarAutoHideInputRegion(BarInstance& instance) const {
   if (!instanceAcceptsPointerInput(instance)) {
     instance.clickThroughInputRegion.reset();
     instance.surface->setInputRegion({});
+    return;
+  }
+  if (instance.barConfig.surfaceMode == "islands" && instance.hideOpacity > 0.5F) {
+    auto rects = islandRegions(instance);
+    if (barConfigUsesSlideSurface(instance.barConfig)) {
+      auto trigger = barAutoHideSurfaceInputRegion(instance.barConfig, surfW, surfH, false);
+      rects.insert(rects.end(), trigger.begin(), trigger.end());
+    }
+    if (instance.clickThroughInputRegion != rects) {
+      instance.surface->setInputRegion(rects);
+      instance.clickThroughInputRegion = std::move(rects);
+    }
     return;
   }
   if (barConfigUsesSlideSurface(instance.barConfig)) {
@@ -3328,12 +3425,16 @@ void Bar::applyBarCompositorBlur(BarInstance& instance) const {
   if (instance.surface == nullptr) {
     return;
   }
-  if (instance.barConfig.surfaceMode == "islands" || !instance.barConfig.compositorBlur
+  if (!instance.barConfig.compositorBlur
       || !barContentVisuallyShown(instance)) {
     instance.surface->clearBlurRegion();
     return;
   }
 
+  if (instance.barConfig.surfaceMode == "islands") {
+    instance.surface->setBlurRegion(islandRegions(instance));
+    return;
+  }
   if (instance.bg == nullptr) {
     return;
   }
@@ -3480,6 +3581,12 @@ void Bar::buildScene(BarInstance& instance, std::uint32_t width, std::uint32_t h
     hoverUnderlay->setHitTestVisible(false);
     hoverUnderlay->setSize(static_cast<float>(w), static_cast<float>(h));
     instance.hoverUnderlay = instance.slideRoot->addChild(std::move(hoverUnderlay));
+
+    for (auto& bg : instance.islandBackgrounds) {
+      auto box = ui::box();
+      box->setHitTestVisible(false);
+      bg = static_cast<Box*>(instance.contentClip->addChild(std::move(box)));
+    }
 
     auto makeSlot = [&instance] {
       auto slot = ui::node({});
@@ -3652,9 +3759,10 @@ void Bar::updateWidgets(BarInstance& instance) {
   updateSection(instance.centerWidgets);
   updateSection(instance.endWidgets);
   layoutBarSections(instance, renderer, barAreaW, barAreaH, padding, isVertical);
-  if (instance.barConfig.deadZone.clickThrough) {
+  if (instance.barConfig.deadZone.clickThrough || instance.barConfig.surfaceMode == "islands") {
     syncBarAutoHideInputRegion(instance);
   }
+  if (instance.barConfig.surfaceMode == "islands") applyBarCompositorBlur(instance);
 }
 
 void Bar::prepareFrame(BarInstance& instance, bool needsUpdate, bool needsLayout) {
@@ -3699,9 +3807,10 @@ void Bar::prepareFrame(BarInstance& instance, bool needsUpdate, bool needsLayout
     layoutBarSections(instance, renderer, barAreaW, barAreaH, padding, isVertical);
   }
   // Click-through input follows the widgets, which move whenever a widget resizes.
-  if (instance.barConfig.deadZone.clickThrough) {
+  if (instance.barConfig.deadZone.clickThrough || instance.barConfig.surfaceMode == "islands") {
     syncBarAutoHideInputRegion(instance);
   }
+  if (instance.barConfig.surfaceMode == "islands") applyBarCompositorBlur(instance);
 }
 
 bool Bar::onPointerEvent(const PointerEvent& event) {

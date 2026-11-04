@@ -80,6 +80,8 @@ struct BarMonitorOverride {
   std::optional<std::string> layer; // top | overlay
   std::optional<std::int32_t> thickness;
   std::optional<float> backgroundOpacity;
+  std::optional<std::string> surfaceMode;
+  std::optional<bool> dynamicCenter;
   std::optional<bool> compositorBlur;
   std::optional<ColorSpec> border;
   std::optional<float> borderWidth;
@@ -156,8 +158,9 @@ struct BarConfig {
   std::int32_t thickness = Style::barThicknessDefault;
   float backgroundOpacity = 1.0F;
   // Bar background presentation: "full" draws one continuous bar surface; "islands"
-  // leaves the lane-group capsules as separate surfaces.
+  // draws one background around each complete start/centre/end section.
   std::string surfaceMode = "full";
+  bool dynamicCenter = false;
   bool compositorBlur = true;
   // Inside outline for the bar background; attached panels inherit the resolved values.
   ColorSpec border = colorSpecFromRole(ColorRole::OutlineVariant);

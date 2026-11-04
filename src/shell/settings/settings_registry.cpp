@@ -3756,6 +3756,11 @@ namespace settings {
           tr("settings.schema.bar.background-opacity.description"), path("background_opacity"),
           SliderSetting{bar.backgroundOpacity, 0.0F, 1.0F, 0.01F, false}, "alpha transparency translucent opacity"
       ));
+      entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.dynamic-center.label"),
+          tr("settings.schema.bar.dynamic-center.description"), path("dynamic_center"),
+          ToggleSetting{bar.dynamicCenter}, "centre content resize animation"
+      ));
       if (env.backgroundEffectBlurSupported) {
         entries.push_back(makeEntry(
             section, "effects", tr("settings.schema.bar.compositor-blur.label"),
@@ -4144,6 +4149,18 @@ namespace settings {
             tr("settings.schema.bar.background-opacity.description"), monitorPath("background_opacity"),
             SliderSetting{ovr.backgroundOpacity.value_or(bar.backgroundOpacity), 0.0F, 1.0F, 0.01F, false},
             "alpha transparency translucent opacity"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.surface-mode.label"),
+            tr("settings.schema.bar.surface-mode.description"), monitorPath("surface_mode"),
+            asSegmented(plainSelect({{"full", "settings.options.bar.surface-mode.full"},
+                                    {"islands", "settings.options.bar.surface-mode.islands"}},
+                                   ovr.surfaceMode.value_or(bar.surfaceMode))), "bar surface islands full"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.dynamic-center.label"),
+            tr("settings.schema.bar.dynamic-center.description"), monitorPath("dynamic_center"),
+            ToggleSetting{ovr.dynamicCenter.value_or(bar.dynamicCenter)}, "centre content resize"
         ));
         if (env.backgroundEffectBlurSupported) {
           entries.push_back(makeEntry(

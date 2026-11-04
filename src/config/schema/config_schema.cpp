@@ -2598,6 +2598,7 @@ namespace noctalia::config::schema {
         field(&BarConfig::thickness, "thickness", kBarThicknessRange),
         field(&BarConfig::backgroundOpacity, "background_opacity", kBarOpacityRange),
         barSurfaceModeField(),
+        field(&BarConfig::dynamicCenter, "dynamic_center"),
         field(&BarConfig::compositorBlur, "compositor_blur"),
         colorField(&BarConfig::border, "border"),
         field(&BarConfig::borderWidth, "border_width", kBarBorderWidthRange),
@@ -2677,6 +2678,17 @@ namespace noctalia::config::schema {
         ),
         optionalIntField(&BarMonitorOverride::thickness, "thickness", kBarThicknessRange),
         optionalFloatField(&BarMonitorOverride::backgroundOpacity, "background_opacity", kBarOpacityRange),
+        custom<BarMonitorOverride>("surface_mode",
+          [](const toml::table& tbl, BarMonitorOverride& out, std::string_view path, Diagnostics& diag) {
+            if (!tbl.contains("surface_mode")) return;
+            auto value = tbl["surface_mode"].value<std::string>();
+            if (value && (*value == "full" || *value == "islands")) out.surfaceMode = *value;
+            else diag.warn(joinPath(path, "surface_mode"), "expected full or islands");
+          },
+          [](toml::table& tbl, const BarMonitorOverride& in) {
+            if (in.surfaceMode) tbl.insert_or_assign("surface_mode", *in.surfaceMode);
+          }),
+        optionalBoolField(&BarMonitorOverride::dynamicCenter, "dynamic_center"),
         optionalBoolField(&BarMonitorOverride::compositorBlur, "compositor_blur"),
         optionalColorField(&BarMonitorOverride::border, "border"),
         optionalFloatField(&BarMonitorOverride::borderWidth, "border_width", kBarBorderWidthRange),

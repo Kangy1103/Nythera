@@ -205,6 +205,8 @@ location = "https://example.invalid/bad"
     bar.layer = "overlay";
     bar.thickness = 44;
     bar.backgroundOpacity = 0.85F;
+    bar.surfaceMode = "islands";
+    bar.dynamicCenter = true;
     bar.compositorBlur = false;
     bar.border = colorSpecFromConfigString("#123456");
     bar.borderWidth = 2.0F;
@@ -282,6 +284,8 @@ location = "https://example.invalid/bad"
     ovr.layer = "top";
     ovr.thickness = 50;
     ovr.backgroundOpacity = 0.7F;
+    ovr.surfaceMode = "islands";
+    ovr.dynamicCenter = true;
     ovr.compositorBlur = true;
     ovr.border = colorSpecFromConfigString("#a1a2a3");
     ovr.borderWidth = 3.0F;
@@ -1141,6 +1145,21 @@ blend = false
 
 int main() {
   checkIdleActionResolution();
+  {
+    const auto table = toml::parse(R"(surface_mode = "full"
+dynamic_center = false)");
+    BarMonitorOverride monitor;
+    Diagnostics diag;
+    readInto(table, monitor, barMonitorOverrideSchema(), "bar.default.monitor.DP-1", diag);
+    if (monitor.surfaceMode != "full" || monitor.dynamicCenter != false)
+      fail("monitor presentation overrides lost explicit values");
+    const auto exported = writeTable(monitor, barMonitorOverrideSchema());
+    BarMonitorOverride restored;
+    readInto(exported, restored, barMonitorOverrideSchema(), "bar.default.monitor.DP-1", diag);
+    if (!(monitor == restored)) fail("monitor presentation override round trip changed values");
+    BarConfig defaults;
+    if (defaults.dynamicCenter || defaults.surfaceMode != "full") fail("experimental presentation enabled by default");
+  }
   // Captured from the pre-refactor config_export::serialize for the fully-specified probe
   // bar. Pins byte-identical bar serialization across the schema migration: the
   // resolve-and-flatten monitor write and the conditional/optional fields must
@@ -1168,6 +1187,7 @@ color = "#0A0B0C"
 compositor_blur = false
 concave_edge_corners = true
 contact_shadow = true
+dynamic_center = true
 enabled = false
 end = [ "battery" ]
 font_family = "Inter"
@@ -1194,6 +1214,7 @@ show_on_workspace_switch = true
 show_tooltip = false
 smart_auto_hide = false
 start = [ "launcher" ]
+surface_mode = "islands"
 thickness = 44
 widget_spacing = 8
 
@@ -1233,6 +1254,7 @@ widget_spacing = 8
     compositor_blur = true
     concave_edge_corners = false
     contact_shadow = false
+    dynamic_center = true
     enabled = true
     end = [ "volume" ]
     font_family = "Fira Sans"
@@ -1260,6 +1282,7 @@ widget_spacing = 8
     show_tooltip = true
     smart_auto_hide = false
     start = [ "tray" ]
+    surface_mode = "islands"
     thickness = 50
     widget_spacing = 7
 

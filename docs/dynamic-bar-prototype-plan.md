@@ -1,6 +1,9 @@
 # Dynamic bar: initial prototype
 
-Status: proposed implementation plan, 4 November 2026. No runtime changes yet.
+Status: initial prototype implemented for visual review, 4 November 2026.
+
+Updated direction: the widget editor is the sole source of bar contents. No composite
+clock or automatically inserted media, visualiser or transport widgets.
 
 ## Saved starting point
 
@@ -14,8 +17,8 @@ Status: proposed implementation plan, 4 November 2026. No runtime changes yet.
 ## First result to evaluate
 
 A rounded, translucent bar with three functional sections. It can use a continuous
-background or three genuine section backgrounds, with a clock-centred area that
-smoothly expands to show media information. Workspace-aware behaviour follows as a
+background or three genuine section backgrounds. The centre smoothly resizes around
+its configured widgets. Workspace-aware behaviour follows as a
 separate step. The screen-wrapping frame is a later experiment using the same pieces.
 
 Use the selected palette, current widget membership, native content/font scaling,
@@ -45,35 +48,20 @@ spacing, attached popups, click-through gaps and configuration persistence.
 
 ## 2. Prototype the dynamic centre
 
-Create a small presentation controller adjacent to `BarInstance`, with explicit
-resting, media and hover-expanded states. Use the existing `AnimationManager` for
-size and opacity, and existing clock/media widgets and services for content.
+Animate the measured size of the existing centre section with `AnimationManager`.
+The bar must not insert, replace, or relocate widgets. Clock, media, visualiser and
+transport functionality belongs to existing configurable widgets and their settings.
 
-- Resting: clock in a compact section.
-- Playing: expand along the bar's main axis to show a bounded track label and small
-  visualiser beside the clock. Keep the centre anchored during the resize.
-- Hover: reveal transport controls; keyboard activation should offer the same actions.
-- Paused/stopped: settle the visualiser; return to the compact state after a short
-  delay unless the pointer, keyboard focus or an attached popup is holding it open.
-- Track changes crossfade text within the available extent instead of jumping widths.
-- Reserve room for start/end sections, truncate long titles and collapse optional
-  details before allowing overlap. Vertical bars use compact content appropriate to
-  their width rather than squeezing horizontal text into them.
-- Retarget an interrupted animation from its current value. Rapid playback and track
-  changes must not queue a chain of stale transitions.
+- Smooth section growth and shrinkage when configured content changes size or visibility.
+- Retarget interrupted transitions from the current extent.
+- Keep the section centred along the selected edge and clip content to its animated bounds.
+- Bound expansion by the space left by the outer sections.
+- Follow global motion preferences and stop scheduling frames when settled.
+- Retain existing accordion behaviour for hover expansion; do not duplicate its controls.
+- Expose Dynamic Centre in Bar → Effects and per-monitor settings; default it to off.
 
-Start with existing motion durations/easing. Respect global animation disable/speed
-and reduced-motion behaviour. Reuse `PipeWireSpectrum` and the existing visualiser;
-the native implementation does not need a second audio capture or CAVA process.
-
-Expose the new behaviour in the Settings GUI in the same implementation commit as
-its configuration: dynamic centre enabled/disabled and visualiser visibility. Prefer
-existing widget controls for detail that is already configurable. Leave the feature
-disabled by default; enable it deliberately when previewing the prototype.
-
-Checkpoint: judge compact, playback, hover and transition states live before extending
-the controller to notifications, volume or other temporary content. Those are candidates,
-not commitments for this first pass.
+Checkpoint: verify full/islands layouts and all four orientations using the existing
+widget arrangement. Further media presentations can be assembled in the widget editor.
 
 ## 3. Add workspace-aware adaptation
 
@@ -118,3 +106,17 @@ and hidden visualisers stop scheduling frames.
 
 Review after phase 2: visual judgement belongs to Kangy. Continue with workspace
 adaptation and the frame only after the initial behaviour provides a useful direction.
+
+## Initial prototype review notes
+
+- Replaced the old capsule-only islands implementation with three measured section backgrounds.
+- Added generic centre-size animation around configured widgets; no media or spectrum is injected.
+- Extended the existing Active Window widget with an anticlockwise vertical title,
+  animated length and title crossfades. Show Vertical Title is a widget Settings toggle.
+- Native build and focused config/animation/settings tests pass. Full and islands modes
+  were rendered at all four edges during development, then restored to the left edge.
+- Current widget membership is retained. Existing media and visualiser widgets remain
+  removable/configurable through the widget editor.
+- Full idle/playback RAM, VRAM and frame-time benchmarking remains pending. Early
+  resource samples included a now-removed composite widget and are not final results.
+- Workspace content adaptation and screen wrapping remain later phases.

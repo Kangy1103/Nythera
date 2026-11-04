@@ -87,6 +87,16 @@ int main() {
     }
   }
 
+  const auto activeSpecs = settings::widgetSettingSpecs("active_window", nullptr, "", false);
+  const auto titleToggle = std::ranges::find_if(activeSpecs, [](const auto& spec) {
+    return spec.schema.key == "vertical_title";
+  });
+  ok = expect(titleToggle != activeSpecs.end(), "active window vertical title missing from Settings") && ok;
+  if (titleToggle != activeSpecs.end()) {
+    ok = expect(titleToggle->control == settings::WidgetControlKind::Bool,
+                "vertical title must render as a Settings toggle") && ok;
+  }
+
   std::filesystem::remove_all(root);
   return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
