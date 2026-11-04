@@ -1294,7 +1294,10 @@ namespace {
     const float centerBudget = instance.barConfig.dynamicCenter
         ? std::max(0.0F, contentMainSpan - 2.0F * (outerMain + 8.0F)) : contentMainSpan;
     const float targetMain = std::min(centerBudget, centerContentMain);
-    if (!instance.centerExtentInitialized || !instance.barConfig.dynamicCenter) {
+    const bool contentAnimatesSize = std::ranges::any_of(instance.centerWidgets, [](const auto& widget) {
+      return widget->animatesBarSize();
+    });
+    if (!instance.centerExtentInitialized || !instance.barConfig.dynamicCenter || contentAnimatesSize) {
       instance.animations.cancelForOwner(instance.centerSlot);
       instance.centerExtent = targetMain;
       instance.centerTargetExtent = targetMain;
@@ -1302,7 +1305,7 @@ namespace {
     } else if (std::abs(targetMain - instance.centerTargetExtent) > 0.5F) {
       instance.centerTargetExtent = targetMain;
       instance.animations.cancelForOwner(instance.centerSlot);
-      instance.animations.animate(instance.centerExtent, targetMain, Style::animNormal, Easing::EaseOutCubic,
+      instance.animations.animate(instance.centerExtent, targetMain, Style::animNormal * 1.5F, Easing::EaseInOutCubic,
           [inst = &instance](float value) {
             inst->centerExtent = value;
             if (inst->surface != nullptr) inst->surface->requestLayout();

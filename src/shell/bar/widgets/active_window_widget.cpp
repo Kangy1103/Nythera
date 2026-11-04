@@ -139,7 +139,7 @@ void ActiveWindowWidget::doLayout(Renderer& renderer, float containerWidth, floa
       m_titleTargetLength = target;
       m_animations->cancelForOwner(this);
       m_animations->animate(
-          m_titleLength, target, Style::animNormal, Easing::EaseOutCubic,
+          m_titleLength, target, Style::animNormal * 1.5F, Easing::EaseInOutCubic,
           [this](float value) {
             m_titleLength = value;
             requestUpdate();
@@ -311,7 +311,7 @@ void ActiveWindowWidget::syncState(Renderer& renderer) {
     m_animations->cancelForOwner(m_title);
     m_titleBlend = 0.0F;
     m_animations->animate(
-        0.0F, 1.0F, Style::animNormal, Easing::EaseOutCubic,
+        0.0F, 1.0F, Style::animNormal * 1.5F, Easing::EaseInOutCubic,
         [this](float value) {
           m_titleBlend = value;
           requestUpdate();

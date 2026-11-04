@@ -45,6 +45,7 @@ public:
 
   ~ActiveWindowWidget() override;
   void create() override;
+  [[nodiscard]] bool animatesBarSize() const noexcept override { return m_vertical && m_verticalTitle; }
 
 private:
   void doLayout(Renderer& renderer, float containerWidth, float containerHeight) override;
