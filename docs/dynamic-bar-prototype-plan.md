@@ -120,3 +120,21 @@ adaptation and the frame only after the initial behaviour provides a useful dire
 - Full idle/playback RAM, VRAM and frame-time benchmarking remains pending. Early
   resource samples included a now-removed composite widget and are not final results.
 - Workspace content adaptation and screen wrapping remain later phases.
+
+## Monitor-local grouping follow-up
+
+The approved CNS-style monitor-local workspace/application display uses Noctalia's
+existing grouped Taskbar widget. The running isolated profile now uses `taskbar`
+in the former `workspaces` slot, with `show_all_outputs = false`,
+`group_by_workspace = true`, `only_active_workspace = false` and icon group content.
+Other configured modules and per-monitor bar positions were preserved. All controls
+remain in the native Taskbar widget editor, with grouping controls under Advanced.
+See the Taskbar user documentation for the reusable configuration.
+
+Active configuration validation and the taskbar regression test passed. Live Umbriel
+workspace/window snapshots confirmed monitor-local membership; DP-1's rendered groups
+matched its two workspaces and three running windows. DP-3 had a fullscreen game over
+its bar during inspection, so that visual check was deferred without changing it.
+
+This establishes monitor-local content. Automatic empty/occupied layout adaptation
+and the optional screen wrap remain separate later work.

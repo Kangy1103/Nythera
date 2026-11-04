@@ -91,3 +91,37 @@ empty_color = "secondary"
 urgent_color = "error"
 focused_output_only = false  # true = only the focused monitor highlights its active workspace
 ```
+
+## Monitor-local workspace groups
+
+For a CNS-style list of each monitor's workspaces and the windows inside them, use
+one Taskbar widget instance per bar output with the following settings:
+
+```toml
+[widget.taskbar]
+type = "taskbar"
+show_all_outputs = false
+group_by_workspace = true
+only_active_workspace = false
+workspace_group_content = "icons"
+show_workspace_label = true
+hide_empty_workspaces = false
+show_running = true
+focused_output_only = true
+```
+
+Place `taskbar` in the workspace slot of your bar or capsule group using the widget
+editor. It replaces the separate workspace indicators for this presentation, so
+there is no need to add both widgets unless you want a duplicate list.
+
+In Settings, open the **Taskbar** widget and leave **Show All Outputs** off. Enable
+**Advanced** to expose **Grouping → Group By Workspace**, **Only Active Workspace**,
+**Workspace Group Content**, and the empty-workspace controls. Each bar instance
+uses its own output: for example, DP-1 lists DP-1's workspaces and their windows,
+while DP-3 lists DP-3's. Windows on inactive workspaces remain represented when
+`only_active_workspace = false`.
+
+`focused_output_only` controls focus highlighting, not which monitor's windows are
+listed. The grouping and monitor filtering are existing Noctalia capabilities; no
+extra hardcoded bar widgets are required. Empty/occupied workspace layout changes
+are a separate feature from this grouping.
