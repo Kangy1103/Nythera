@@ -150,8 +150,9 @@ void ActiveWindowWidget::doLayout(Renderer& renderer, float containerWidth, floa
     }
     const float cross = std::min(containerWidth, std::max(iconMain, showTitle ? m_title->height() : 0.0F));
     m_icon->setVisible(showIcon);
-    m_icon->setPosition((cross - iconSize) * 0.5F, 0.0F);
-    m_titleClip->setPosition(0.0F, iconMain + spacing);
+    // Anticlockwise text reads from bottom to top: its leading icon belongs below it.
+    m_icon->setPosition((cross - iconSize) * 0.5F, std::max(0.0F, m_titleLength - iconMain));
+    m_titleClip->setPosition(0.0F, 0.0F);
     const float titleExtent = std::max(0.0F, m_titleLength - iconMain - spacing);
     m_titleClip->setSize(cross, titleExtent);
     for (auto* label : {m_title, m_previousTitle})
