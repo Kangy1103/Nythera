@@ -132,22 +132,7 @@ void ActiveWindowWidget::doLayout(Renderer& renderer, float containerWidth, floa
     }
     applyTitleScrollMode(showTitle);
     const float target = showTitle ? std::clamp(iconMain + spacing + m_title->width(), minLength, maxLength) : iconMain;
-    if (!m_lengthInitialized || m_animations == nullptr) {
-      m_titleLength = m_titleTargetLength = target;
-      m_lengthInitialized = true;
-    } else if (std::abs(target - m_titleTargetLength) > 0.5F) {
-      m_titleTargetLength = target;
-      m_animations->cancelForOwner(this);
-      m_animations->animate(
-          m_titleLength, target, Style::animNormal * 1.5F, Easing::EaseInOutCubic,
-          [this](float value) {
-            m_titleLength = value;
-            requestUpdate();
-          },
-          {}, this
-      );
-      requestFrameTick();
-    }
+    animateLength(target);
     const float cross = std::min(containerWidth, std::max(iconMain, showTitle ? m_title->height() : 0.0F));
     m_icon->setVisible(showIcon);
     // Anticlockwise text reads from bottom to top: its leading icon belongs below it.
@@ -163,19 +148,24 @@ void ActiveWindowWidget::doLayout(Renderer& renderer, float containerWidth, floa
   } else {
     m_titleClip->setPosition(0.0F, 0.0F);
     m_title->setRotation(0.0F);
-    m_title->setOpacity(1.0F);
-    m_previousTitle->setVisible(false);
+    m_previousTitle->setRotation(0.0F);
+    m_title->setOpacity(m_titleBlend);
+    m_previousTitle->setOpacity(1.0F - m_titleBlend);
     const bool showIcon = !showingEmptyPlaceholder && m_displayMode != ActiveWindowDisplayMode::TextOnly;
     const bool showTitle =
         showingEmptyPlaceholder || (m_displayMode != ActiveWindowDisplayMode::IconOnly && !m_lastTitle.empty());
     m_icon->setVisible(showIcon);
     m_title->setVisible(showTitle);
+    m_previousTitle->setVisible(showTitle);
     applyTitleScrollMode(showTitle);
     const float spacing = showIcon && showTitle ? Style::spaceXs : 0.0F;
     const float iconWidth = showIcon ? m_icon->width() : 0.0F;
     const float labelMaxWidth = showTitle ? std::max(0.0F, maxLength - iconWidth - spacing) : 0.0F;
     m_title->setMaxWidth(labelMaxWidth);
     m_title->measure(renderer);
+    m_previousTitle->setMaxWidth(labelMaxWidth);
+    m_previousTitle->measure(renderer);
+    m_previousTitle->setColor(widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurface)));
 
     const float iconHeight = showIcon ? m_icon->height() : 0.0F;
     const float titleHeight = showTitle ? m_title->height() : 0.0F;
@@ -185,10 +175,31 @@ void ActiveWindowWidget::doLayout(Renderer& renderer, float containerWidth, floa
 
     m_icon->setPosition(0.0F, iconY);
     m_title->setPosition(showIcon ? m_icon->width() + spacing : 0.0F, labelY);
+    m_previousTitle->setPosition(m_title->x(), std::round((contentHeight - m_previousTitle->height()) * 0.5F));
 
     const float contentWidth = showTitle ? m_title->x() + m_title->width() : iconWidth;
-    rootNode->setSize(std::clamp(contentWidth, minLength, maxLength), contentHeight);
+    animateLength(std::clamp(contentWidth, minLength, maxLength));
+    rootNode->setSize(m_titleLength, contentHeight);
     m_titleClip->setSize(rootNode->width(), rootNode->height());
+  }
+}
+
+void ActiveWindowWidget::animateLength(float target) {
+  if (!m_lengthInitialized || m_animations == nullptr) {
+    m_titleLength = m_titleTargetLength = target;
+    m_lengthInitialized = true;
+  } else if (std::abs(target - m_titleTargetLength) > 0.5F) {
+    m_titleTargetLength = target;
+    m_animations->cancelForOwner(this);
+    m_animations->animate(
+        m_titleLength, target, Style::animNormal * 1.5F, Easing::EaseInOutCubic,
+        [this](float value) {
+          m_titleLength = value;
+          requestUpdate();
+        },
+        {}, this
+    );
+    requestFrameTick();
   }
 }
 
@@ -306,7 +317,7 @@ void ActiveWindowWidget::syncState(Renderer& renderer) {
 
   std::string iconPath = emptyState ? std::string{} : resolveIconPath(appId, m_lastIconRenderScale);
 
-  if (m_title->text() != m_lastTitle && m_vertical && m_verticalTitle && m_animations != nullptr) {
+  if (m_title->text() != m_lastTitle && m_lengthInitialized && m_animations != nullptr) {
     m_previousTitle->setText(m_title->text());
     m_animations->cancelForOwner(m_title);
     m_titleBlend = 0.0F;

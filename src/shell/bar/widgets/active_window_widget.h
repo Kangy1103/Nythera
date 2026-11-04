@@ -45,12 +45,13 @@ public:
 
   ~ActiveWindowWidget() override;
   void create() override;
-  [[nodiscard]] bool animatesBarSize() const noexcept override { return m_vertical && m_verticalTitle; }
+  [[nodiscard]] bool animatesBarSize() const noexcept override { return true; }
 
 private:
   void doLayout(Renderer& renderer, float containerWidth, float containerHeight) override;
   void doUpdate(Renderer& renderer) override;
   void applyTitleScrollMode(bool titleVisible);
+  void animateLength(float target);
   void syncWidgetVisibility(bool showWidget);
   void syncState(Renderer& renderer);
   [[nodiscard]] int iconTargetSize() const noexcept;
