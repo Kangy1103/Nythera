@@ -2360,6 +2360,26 @@ namespace noctalia::config::schema {
       return s;
     }
 
+    // Bar background presentation is a concrete string so the settings selector and
+    // TOML config share the same stable values.
+    Field<BarConfig> barSurfaceModeField() {
+      return custom<BarConfig>(
+          "surface_mode",
+          [](const toml::table& tbl, BarConfig& out, std::string_view parentPath, Diagnostics& diag) {
+            if (auto v = tbl["surface_mode"].value<std::string>()) {
+              if (*v == "full" || *v == "islands") {
+                out.surfaceMode = *v;
+              } else {
+                diag.warn(joinPath(parentPath, "surface_mode"), "expected full or islands, got \"" + *v + "\"");
+              }
+            } else {
+              warnWrongType(tbl, "surface_mode", parentPath, diag, "a string");
+            }
+          },
+          [](toml::table& tbl, const BarConfig& in) { tbl.insert_or_assign("surface_mode", in.surfaceMode); }
+      );
+    }
+
     // layer accepts top|overlay (concrete string member); anything else warns.
     Field<BarConfig> barLayerField() {
       return custom<BarConfig>(
@@ -2577,6 +2597,7 @@ namespace noctalia::config::schema {
         barLayerField(),
         field(&BarConfig::thickness, "thickness", kBarThicknessRange),
         field(&BarConfig::backgroundOpacity, "background_opacity", kBarOpacityRange),
+        barSurfaceModeField(),
         field(&BarConfig::compositorBlur, "compositor_blur"),
         colorField(&BarConfig::border, "border"),
         field(&BarConfig::borderWidth, "border_width", kBarBorderWidthRange),

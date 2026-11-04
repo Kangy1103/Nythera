@@ -249,6 +249,26 @@ const char* malloc_conf = "background_thread:true,narenas:2,dirty_decay_ms:1000,
 #endif
 
 int main(int argc, char* argv[]) {
+  // A direct repo launch must be as isolated as the shell switcher's launch.
+  // FileUtils appends /noctalia to these application-specific base directories.
+  const auto privateHome = [](const char* overrideName, const char* xdgName, const char* fallback) {
+    if (const char* current = std::getenv(overrideName); current != nullptr && current[0] != '\0') {
+      return;
+    }
+    std::string base;
+    if (const char* xdg = std::getenv(xdgName); xdg != nullptr && xdg[0] != '\0') {
+      base = xdg;
+    } else if (const char* home = std::getenv("HOME"); home != nullptr && home[0] != '\0') {
+      base = std::string(home) + fallback;
+    } else {
+      return;
+    }
+    base += "/cyberpunk-shell";
+    (void)::setenv(overrideName, base.c_str(), 1);
+  };
+  privateHome("NOCTALIA_CONFIG_HOME", "XDG_CONFIG_HOME", "/.config");
+  privateHome("NOCTALIA_STATE_HOME", "XDG_STATE_HOME", "/.local/state");
+  privateHome("NOCTALIA_DATA_HOME", "XDG_DATA_HOME", "/.local/share");
 
 #if defined(__GLIBC__) && !defined(NOCTALIA_USE_JEMALLOC)
   mallopt(M_ARENA_MAX, 2);

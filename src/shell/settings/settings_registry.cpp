@@ -3742,6 +3742,16 @@ namespace settings {
           barReservedSlider(bar.borderWidth, 20.0F, 0.5F, false), "outline stroke", true
       ));
       entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.surface-mode.label"),
+          tr("settings.schema.bar.surface-mode.description"), path("surface_mode"),
+          asSegmented(plainSelect(
+              {{"full", "settings.options.bar.surface-mode.full"},
+               {"islands", "settings.options.bar.surface-mode.islands"}},
+              bar.surfaceMode
+          )),
+          "bar surface full continuous floating islands capsules"
+      ));
+      entries.push_back(makeEntry(
           section, "effects", tr("settings.schema.shared.background-opacity.label"),
           tr("settings.schema.bar.background-opacity.description"), path("background_opacity"),
           SliderSetting{bar.backgroundOpacity, 0.0F, 1.0F, 0.01F, false}, "alpha transparency translucent opacity"

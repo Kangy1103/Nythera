@@ -987,7 +987,7 @@ namespace {
     };
 
     instance.shadow->setHitTestVisible(false);
-    instance.shadow->setVisible(true);
+    instance.shadow->setVisible(instance.barConfig.surfaceMode != "islands");
     configureShadow(instance.shadow, shadowX, shadowY);
 
     if (instance.shadowLeftClip != nullptr) {
@@ -2670,21 +2670,6 @@ void Bar::populateWidgets(BarInstance& instance) {
   createWidgets(instance.barConfig.centerWidgets, instance.centerWidgets);
   createWidgets(instance.barConfig.endWidgets, instance.endWidgets);
 
-#ifndef NDEBUG
-  // Prepend a red "debug" pill to the end section if running a debug build
-  auto debugWidget = m_widgetFactory->create(
-      "debug_indicator", instance.output, instance.barConfig.scale, instance.barConfig.position,
-      instance.barConfig.name, static_cast<float>(instance.barConfig.widgetSpacing)
-  );
-  if (debugWidget != nullptr) {
-    debugWidget->setConfigName("debug_indicator");
-    debugWidget->setFontScale(instance.barConfig.fontScale);
-    debugWidget->setLabelFontWeight(labelFontWeight);
-    debugWidget->setLabelFontFamily(barFontFamily);
-    debugWidget->create();
-    instance.endWidgets.insert(instance.endWidgets.begin(), std::move(debugWidget));
-  }
-#endif
 }
 
 void Bar::attachWidgetsToSections(BarInstance& instance) {
@@ -3237,9 +3222,10 @@ void Bar::applyBackgroundPalette(BarInstance& instance) {
     return;
   }
   auto style = instance.bg->style();
-  style.fill = colorForRole(ColorRole::Surface, instance.barConfig.backgroundOpacity);
+  const bool islands = instance.barConfig.surfaceMode == "islands";
+  style.fill = colorForRole(ColorRole::Surface, islands ? 0.0F : instance.barConfig.backgroundOpacity);
   style.border = resolveColorSpec(instance.barConfig.border);
-  style.borderWidth = instance.barConfig.borderWidth;
+  style.borderWidth = islands ? 0.0F : instance.barConfig.borderWidth;
   instance.bg->setStyle(style);
 }
 
@@ -3342,7 +3328,8 @@ void Bar::applyBarCompositorBlur(BarInstance& instance) const {
   if (instance.surface == nullptr) {
     return;
   }
-  if (!instance.barConfig.compositorBlur || !barContentVisuallyShown(instance)) {
+  if (instance.barConfig.surfaceMode == "islands" || !instance.barConfig.compositorBlur
+      || !barContentVisuallyShown(instance)) {
     instance.surface->clearBlurRegion();
     return;
   }
@@ -3568,14 +3555,16 @@ void Bar::buildScene(BarInstance& instance, std::uint32_t width, std::uint32_t h
   // draws only outside the rect, so any size mismatch is visible at corners.
   if (instance.bg != nullptr) {
     const RoundedRectStyle bgStyle{
-        .fill = colorForRole(ColorRole::Surface, instance.barConfig.backgroundOpacity),
+        .fill = colorForRole(
+            ColorRole::Surface, instance.barConfig.surfaceMode == "islands" ? 0.0F : instance.barConfig.backgroundOpacity
+        ),
         .border = resolveColorSpec(instance.barConfig.border),
         .fillMode = FillMode::Solid,
         .corners = concave.corners,
         .logicalInset = concave.logicalInset,
         .radius = concave.radii,
         .softness = 0.0F,
-        .borderWidth = instance.barConfig.borderWidth,
+        .borderWidth = instance.barConfig.surfaceMode == "islands" ? 0.0F : instance.barConfig.borderWidth,
     };
     instance.bg->setStyle(bgStyle);
     // (barAreaX/Y/W/H) is the body; the shader expands outward by logicalInset into

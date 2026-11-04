@@ -54,6 +54,10 @@
         }
       },
       "bar": {
+        "surface-mode": {
+          "description": "Choose one continuous bar background or separate capsule surfaces for the bar lanes",
+          "label": "Bar Surface"
+        },
         "widget-icon-color": {
           "label": "Widget Icon Colour"
         }

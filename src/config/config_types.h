@@ -155,6 +155,9 @@ struct BarConfig {
   std::string layer = "top"; // top | overlay; attached panels use the same layer
   std::int32_t thickness = Style::barThicknessDefault;
   float backgroundOpacity = 1.0F;
+  // Bar background presentation: "full" draws one continuous bar surface; "islands"
+  // leaves the lane-group capsules as separate surfaces.
+  std::string surfaceMode = "full";
   bool compositorBlur = true;
   // Inside outline for the bar background; attached panels inherit the resolved values.
   ColorSpec border = colorSpecFromRole(ColorRole::OutlineVariant);
