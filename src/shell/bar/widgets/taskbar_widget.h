@@ -296,6 +296,7 @@ private:
   float m_tilePitchMain = 0.0F; // Main-axis distance between adjacent tiles; set while building the flat strip.
   bool m_rebuildPending = true;
   bool m_vertical = false;
+  float m_iconRenderScale = 1.0F;
   float m_containerWidth = 0.0F;
   float m_containerHeight = 0.0F;
   std::uint64_t m_textMetricsGeneration = 0;

@@ -4668,7 +4668,8 @@
         },
         "font-scale": {
           "description": "Scale multiplier for text in this widget, independent of the widget's overall scale",
-          "label": "Font Scale"
+          "label": "Font Scale",
+          "taskbar-description": "Scale text and workspace-label backgrounds together; application icons keep their own scale."
         },
         "font-weight": {
           "description": "Default inherits the bar font weight",

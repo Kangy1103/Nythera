@@ -30,6 +30,22 @@ namespace noctalia::bar {
     return maxChars == 0 || numeric ? std::string(text) : StringUtils::truncateUtf8CodePoints(text, maxChars);
   }
 
+  struct TaskbarBadgeSize {
+    float width = 0.0F;
+    float height = 0.0F;
+  };
+
+  [[nodiscard]] inline TaskbarBadgeSize
+  taskbarBadgeSize(float textWidth, float textHeight, float minHeight, float textScale) {
+    const float height = std::ceil(std::max(minHeight, textHeight + 2.0F * textScale));
+    return {std::ceil(std::max(height, textWidth + 2.0F * Style::spaceXs * textScale)), height};
+  }
+
+  // The resolver takes physical pixels; Image takes logical pixels and applies output scale itself.
+  [[nodiscard]] inline int taskbarIconRasterSize(float logicalSize, float renderScale = 1.0F) {
+    return std::max(1, static_cast<int>(std::ceil(logicalSize * renderScale * 2.0F)));
+  }
+
   // External horizontal badges protrude before the capsule. Reserve their actual remaining
   // extent plus a gap; the previous fractional reservation overlapped the first application.
   [[nodiscard]] inline float

@@ -136,6 +136,17 @@ public:
 
 int main() {
   using namespace noctalia::bar;
+  const auto smallBadge = taskbarBadgeSize(6.0F, 8.0F, 12.0F, 1.0F);
+  const auto largeBadge = taskbarBadgeSize(12.0F, 16.0F, 24.0F, 2.0F);
+  TEST_CHECK(largeBadge.width == smallBadge.width * 2.0F);
+  TEST_CHECK(largeBadge.height == smallBadge.height * 2.0F);
+  const auto tallBadge = taskbarBadgeSize(5.0F, 18.0F, 12.0F, 1.0F);
+  TEST_CHECK(tallBadge.height >= 20.0F);
+  TEST_CHECK(tallBadge.width >= tallBadge.height);
+  TEST_CHECK(taskbarIconRasterSize(16.0F) == 32);
+  TEST_CHECK(taskbarIconRasterSize(16.0F, 1.5F) == 48);
+  TEST_CHECK(taskbarIconRasterSize(16.0F, 2.0F) == 64);
+  TEST_CHECK(taskbarIconRasterSize(16.25F, 1.5F) >= 49);
   TEST_CHECK(taskbarWorkspaceLabel("Gaming", 1) == "G");
   TEST_CHECK(taskbarWorkspaceLabel("Main", 2) == "Ma");
   TEST_CHECK(taskbarWorkspaceLabel("Gaming", 0) == "Gaming");

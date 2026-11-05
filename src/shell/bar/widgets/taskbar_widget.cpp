@@ -107,29 +107,23 @@ namespace {
     return minFontSize;
   }
 
-  struct WorkspaceDiscSize {
-    float width = 0.0F;
-    float height = 0.0F;
-  };
+  using WorkspaceDiscSize = noctalia::bar::TaskbarBadgeSize;
 
   [[nodiscard]] WorkspaceDiscSize measureWorkspaceDiscSize(
       Renderer& renderer, std::string_view label, float fontSize, float minHeight, float scale, const TextFont& font
   ) {
     const auto metrics = renderer.measureText(label, fontSize, font);
     const float textW = std::max(0.0F, metrics.right - metrics.left);
-    const float pad = Style::spaceXs * scale;
-    WorkspaceDiscSize size{};
-    size.height = minHeight;
-    size.width = std::round(std::max(minHeight, textW + pad * 2.0F));
-    return size;
+    const float textH = std::max(0.0F, metrics.bottom - metrics.top);
+    return noctalia::bar::taskbarBadgeSize(textW, textH, minHeight, scale);
   }
 
-  [[nodiscard]] WorkspaceDiscSize clampWorkspaceDiscToCrossLimit(WorkspaceDiscSize disc, float maxCross) {
+  [[nodiscard]] WorkspaceDiscSize clampWorkspaceDiscToCrossLimit(WorkspaceDiscSize disc, float maxCross, bool vertical) {
     if (maxCross <= 0.0F) {
       return disc;
     }
     const float limit = std::floor(maxCross);
-    disc.width = std::min(disc.width, limit);
+    if (vertical) disc.width = std::min(disc.width, limit);
     disc.height = std::min(disc.height, limit);
     return disc;
   }
@@ -796,6 +790,12 @@ void TaskbarWidget::doLayout(Renderer& renderer, float containerWidth, float con
   }
   m_containerWidth = containerWidth;
   m_containerHeight = containerHeight;
+  if (m_iconRenderScale != renderer.renderScale()) {
+    m_iconRenderScale = renderer.renderScale();
+    // Re-resolve bitmap source sizes for the new output on the next model update.
+    requestUpdate();
+    m_rebuildPending = true;
+  }
   const std::uint64_t textMetricsGeneration = renderer.textMetricsGeneration();
   if (m_textMetricsGeneration != textMetricsGeneration) {
     m_textMetricsGeneration = textMetricsGeneration;
@@ -1210,7 +1210,7 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
       } else {
         image->setAppIconColorization(effectiveShellAppIconColorizationTint(m_configService.config().shell));
       }
-      image->setSourceFile(renderer, task.icon.path, static_cast<int>(std::round(iconSize)), true);
+      image->setSourceFile(renderer, task.icon.path, noctalia::bar::taskbarIconRasterSize(iconSize), true);
       if (image->hasImage()) {
         iconHost->addChild(std::move(image));
       } else {
@@ -1369,10 +1369,10 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
 
     const bool inlineBadge = m_showWorkspaceLabel && m_workspaceLabelPlacement == WorkspaceLabelPlacement::Inside;
     const bool externalBadge = m_showWorkspaceLabel && !inlineBadge;
-    const float badgeBase = std::round(std::max(11.0F, Style::baseGlyphSize * 0.72F) * m_contentScale);
-    const float externalBadgeFontSize = std::round(Style::fontSizeCaption * 0.72F * fontScale());
+    const float badgeBase = std::round(std::max(11.0F, Style::baseGlyphSize * 0.72F) * fontScale());
+    const float externalBadgeFontSize = std::round(Style::fontSizeMini * fontScale());
 
-    const float externalBadgeCrossLimit = m_vertical && crossExtent > 0.0F
+    const float externalBadgeCrossLimit = crossExtent > 0.0F
         ? std::max(0.0F, (m_workspaceGroupCapsule ? groupedCrossInner : crossExtent) - 2.0F * groupOutlineInset)
         : 0.0F;
 
@@ -1384,10 +1384,8 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
       float maxMainStart = 0.0F;
       for (const auto& wsm : m_workspaces) {
         auto measuredDisc =
-            measureWorkspaceDiscSize(renderer, wsm.label, externalBadgeFontSize, badgeBase, m_contentScale, labelFont);
-        if (m_vertical) {
-          measuredDisc = clampWorkspaceDiscToCrossLimit(measuredDisc, externalBadgeCrossLimit);
-        }
+            measureWorkspaceDiscSize(renderer, wsm.label, externalBadgeFontSize, badgeBase, fontScale(), labelFont);
+        measuredDisc = clampWorkspaceDiscToCrossLimit(measuredDisc, externalBadgeCrossLimit, m_vertical);
         const float badgeMain = m_vertical ? measuredDisc.height : measuredDisc.width;
         maxMainStart = std::max(maxMainStart, externalBadgeMainStartInset(m_workspaceLabelPlacement, badgeMain));
       }
@@ -1692,10 +1690,8 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
       std::optional<WorkspaceDiscSize> externalBadgeDisc;
       if (externalBadge) {
         externalBadgeDisc =
-            measureWorkspaceDiscSize(renderer, ws.label, externalBadgeFontSize, badgeBase, m_contentScale, labelFont);
-        if (m_vertical) {
-          *externalBadgeDisc = clampWorkspaceDiscToCrossLimit(*externalBadgeDisc, externalBadgeCrossLimit);
-        }
+            measureWorkspaceDiscSize(renderer, ws.label, externalBadgeFontSize, badgeBase, fontScale(), labelFont);
+        *externalBadgeDisc = clampWorkspaceDiscToCrossLimit(*externalBadgeDisc, externalBadgeCrossLimit, m_vertical);
         if (!tasks.empty() || m_vertical) {
           const float contentStart = std::ceil(noctalia::bar::taskbarBadgeContentStart(
               m_vertical, m_workspaceLabelPlacement == WorkspaceLabelPlacement::Corner,
@@ -1733,15 +1729,13 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
 
       if (inlineBadge && m_showWorkspaceLabel) {
         const float inlineBadgeFontSize = std::round(Style::fontSizeCaption * 0.85F * fontScale());
-        const float inlineBadgeHeight = std::round(std::max(10.0F, iconSize - (Style::spaceXs * m_contentScale)));
+        const float inlineBadgeHeight = std::round(
+            std::max(10.0F, iconSize - Style::spaceXs * m_contentScale) * fontScaleMultiplier());
         WorkspaceDiscSize disc = measureWorkspaceDiscSize(
-            renderer, ws.label, inlineBadgeFontSize, inlineBadgeHeight, m_contentScale, labelFont
+            renderer, ws.label, inlineBadgeFontSize, inlineBadgeHeight, fontScale(), labelFont
         );
-        disc.height = inlineBadgeHeight;
         disc.width = std::round(std::max(inlineBadgeHeight, disc.width));
-        if (m_vertical) {
-          disc = clampWorkspaceDiscToCrossLimit(disc, externalBadgeCrossLimit);
-        }
+        disc = clampWorkspaceDiscToCrossLimit(disc, externalBadgeCrossLimit, m_vertical);
         group->addChild(createWorkspaceBadge(ws, disc, true));
       }
 
@@ -3456,7 +3450,8 @@ void TaskbarWidget::buildDesktopIconIndex() {
 
 ResolvedIcon TaskbarWidget::resolveIcon(const std::string& appId, const std::string& iconNameOrPath) {
   const int iconTargetSize =
-      std::max(1, static_cast<int>(std::round(Style::baseGlyphSize * m_configOptions.iconScale * m_contentScale)));
+      noctalia::bar::taskbarIconRasterSize(
+          Style::baseGlyphSize * m_configOptions.iconScale * m_contentScale, m_iconRenderScale);
 
   auto resolveIconName = [this, iconTargetSize](const std::string& name) -> ResolvedIcon {
     if (name.empty()) {

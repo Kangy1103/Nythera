@@ -297,6 +297,10 @@ const noctalia::bar::WidgetDefinition<TaskbarWidgetOptions>& taskbarWidgetDefini
                       },
                   .commonOverrides = {
                       {
+                          .key = "font_scale",
+                          .descriptionKey = "settings.widgets.settings.font-scale.taskbar-description",
+                      },
+                      {
                           .key = "scale",
                           .descriptionKey = "settings.widgets.settings.scale.taskbar-description",
                       },
