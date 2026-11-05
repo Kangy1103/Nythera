@@ -18,7 +18,10 @@ namespace noctalia::bar {
     if (shellCross <= 0.0F)
       return requested;
     const float unitTile = Style::baseGlyphSize * iconScale + 2.0F * Style::spaceXs * 0.35F;
-    const float unitGroup = unitTile + 2.0F * Style::spaceXs + (groupCapsule ? 2.0F * Style::borderWidth : 0.0F);
+    // Group layout already compresses its cross-axis padding when space is tight.
+    // Reserve its minimum clearance here, rather than the full decorative padding.
+    const float unitGroup = unitTile + 2.0F * Style::spaceXs * 0.35F
+        + (groupCapsule ? 2.0F * Style::borderWidth : 0.0F);
     const float unitNesting =
         outerCapsule && groupCapsule ? 2.0F * (outerBorderWidth + Style::borderWidth + Style::spaceXs * 0.25F) : 0.0F;
     // Leave room for integer-pixel rounding at the fitted boundary.

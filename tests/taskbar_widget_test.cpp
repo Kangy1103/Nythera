@@ -166,6 +166,14 @@ int main() {
     }
   }
   TEST_CHECK(fitTaskbarGroupScale(0.5F, 38.0F, 0.9F, true, true, 1.0F) == 0.5F);
+  // A 32px island interior can fit 23px icons after squeezing decorative padding;
+  // reserving full group padding used to stop the icons at 20px.
+  const float islandScale = fitTaskbarGroupScale(2.0F, 32.0F, 1.5F, false, true, 1.0F);
+  const float islandIcon = std::round(Style::baseGlyphSize * 1.5F * islandScale);
+  TEST_CHECK(islandIcon >= 23.0F);
+  const float islandTile = std::round(islandIcon + 2.0F * Style::spaceXs * 0.35F * islandScale);
+  const float islandClearance = 2.0F * std::round(std::max(1.0F, Style::spaceXs * 0.35F * islandScale));
+  TEST_CHECK(islandTile + islandClearance + 2.0F * Style::borderWidth * islandScale <= 32.0F);
   TEST_CHECK(fitTaskbarGroupScale(2.0F, 76.0F, 0.9F, true, true, 1.0F)
              > fitTaskbarGroupScale(2.0F, 38.0F, 0.9F, true, true, 1.0F));
   TEST_CHECK(taskbarBadgeContentStart(false, true, 40.0F, 1.0F, 4.0F) >= 32.0F + 4.0F);

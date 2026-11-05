@@ -137,7 +137,9 @@ workspace name. Labels leave a clear gap before the first application icon.
 Grouped Scale applies one fitted scale to labels, application icons, borders and
 spacing. Increasing it grows the group until it reaches the bar/capsule's fixed
 cross-axis size; further increases stop growing the whole group instead of taking
-space away from its icons. Increase the bar thickness or capsule thickness to allow
+space away from its icons. Under pressure, group padding compresses before the
+scale is capped; the fit calculation reserves minimum clearance rather than full
+decorative padding. Increase the bar thickness or capsule thickness to allow
 a larger group. Font Scale grows workspace-label text, background and padding
 together; Icon Scale remains independent. Label growth is capped by the available
 bar/capsule thickness. No separate label-scale setting is needed.
