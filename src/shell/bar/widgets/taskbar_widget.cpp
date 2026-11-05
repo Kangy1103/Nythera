@@ -1210,7 +1210,9 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
       } else {
         image->setAppIconColorization(effectiveShellAppIconColorizationTint(m_configService.config().shell));
       }
-      image->setSourceFile(renderer, task.icon.path, noctalia::bar::taskbarIconRasterSize(iconSize), true);
+      const std::string iconPath = m_iconResolver.resolveVectorForSize(
+          task.icon.path, static_cast<int>(std::round(iconSize * renderer.renderScale())));
+      image->setSourceFile(renderer, iconPath, static_cast<int>(std::round(iconSize)), false);
       if (image->hasImage()) {
         iconHost->addChild(std::move(image));
       } else {

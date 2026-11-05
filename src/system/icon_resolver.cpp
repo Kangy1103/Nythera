@@ -730,6 +730,41 @@ ResolvedIcon IconResolver::resolveSymbolicPreferred(const std::string& iconName,
   return result;
 }
 
+std::string IconResolver::resolveVectorForSize(const std::string& resolvedPath, int targetSize) {
+  ensureFresh();
+  if (!resolvedPath.ends_with(".svg")) {
+    return resolvedPath;
+  }
+  const auto slash = resolvedPath.find_last_of('/');
+  const auto owner = std::ranges::find_if(m_searchDirs, [&](const IconSearchDir& dir) {
+    return dir.path == resolvedPath.substr(0, slash + 1);
+  });
+  if (owner == m_searchDirs.end()) {
+    return resolvedPath;
+  }
+  const std::string filename = resolvedPath.substr(slash + 1);
+  const auto context = fs::path(owner->path).parent_path().filename();
+  std::string best = resolvedPath;
+  int bestDistance = std::numeric_limits<int>::max();
+  int bestNominalDistance = std::numeric_limits<int>::max();
+  targetSize = std::max(1, targetSize);
+  for (const auto& dir : m_searchDirs) {
+    if (dir.theme != owner->theme || fs::path(dir.path).parent_path().filename() != context
+        || !pathExists(dir.path + filename)) {
+      continue;
+    }
+    const int distance = dir.size > 0 ? std::max({0, dir.minSize - targetSize, targetSize - dir.maxSize})
+                                      : std::numeric_limits<int>::max();
+    const int nominalDistance = dir.size > 0 ? std::abs(dir.size - targetSize) : std::numeric_limits<int>::max();
+    if (distance < bestDistance || (distance == bestDistance && nominalDistance < bestNominalDistance)) {
+      best = dir.path + filename;
+      bestDistance = distance;
+      bestNominalDistance = nominalDistance;
+    }
+  }
+  return best;
+}
+
 std::string IconResolver::resolveStatusVector(const std::string& iconName, int targetSize) {
   if (iconName.empty()) {
     return {};

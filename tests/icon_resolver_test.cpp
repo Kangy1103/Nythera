@@ -183,6 +183,19 @@ int main() {
   }
 
   IconResolver resolver(true);
+  bool sizedVectorOk = expect(
+      resolver.resolveVectorForSize(symbolicAppScalable.string(), 16) == symbolicApp16.string(),
+      "small application icons must use their size-specific SVG artwork");
+  sizedVectorOk = expect(
+      resolver.resolveVectorForSize(symbolicApp16.string(), 64) == symbolicAppScalable.string(),
+      "large application icons must use their scalable SVG artwork") && sizedVectorOk;
+  sizedVectorOk = expect(
+      resolver.resolveVectorForSize(bitmapStatus.string(), 16) == bitmapStatus.string(),
+      "vector artwork selection must leave bitmap sources unchanged") && sizedVectorOk;
+  if (!sizedVectorOk) {
+    fs::remove_all(root);
+    return 1;
+  }
   const auto initialGeneration = IconResolver::themeGeneration();
   std::ofstream(iconThemeRoot / "index.theme") << indexContents;
   ok = expect(!IconResolver::checkThemePlanChanged(), "an equivalent theme metadata rewrite should be ignored") && ok;

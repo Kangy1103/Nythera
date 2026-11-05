@@ -142,5 +142,9 @@ a larger group. Font Scale grows workspace-label text, background and padding
 together; Icon Scale remains independent. Label growth is capped by the available
 bar/capsule thickness. No separate label-scale setting is needed.
 
-Application icons use twice their display resolution, with output-scale-aware
-source selection, to improve sharpness without changing their displayed size.
+Application icons select size-specific SVG artwork within the selected theme and
+render at the output's physical display resolution without mipmap downsampling.
+Bitmap source selection accounts for output scale and requests enough source
+detail for downscaling. Displayed size and inactive opacity remain configurable
+through the existing controls; higher-resolution sources cannot add detail beyond
+the final on-screen pixel size.
