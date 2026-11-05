@@ -2064,7 +2064,7 @@
           "label": "Frame Rounding",
           "description": "Radius of the rounded desktop opening in logical pixels"
         },
-        "dynamic-media": {"label": "Island Media", "description": "Show track-change feedback and an expandable player in Dynamic Island mode"},
+        "dynamic-media": {"label": "Island Media", "description": "Show track changes, playback starting/resuming and an expandable player in Dynamic Island mode"},
         "dynamic-volume": {"label": "Island Volume", "description": "Route volume and microphone feedback into Dynamic Island instead of the ordinary OSD"},
         "dynamic-brightness": {"label": "Island Brightness", "description": "Route brightness feedback into Dynamic Island instead of the ordinary OSD"},
         "dynamic-hover-expand": {"label": "Island Hover Expansion", "description": "Expand the current event or player on hover; clicking pins it until closed"},

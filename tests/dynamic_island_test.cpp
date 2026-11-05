@@ -2,11 +2,28 @@
 #include "config/schema/engine.h"
 #include "core/toml.h"
 #include "shell/bar/dynamic_island.h"
+#include "shell/osd/media_osd.h"
 #include "shell/settings/settings_registry.h"
 
 #include <cassert>
 
 int main() {
+  MediaPlaybackStartState playback;
+  assert(!playback.observe("Playing", true, true)); // Discovery is silent.
+  assert(!playback.observe("Paused", true, true));
+  assert(playback.observe("Playing", true, true));  // Resume.
+  assert(!playback.observe("Playing", true, true)); // Position/metadata updates cannot retrigger.
+  assert(!playback.observe("Stopped", true, true));
+  assert(!playback.observe("Playing", false, true)); // Wait for title.
+  assert(playback.observe("Playing", true, true));
+  assert(!playback.observe("Paused", true, true));
+  assert(!playback.observe("Playing", true, false)); // Background playback stays silent.
+  assert(!playback.observe("Playing", true, true));  // Focus/player selection is not Play.
+  assert(!playback.observe("Stopped", true, true));
+  assert(!playback.observe("Playing", false, true));
+  assert(!playback.observe("Paused", false, true)); // Pause cancels a pending start.
+  assert(!playback.observe("Paused", true, true));
+
   DynamicIslandState state;
   state.push(IslandEvent::Media, 0, 10000);
   state.push(IslandEvent::Volume, 100, 1000);

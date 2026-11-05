@@ -69,6 +69,11 @@ void MediaOsd::onMprisChanged(const MprisService& service) {
       }
     }
 
+    if (state.playback.observe(player.playbackStatus, !player.title.empty(), player.busName == activeBusName)
+        && m_playbackStarted) {
+      m_playbackStarted(makeTrackContent(player));
+    }
+
     // A titleless snapshot is a loading or seeking placeholder, not a track. Leaving the signature
     // untouched means the real metadata coming back does not read as a change.
     if (player.title.empty()) {
