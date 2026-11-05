@@ -41,10 +41,10 @@ if get_option('buildtype') != 'release'
   endif
 endif
 
-# Auto mode defines tests for unsanitized debug builds. `just build` targets
+# Auto mode defines tests for unsanitized development builds. `just build` targets
 # only the shell executable, while `just test` builds and runs the test targets.
 tests_opt = get_option('tests')
-build_tests = tests_opt.enabled() or (tests_opt.auto() and get_option('buildtype') == 'debug' and not sanitize)
+build_tests = tests_opt.enabled() or (tests_opt.auto() and get_option('buildtype') in ['debug', 'debugoptimized'] and not sanitize)
 
 # ── Release-only optimizations ────────────────────────────────────────────────
 if get_option('buildtype') == 'release'

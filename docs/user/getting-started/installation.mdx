@@ -434,13 +434,13 @@ Requires [just](https://github.com/casey/just) and [meson](https://mesonbuild.co
     To remove files installed from a build directory, run `just uninstall release`.
   </TabItem>
 
-  <TabItem label="Debug Mode">
+  <TabItem label="Development Mode">
     ```bash
-    # Debug build in build-debug/ for local development and troubleshooting.
+    # Optimised development build with debug information in build-debug/.
     just configure
     just build
 
-    # Test your local debug build with 
+    # Run your local development build.
     just run
     ```
   </TabItem>

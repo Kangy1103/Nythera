@@ -163,18 +163,20 @@ just build release
 just install release
 ```
 
-To remove files installed from a build directory, run `just uninstall release`. The `install` and `uninstall` recipes require an explicit build mode so debug builds are not installed by accident.
+To remove files installed from a build directory, run `just uninstall release`. The `install` and `uninstall` recipes require an explicit build mode so development builds are not installed by accident.
 
-### Debug build
+### Daily/development build
 
 ```sh
-# Debug build in build-debug/ for local development and troubleshooting.
+# Optimised build with debug information in build-debug/.
 just configure
 just build
 
-# Test your local debug build with
+# Run the local development build.
 just run
 ```
+
+This fork uses Meson's `debugoptimized` build type (`-O2` with debug information) for the default build. The existing `build-debug/` name and shell-switcher path are retained, so daily use and troubleshooting share one executable. Both `just configure` and `just build` preserve this default. To temporarily rebuild without compiler optimisations, use `just debug-buildtype=debug build`; the next ordinary `just build` returns to `debugoptimized`. ASan remains unoptimised and the explicit release mode is unchanged.
 
 Unit tests are not compiled by `just build`, which targets only the Noctalia executable. Build and run them explicitly with `just test` (use `just test release` to force them on for a release build). Direct Meson users can control test target generation with the `-Dtests=enabled|disabled|auto` option. Production sources compile once into an internal static library shared by the shell and test executables.
 

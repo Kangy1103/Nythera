@@ -1,6 +1,8 @@
 set positional-arguments
 
 mode := "debug"
+# Keep one daily/development build in the existing build-debug directory.
+debug-buildtype := "debugoptimized"
 build-dir := "build-" + mode
 prefix := "/usr/local"
 cpp-std := "c++23"
@@ -11,7 +13,7 @@ default:
 configure m=mode install_prefix=prefix:
     #!/usr/bin/env bash
     set -euo pipefail
-    args=(--buildtype={{ if m == "release" { "release" } else { "debug" } }} -Dcpp_std={{cpp-std}} -Dtests=auto)
+    args=(--buildtype={{ if m == "release" { "release" } else if m == "asan" { "debug" } else { debug-buildtype } }} -Dcpp_std={{cpp-std}} -Dtests=auto)
     [[ "{{m}}" == "release" ]] && args+=(-Db_lto=true)
     [[ "{{m}}" == "asan"    ]] && args+=(-Db_sanitize=address,undefined)
     if [[ -d "build-{{m}}" ]]; then
@@ -34,7 +36,10 @@ _ensure-configured m=mode:
     configure_output="$(meson configure "build-{{m}}")"
     current_cpp_std="$(awk '$1 == "cpp_std" { print $2; found=1 } END { if (!found) exit 1 }' <<<"$configure_output")"
     current_tests="$(awk '$1 == "tests" { print $2; found=1 } END { if (!found) exit 1 }' <<<"$configure_output")"
+    current_buildtype="$(awk '$1 == "buildtype" { print $2; found=1 } END { if (!found) exit 1 }' <<<"$configure_output")"
+    desired_buildtype="{{ if m == "release" { "release" } else if m == "asan" { "debug" } else { debug-buildtype } }}"
     args=()
+    [[ "$current_buildtype" != "$desired_buildtype" ]] && args+=(-Dbuildtype="$desired_buildtype")
     [[ "$current_cpp_std" != "{{cpp-std}}" ]] && args+=(-Dcpp_std={{cpp-std}})
     [[ "$current_tests" != "auto" ]] && args+=(-Dtests=auto)
     if (( ${#args[@]} > 0 )); then
