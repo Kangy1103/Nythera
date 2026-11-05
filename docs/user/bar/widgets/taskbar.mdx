@@ -125,3 +125,17 @@ while DP-3 lists DP-3's. Windows on inactive workspaces remain represented when
 listed. The grouping and monitor filtering are existing Noctalia capabilities; no
 extra hardcoded bar widgets are required. Empty/occupied workspace layout changes
 are a separate feature from this grouping.
+
+## Workspace label length and grouped scaling
+
+The grouped Taskbar (including a named instance such as **Workspaces**) exposes
+**Max Label Characters** in **Workspace Labels**. `max_label_chars = 0` keeps full
+names; `1` gives compact labels such as M and G. Unicode characters are preserved,
+numeric labels such as 12 are not truncated, and hovering a label shows the full
+workspace name. Labels leave a clear gap before the first application icon.
+
+Grouped Scale applies one fitted scale to labels, application icons, borders and
+spacing. Increasing it grows the group until it reaches the bar/capsule's fixed
+cross-axis size; further increases stop growing the whole group instead of taking
+space away from its icons. Increase the bar thickness or capsule thickness to allow
+a larger group. The existing Font Scale and Icon Scale remain independent controls.

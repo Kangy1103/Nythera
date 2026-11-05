@@ -44,6 +44,7 @@ struct TaskbarWidgetOptions {
   bool showAllOutputs = false;
   bool onlyActiveWorkspace = false;
   bool showWorkspaceLabel = true;
+  std::size_t maxLabelChars = 0; // zero keeps the complete name; numeric workspace labels stay intact.
   WorkspaceLabelPlacement workspaceLabelPlacement = WorkspaceLabelPlacement::Corner;
   WorkspaceGroupContent workspaceGroupContent = WorkspaceGroupContent::Icons;
   ColorSpec workspaceGroupActiveBorderColor = colorSpecFromRole(ColorRole::Primary);

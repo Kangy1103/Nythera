@@ -97,6 +97,15 @@ int main() {
                 "vertical title must render as a Settings toggle") && ok;
   }
 
+  const auto taskbarSpecs = settings::widgetSettingSpecs("taskbar", nullptr, "", false);
+  const auto characterLimit = std::ranges::find_if(taskbarSpecs, [](const auto& spec) {
+    return spec.schema.key == "max_label_chars";
+  });
+  ok = expect(characterLimit != taskbarSpecs.end(), "workspace character limit missing from Taskbar Settings") && ok;
+  if (characterLimit != taskbarSpecs.end())
+    ok = expect(characterLimit->control == settings::WidgetControlKind::Int,
+                "workspace character limit must be a numeric Settings control") && ok;
+
   std::filesystem::remove_all(root);
   return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }

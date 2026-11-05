@@ -10,6 +10,7 @@
 #include "render/core/renderer.h"
 #include "render/scene/input_area.h"
 #include "shell/dock/pinned_apps.h"
+#include "shell/bar/taskbar_group_geometry.h"
 #include "shell/panel/panel_manager.h"
 #include "shell/tooltip/tooltip_manager.h"
 #include "system/app_identity.h"
@@ -864,15 +865,27 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
   if (m_taskStrip == nullptr) {
     return;
   }
+  const float barCross = m_vertical ? m_containerWidth : m_containerHeight;
+  const float capsuleThickness = barCapsuleThicknessFor(m_configService, m_barName);
+  const bool barCapsule = barCapsuleSpec().enabled;
+  const float shellCross = taskbarShellCross(barCross, barCapsule, capsuleThickness);
+  struct RestoreScale {
+    float& value;
+    float original;
+    ~RestoreScale() { value = original; }
+  } restoreScale{m_contentScale, m_contentScale};
+  if (m_groupByWorkspace) {
+    m_contentScale = noctalia::bar::fitTaskbarGroupScale(
+        m_contentScale, shellCross,
+        m_workspaceGroupContent == WorkspaceGroupContent::Icons ? m_configOptions.iconScale : 1.0F,
+        barCapsule, m_workspaceGroupCapsule,
+        barCapsuleSpec().border.has_value() ? barCapsuleSpec().borderWidth : 0.0F);
+  }
   const float effectiveIconScale =
       m_groupByWorkspace && m_workspaceGroupContent != WorkspaceGroupContent::Icons ? 1.0F : m_configOptions.iconScale;
   float iconSize = std::round(Style::baseGlyphSize * effectiveIconScale * m_contentScale);
   float tilePadding = Style::spaceXs * 0.35F * m_contentScale;
   float tileSize = std::round(iconSize + tilePadding * 2.0F);
-  const float barCross = m_vertical ? m_containerWidth : m_containerHeight;
-  const float capsuleThickness = barCapsuleThicknessFor(m_configService, m_barName);
-  const bool barCapsule = barCapsuleSpec().enabled;
-  const float shellCross = taskbarShellCross(barCross, barCapsule, capsuleThickness);
   const float crossExtent = taskbarGroupedCrossBudget(
       shellCross, barCapsule, m_groupByWorkspace && m_workspaceGroupCapsule,
       barCapsuleSpec().border.has_value() ? barCapsuleSpec().borderWidth : 0.0F, m_contentScale
@@ -1430,6 +1443,7 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
       auto wsCopy = ws.workspace;
       wl_output* const wsHost = workspaceHostOutput(ws);
       badge->setOnClick([this, wsCopy, wsHost] { m_platform.activateWorkspace(wsHost, wsCopy); });
+      badge->setTooltip(ws.workspace.name.empty() ? ws.workspace.id : ws.workspace.name);
 
       if (hover) {
         attachHover(*badge->inputArea(), disc.width, disc.height);
@@ -1683,13 +1697,12 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
           *externalBadgeDisc = clampWorkspaceDiscToCrossLimit(*externalBadgeDisc, externalBadgeCrossLimit);
         }
         if (!tasks.empty() || m_vertical) {
-          const float half =
-              std::round(m_vertical ? externalBadgeDisc->height * 0.6F : externalBadgeDisc->width * 0.6F);
-          if (m_vertical) {
-            groupPadTop += half;
-          } else {
-            groupPadLeft += half;
-          }
+          const float contentStart = std::ceil(noctalia::bar::taskbarBadgeContentStart(
+              m_vertical, m_workspaceLabelPlacement == WorkspaceLabelPlacement::Corner,
+              m_vertical ? externalBadgeDisc->height : externalBadgeDisc->width,
+              groupOutlineInset, Style::spaceXs * m_contentScale));
+          if (m_vertical) groupPadTop = std::max(groupPadTop, contentStart);
+          else groupPadLeft = std::max(groupPadLeft, contentStart);
         }
       }
       if (groupedCrossInner > 0.0F) {
@@ -1864,15 +1877,16 @@ void TaskbarWidget::updateModels() {
             ? item.workspace.id
             : (i < displayKeys.size() && !displayKeys[i].empty() ? displayKeys[i] : fallbackLabel);
         item.key = keyPrefix + baseKey;
+        const auto displayLabel = noctalia::bar::taskbarWorkspaceLabel(label, m_configOptions.maxLabelChars);
         if (useMultiOutputWorkspaceKeys()) {
           const auto ordIt = monitorOrdinal.find(wo.output);
           if (ordIt != monitorOrdinal.end()) {
-            item.label = label + "\u00B7" + std::to_string(ordIt->second);
+            item.label = displayLabel + "\u00B7" + std::to_string(ordIt->second);
           } else {
-            item.label = label;
+            item.label = displayLabel;
           }
         } else {
-          item.label = label;
+          item.label = displayLabel;
         }
         nextWorkspaces.push_back(std::move(item));
       }

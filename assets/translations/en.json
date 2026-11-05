@@ -4862,7 +4862,8 @@
         "max-label-chars": {
           "description": "Maximum number of characters to show for workspace names",
           "label": "Max Label Characters",
-          "workspaces-description": "Maximum characters for non-numeric workspace labels"
+          "workspaces-description": "Maximum characters for non-numeric workspace labels",
+          "taskbar-description": "Maximum characters for workspace names; 0 shows the full name. Numeric labels stay intact."
         },
         "max-length": {
           "description": "Maximum widget length in pixels",
@@ -4946,6 +4947,7 @@
         },
         "scale": {
           "description": "Scale this widget relative to the bar content scale",
+          "taskbar-description": "Scale labels, icons and spacing together. Grouped content stops growing when it reaches the available bar height; increase bar thickness for more room.",
           "label": "Scale"
         },
         "scope": {

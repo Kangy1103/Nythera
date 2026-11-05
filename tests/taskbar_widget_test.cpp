@@ -1,4 +1,5 @@
 #include "shell/bar/widgets/taskbar_widget.h"
+#include "shell/bar/taskbar_group_geometry.h"
 #include "tests/test_check.h"
 
 #include <cstdint>
@@ -134,6 +135,32 @@ public:
 };
 
 int main() {
+  using namespace noctalia::bar;
+  TEST_CHECK(taskbarWorkspaceLabel("Gaming", 1) == "G");
+  TEST_CHECK(taskbarWorkspaceLabel("Main", 2) == "Ma");
+  TEST_CHECK(taskbarWorkspaceLabel("Gaming", 0) == "Gaming");
+  TEST_CHECK(taskbarWorkspaceLabel("12", 1) == "12");
+  TEST_CHECK(taskbarWorkspaceLabel("日本語", 2) == "日本");
+  TEST_CHECK(taskbarWorkspaceLabel("🎮 Games", 1) == "🎮");
+  for (bool outerCapsule : {false, true}) {
+    for (bool groupCapsule : {false, true}) {
+      float previous = 0.0F;
+      for (int step = 1; step <= 40; ++step) {
+        const float requested = static_cast<float>(step) * 0.1F;
+        const float fitted = fitTaskbarGroupScale(requested, 38.0F, 0.9F, outerCapsule, groupCapsule, 1.0F);
+        TEST_CHECK(fitted >= previous);
+        TEST_CHECK(fitted <= requested);
+        previous = fitted;
+      }
+    }
+  }
+  TEST_CHECK(fitTaskbarGroupScale(0.5F, 38.0F, 0.9F, true, true, 1.0F) == 0.5F);
+  TEST_CHECK(fitTaskbarGroupScale(2.0F, 76.0F, 0.9F, true, true, 1.0F)
+             > fitTaskbarGroupScale(2.0F, 38.0F, 0.9F, true, true, 1.0F));
+  TEST_CHECK(taskbarBadgeContentStart(false, true, 40.0F, 1.0F, 4.0F) >= 32.0F + 4.0F);
+  TEST_CHECK(taskbarBadgeContentStart(false, false, 40.0F, 1.0F, 4.0F) >= 24.0F + 4.0F);
+  TEST_CHECK(taskbarBadgeContentStart(true, true, 18.0F, 1.0F, 4.0F) >= 19.0F + 4.0F);
+
   // Title changes are patched into retained labels and tooltips, never treated as structural.
   TEST_CHECK(TaskbarWidgetTestAccess::compare(11, 11, "old", "new") == std::pair(true, true));
   TEST_CHECK(TaskbarWidgetTestAccess::compare(11, 11, "same", "same") == std::pair(true, false));

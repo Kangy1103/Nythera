@@ -225,6 +225,17 @@ const noctalia::bar::WidgetDefinition<TaskbarWidgetOptions>& taskbarWidgetDefini
                               .key = "show_workspace_label",
                               .presentation = presentation("taskbar.workspace-labels", groupedOnly(), true),
                           }),
+                          field<&Options::maxLabelChars>({
+                              .key = "max_label_chars",
+                              .minValue = 0.0,
+                              .maxValue = 20.0,
+                              .step = 1.0,
+                              .presentation = presentation(
+                                  "taskbar.workspace-labels",
+                                  all({{"group_by_workspace", {"true"}}, {"show_workspace_label", {"true"}}}),
+                                  false, "settings.widgets.settings.max-label-chars.taskbar-description"
+                              ),
+                          }),
                           field<&Options::workspaceLabelPlacement>(
                               {
                                   .key = "workspace_label_placement",
@@ -285,6 +296,10 @@ const noctalia::bar::WidgetDefinition<TaskbarWidgetOptions>& taskbarWidgetDefini
                           }),
                       },
                   .commonOverrides = {
+                      {
+                          .key = "scale",
+                          .descriptionKey = "settings.widgets.settings.scale.taskbar-description",
+                      },
                       {
                           .key = "capsule_radius",
                           .descriptionKey = "settings.widgets.settings.capsule-radius.taskbar-description",
