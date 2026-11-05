@@ -10,6 +10,23 @@
 
 namespace noctalia::bar {
 
+  struct TaskbarLayoutFrame {
+    float x = 0.0F;
+    float y = 0.0F;
+    float width = 0.0F;
+    float height = 0.0F;
+    float opacity = 1.0F;
+  };
+
+  [[nodiscard]] inline TaskbarLayoutFrame interpolateTaskbarFrame(
+      const TaskbarLayoutFrame& from, const TaskbarLayoutFrame& to, float progress
+  ) {
+    progress = std::clamp(progress, 0.0F, 1.0F);
+    return {std::lerp(from.x, to.x, progress), std::lerp(from.y, to.y, progress),
+            std::lerp(from.width, to.width, progress), std::lerp(from.height, to.height, progress),
+            std::lerp(from.opacity, to.opacity, progress)};
+  }
+
   [[nodiscard]] inline std::string taskbarWorkspaceLabel(std::string_view text, std::size_t maxChars) {
     const bool numeric = !text.empty() && std::ranges::all_of(text, [](char c) { return c >= '0' && c <= '9'; });
     return maxChars == 0 || numeric ? std::string(text) : StringUtils::truncateUtf8CodePoints(text, maxChars);

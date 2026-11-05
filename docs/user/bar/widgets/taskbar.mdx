@@ -148,3 +148,12 @@ Bitmap source selection accounts for output scale and requests enough source
 detail for downscaling. Displayed size and inactive opacity remain configurable
 through the existing controls; higher-resolution sources cannot add detail beyond
 the final on-screen pixel size.
+
+## Workspace content transitions
+
+Grouped content resizes and repositions over a 300 ms base duration with cubic
+ease-in/out, matching Active Window. New application tiles fade in; existing icons
+move without being stretched. The surrounding island and following widgets move
+with the widget's animated width or height. Interrupted changes continue from the
+current displayed layout. Initial layout and orientation changes settle directly.
+The existing global Motion enable and speed settings control these transitions.

@@ -53,6 +53,8 @@ public:
     syncOuterFromRoot();
   }
   virtual void onFrameTick(float deltaMs) { (void)deltaMs; }
+  // Apply visual layout transitions after parent flex containers have arranged children.
+  virtual void finishBarLayout() {}
   [[nodiscard]] virtual bool needsFrameTick() const { return false; }
   // True when the widget renders a value that changes every second. The bar uses
   // this to decide whether it needs second-precision time ticks at all.

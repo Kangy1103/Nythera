@@ -787,6 +787,7 @@ void TaskbarWidget::doLayout(Renderer& renderer, float containerWidth, float con
   m_vertical = containerHeight > containerWidth;
   if (m_vertical != wasVertical) {
     m_rebuildPending = true;
+    m_layoutInitialized = false;
   }
   m_containerWidth = containerWidth;
   m_containerHeight = containerHeight;
@@ -818,9 +819,94 @@ void TaskbarWidget::doLayout(Renderer& renderer, float containerWidth, float con
   }
 
   applyDragLayout();
+  // A visual group frame must not become the next pass's explicit flex size.
+  if (m_layoutFramesApplied) {
+    for (const auto& [key, node] : m_layoutNodes) {
+      if (key.starts_with("group:")) static_cast<Flex*>(node)->setSize(0.0F, 0.0F);
+    }
+    m_layoutFramesApplied = false;
+  }
   m_root->layout(renderer);
+  const float targetExtent = m_vertical ? m_root->height() : m_root->width();
+  if (m_groupByWorkspace) {
+    std::unordered_map<std::string, noctalia::bar::TaskbarLayoutFrame> targets;
+    bool changed = std::abs(targetExtent - m_layoutTargetExtent) > 0.5F
+        || m_layoutNodes.size() != m_layoutTargets.size();
+    for (const auto& [key, node] : m_layoutNodes) {
+      const noctalia::bar::TaskbarLayoutFrame frame{node->x(), node->y(), node->width(), node->height()};
+      targets.emplace(key, frame);
+      const auto previous = m_layoutTargets.find(key);
+      changed = changed || previous == m_layoutTargets.end();
+      if (previous != m_layoutTargets.end()) {
+        const auto& old = previous->second;
+        changed = changed || std::abs(frame.x - old.x) > 0.5F || std::abs(frame.y - old.y) > 0.5F
+            || std::abs(frame.width - old.width) > 0.5F || std::abs(frame.height - old.height) > 0.5F;
+      }
+    }
+    if (!m_layoutInitialized || changed) {
+      m_layoutFrom = m_layoutVisible;
+      m_layoutTargets = std::move(targets);
+      m_layoutFromExtent = m_layoutExtent;
+      m_layoutTargetExtent = targetExtent;
+      if (m_animations != nullptr) m_animations->cancelForOwner(this);
+      if (m_layoutInitialized && m_animations != nullptr) {
+        m_layoutProgress = 0.0F;
+        m_animations->animate(0.0F, 1.0F, Style::animNormal * 1.5F, Easing::EaseInOutCubic,
+            [this](float value) {
+              m_layoutProgress = value;
+              requestUpdate();
+            }, {}, this);
+        requestFrameTick();
+      } else {
+        m_layoutProgress = 1.0F;
+      }
+      m_layoutInitialized = true;
+    }
+    m_layoutExtent = std::lerp(m_layoutFromExtent, m_layoutTargetExtent, m_layoutProgress);
+  } else {
+    m_layoutExtent = targetExtent;
+    m_layoutInitialized = false;
+  }
   if (Node* container = root(); container != nullptr && container != m_root) {
-    container->setFrameSize(m_root->width(), m_root->height());
+    container->setFrameSize(m_vertical ? m_root->width() : m_layoutExtent,
+                            m_vertical ? m_layoutExtent : m_root->height());
+  }
+}
+
+void TaskbarWidget::finishBarLayout() {
+  if (!m_groupByWorkspace || !m_layoutInitialized) return;
+  m_layoutVisible.clear();
+  for (const auto& [key, node] : m_layoutNodes) {
+    const auto target = m_layoutTargets.find(key);
+    if (target == m_layoutTargets.end()) continue;
+    auto from = target->second;
+    if (const auto previous = m_layoutFrom.find(key); previous != m_layoutFrom.end()) {
+      from = previous->second;
+    } else if (key.starts_with("task:")) {
+      from.opacity = 0.0F;
+    } else if (m_vertical) {
+      from.height = 0.0F;
+    } else {
+      from.width = 0.0F;
+    }
+    const auto frame = noctalia::bar::interpolateTaskbarFrame(from, target->second, m_layoutProgress);
+    node->setPosition(frame.x, frame.y);
+    if (key.starts_with("group:")) {
+      if (m_layoutProgress < 1.0F) {
+        static_cast<Flex*>(node)->setFrameSize(m_vertical ? target->second.width : frame.width,
+                                              m_vertical ? frame.height : target->second.height);
+        m_layoutFramesApplied = true;
+      }
+    } else {
+      const auto tile = std::ranges::find(m_taskTiles, node, &TaskTile::area);
+      if (tile != m_taskTiles.end() && tile->taskIndex < m_tasks.size()) {
+        const auto& task = m_tasks[tile->taskIndex];
+        const float opacity = (task.active ? m_activeOpacity : m_inactiveOpacity)
+            * (task.pinned && !task.running ? m_pinnedOpacity : 1.0F);
+        node->setOpacity(opacity * frame.opacity);
+      }
+    }
+    m_layoutVisible.emplace(key, frame);
   }
 }
 
@@ -844,6 +930,8 @@ void TaskbarWidget::rebuild(Renderer& renderer) {
     return;
   }
   m_taskTiles.clear();
+  m_layoutNodes.clear();
+  m_layoutFramesApplied = false;
   m_taskTiles.reserve(m_tasks.size());
   // The strip's children are about to be destroyed; drop the gesture and its visuals so nothing
   // outlives the nodes they point at.
@@ -1349,6 +1437,9 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
         .activeIndicator = indicatorPtr,
         .minimizeIndicator = minimizeIndicatorPtr,
     });
+    if (m_groupByWorkspace) {
+      m_layoutNodes.emplace_back("task:" + task.workspaceKey + ':' + std::to_string(task.handleKey), area.get());
+    }
     attachHover(*area, tileWidthWithTitle, tileSize);
     return area;
   };
@@ -1782,6 +1873,7 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
         group->addChild(std::move(badge));
       }
 
+      m_layoutNodes.emplace_back("group:" + ws.key, group.get());
       m_taskStrip->addChild(std::move(group));
     }
     std::erase_if(m_groupedAppCycleCursor, [&](const auto& item) { return !cycleKeysThisFrame.contains(item.first); });

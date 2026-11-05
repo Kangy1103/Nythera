@@ -157,6 +157,12 @@ Only the fields you specify are overridden; everything else falls through to the
 
 `dynamic_center = true` smoothly animates changes in the size of the existing centre section. It uses precisely the widgets selected in the bar editor; it does not insert a clock, media player, visualiser or transport controls. Add and configure those using the shell's existing widgets. Existing accordion groups continue to control hover expansion. The feature defaults to false and follows the global motion settings. Find **Dynamic Centre** under **Bar → Effects**, including per-monitor settings.
 
+Grouped Workspaces/Taskbar animates its own extent, group capsules and application
+positions when workspace contents change. The containing island and following
+widgets track that extent directly, using the same 300 ms cubic easing as Active
+Window. Horizontal bars animate width; vertical bars animate height. Existing
+global Motion enable/speed settings apply, with no additional toggle.
+
 
 Shadow blur, offset, and alpha are global under `[shell.shadow]`. Bars only expose `shadow = true|false`.
 

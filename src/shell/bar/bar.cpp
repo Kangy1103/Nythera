@@ -1384,6 +1384,10 @@ namespace {
       );
     }
 
+    for (auto* widgets : {&instance.startWidgets, &instance.centerWidgets, &instance.endWidgets}) {
+      for (auto& widget : *widgets) widget->finishBarLayout();
+    }
+
     const std::array<Node*, 3> slots{instance.startSlot, instance.centerSlot, instance.endSlot};
     const std::array<Flex*, 3> sections{instance.startSection, instance.centerSection, instance.endSection};
     for (std::size_t i = 0; i < slots.size(); ++i) {

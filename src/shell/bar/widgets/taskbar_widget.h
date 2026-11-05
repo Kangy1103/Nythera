@@ -3,6 +3,7 @@
 #include "compositors/compositor_platform.h"
 #include "core/timer_manager.h"
 #include "shell/bar/widget.h"
+#include "shell/bar/taskbar_group_geometry.h"
 #include "system/desktop_entry.h"
 #include "system/icon_resolver.h"
 #include "system/window_state.h"
@@ -92,6 +93,8 @@ public:
   void create() override;
   [[nodiscard]] bool onPointerEvent(const PointerEvent& event) override;
   [[nodiscard]] bool wantsBarHoverHighlight() const noexcept override { return false; }
+  [[nodiscard]] bool animatesBarSize() const noexcept override { return m_groupByWorkspace; }
+  void finishBarLayout() override;
   // Steps through whatever this taskbar shows: workspace groups when grouping, else tasks.
   void cycleAdjacent(int direction);
 
@@ -309,6 +312,17 @@ private:
   std::uint64_t m_taskGeneration = 0;
   // Non-owning; cleared before task-strip children are destroyed.
   std::vector<TaskTile> m_taskTiles;
+  // Stable identities survive scene rebuilds; node pointers are rebound on every rebuild.
+  std::vector<std::pair<std::string, Node*>> m_layoutNodes;
+  std::unordered_map<std::string, noctalia::bar::TaskbarLayoutFrame> m_layoutTargets;
+  std::unordered_map<std::string, noctalia::bar::TaskbarLayoutFrame> m_layoutFrom;
+  std::unordered_map<std::string, noctalia::bar::TaskbarLayoutFrame> m_layoutVisible;
+  float m_layoutProgress = 1.0F;
+  float m_layoutExtent = 0.0F;
+  float m_layoutFromExtent = 0.0F;
+  float m_layoutTargetExtent = 0.0F;
+  bool m_layoutInitialized = false;
+  bool m_layoutFramesApplied = false;
   std::vector<WorkspaceModel> m_workspaces;
   // Full workspace list before "hide empty" filtering; used for scroll navigation.
   std::vector<WorkspaceModel> m_allWorkspaces;

@@ -147,6 +147,17 @@ int main() {
   TEST_CHECK(taskbarIconRasterSize(16.0F, 1.5F) == 48);
   TEST_CHECK(taskbarIconRasterSize(16.0F, 2.0F) == 64);
   TEST_CHECK(taskbarIconRasterSize(16.25F, 1.5F) >= 49);
+  const TaskbarLayoutFrame oldLayout{10.0F, 20.0F, 100.0F, 40.0F, 0.0F};
+  const TaskbarLayoutFrame newLayout{30.0F, 60.0F, 180.0F, 80.0F, 1.0F};
+  const auto halfway = interpolateTaskbarFrame(oldLayout, newLayout, 0.5F);
+  TEST_CHECK(halfway.x == 20.0F && halfway.y == 40.0F);
+  TEST_CHECK(halfway.width == 140.0F && halfway.height == 60.0F && halfway.opacity == 0.5F);
+  // A second change continues from the displayed frame, including on vertical bars.
+  const auto retargeted = interpolateTaskbarFrame(halfway, oldLayout, 0.5F);
+  TEST_CHECK(retargeted.x == 15.0F && retargeted.y == 30.0F);
+  TEST_CHECK(retargeted.width == 120.0F && retargeted.height == 50.0F);
+  TEST_CHECK(interpolateTaskbarFrame(oldLayout, newLayout, -1.0F).width == oldLayout.width);
+  TEST_CHECK(interpolateTaskbarFrame(oldLayout, newLayout, 2.0F).height == newLayout.height);
   TEST_CHECK(taskbarWorkspaceLabel("Gaming", 1) == "G");
   TEST_CHECK(taskbarWorkspaceLabel("Main", 2) == "Ma");
   TEST_CHECK(taskbarWorkspaceLabel("Gaming", 0) == "Gaming");
