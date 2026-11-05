@@ -64,5 +64,6 @@ struct ScreenFrameStyle {
   ScreenFrameContour contour;
   Color fill{}, border{};
   float borderWidth = 0, offsetX = 0, offsetY = 0;
+  std::array<float, 4> exclusion{};
   bool operator==(const ScreenFrameStyle&) const = default;
 };

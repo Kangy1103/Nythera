@@ -375,6 +375,9 @@ namespace noctalia::cli {
         false
     };
     inline constexpr Command barShow{"bar-show", "Show one or all bars", {}, {}, {}, kMsgBarShowPositionals, {}, false};
+    inline constexpr Command barIslandToggle{
+        "bar-island-toggle", "Expand or collapse Dynamic Island", {}, {}, {}, kMsgBarTogglePositionals, {}, false
+    };
     inline constexpr Command barToggle{
         "bar-toggle", "Toggle visibility for one or all bars", {}, {}, {}, kMsgBarTogglePositionals, {}, false
     };
@@ -938,6 +941,7 @@ namespace noctalia::cli {
       msg::barReserveToggle,
       msg::barShow,
       msg::barToggle,
+      msg::barIslandToggle,
       msg::bluetoothDisable,
       msg::bluetoothEnable,
       msg::bluetoothStatus,

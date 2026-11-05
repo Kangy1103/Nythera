@@ -19,7 +19,7 @@ ScreenWrap::ScreenWrap(
                                 config.surfaceMode == "full", static_cast<int>(std::ceil(config.borderWidth))
                             )
                         ) {
-  const bool islands = config.surfaceMode == "islands";
+  const bool islands = config.surfaceMode != "full";
   m_contour.width = static_cast<float>(width);
   m_contour.height = static_cast<float>(height);
   m_contour.rail = static_cast<float>(config.wrapWidth);
@@ -71,7 +71,7 @@ ScreenWrap::ScreenWrap(
 
 void ScreenWrap::build(Strip& strip, const screen_wrap::Rect& rect) {
   const auto& g = m_geometry;
-  if (m_config.surfaceMode == "islands") {
+  if (m_config.surfaceMode != "full") {
     auto root = std::make_unique<ScreenFrameNode>();
     root->setSize(static_cast<float>(rect.width), static_cast<float>(rect.height));
     root->setStyle(frameStyle(rect));
@@ -131,6 +131,35 @@ void ScreenWrap::syncBlur(Strip& strip, const screen_wrap::Rect& rect) {
     strip.surface->clearBlurRegion();
     return;
   }
+  auto regions = blurRegion(rect);
+  if (m_foregroundHole.width > 0) {
+    std::vector<InputRect> clipped;
+    const InputRect hole{
+        m_foregroundHole.x - rect.x, m_foregroundHole.y - rect.y, m_foregroundHole.width, m_foregroundHole.height
+    };
+    for (const auto r : regions) {
+      const int left = std::max(r.x, hole.x), top = std::max(r.y, hole.y);
+      const int right = std::min(r.x + r.width, hole.x + hole.width);
+      const int bottom = std::min(r.y + r.height, hole.y + hole.height);
+      if (right <= left || bottom <= top) {
+        clipped.push_back(r);
+        continue;
+      }
+      if (top > r.y)
+        clipped.push_back({r.x, r.y, r.width, top - r.y});
+      if (bottom < r.y + r.height)
+        clipped.push_back({r.x, bottom, r.width, r.y + r.height - bottom});
+      if (left > r.x)
+        clipped.push_back({r.x, top, left - r.x, bottom - top});
+      if (right < r.x + r.width)
+        clipped.push_back({right, top, r.x + r.width - right, bottom - top});
+    }
+    regions = std::move(clipped);
+  }
+  strip.surface->setBlurRegion(regions);
+}
+
+std::vector<InputRect> ScreenWrap::blurRegion(const screen_wrap::Rect& rect) const {
   // Blur only the painted frame, never the transparent desktop opening.
   const auto& g = m_geometry;
   std::vector<InputRect> regions;
@@ -165,7 +194,7 @@ void ScreenWrap::syncBlur(Strip& strip, const screen_wrap::Rect& rect) {
     if (right > x && bottom > y)
       regions.push_back({x - rect.x, y - rect.y, right - x, bottom - y});
   }
-  strip.surface->setBlurRegion(regions);
+  return regions;
 }
 
 ScreenFrameStyle ScreenWrap::frameStyle(const screen_wrap::Rect& rect) const {
@@ -175,13 +204,19 @@ ScreenFrameStyle ScreenWrap::frameStyle(const screen_wrap::Rect& rect) const {
       resolveColorSpec(m_config.border),
       m_config.borderWidth,
       static_cast<float>(rect.x),
-      static_cast<float>(rect.y)
+      static_cast<float>(rect.y),
+      {static_cast<float>(m_foregroundHole.x), static_cast<float>(m_foregroundHole.y),
+       static_cast<float>(m_foregroundHole.width), static_cast<float>(m_foregroundHole.height)}
   };
 }
 
-void ScreenWrap::setIslands(const std::array<ScreenFrameSpan, 3>& spans) {
-  if (m_config.surfaceMode != "islands" || spans == m_islands)
+void ScreenWrap::setIslands(const std::array<ScreenFrameSpan, 3>& spans, float depth) {
+  if (m_config.surfaceMode == "full")
     return;
+  depth = depth < 0 ? static_cast<float>(m_config.thickness) : depth;
+  if (spans == m_islands && depth == m_contour.depth)
+    return;
+  m_contour.depth = depth;
   m_islands = spans;
   const bool vertical = m_contour.edge == 1 || m_contour.edge == 3;
   m_contour.islands = joinedScreenFrameSpans(
@@ -208,8 +243,9 @@ void ScreenWrap::rebuildIslandBlur() {
   const float cross = vertical ? m_contour.width : m_contour.height;
   const float limit = std::min(cross / 2, m_contour.depth + m_contour.join + 1);
   for (int u = 0; u < static_cast<int>(length); ++u) {
+    const float column = static_cast<float>(u);
     const bool nearIsland = std::ranges::any_of(m_contour.islands, [&](const auto span) {
-      return span.end > span.begin && u + 1 > span.begin - m_contour.join && u < span.end + m_contour.join;
+      return span.end > span.begin && column + 1 > span.begin - m_contour.join && column < span.end + m_contour.join;
     });
     if (!nearIsland)
       continue;
@@ -267,5 +303,19 @@ void ScreenWrap::setLayer(LayerShellLayer layer) {
   for (auto& strip : m_strips) {
     if (strip.surface)
       strip.surface->setLayer(layer);
+  }
+}
+
+void ScreenWrap::setForegroundHole(InputRect rect) {
+  if (rect == m_foregroundHole)
+    return;
+  m_foregroundHole = rect;
+  for (std::size_t i = 0; i < m_strips.size(); ++i) {
+    auto& strip = m_strips[i];
+    if (!strip.root)
+      continue;
+    static_cast<ScreenFrameNode*>(strip.root.get())->setStyle(frameStyle(m_geometry.strips[i]));
+    syncBlur(strip, m_geometry.strips[i]);
+    strip.surface->requestRedraw();
   }
 }

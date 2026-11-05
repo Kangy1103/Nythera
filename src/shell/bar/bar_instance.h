@@ -7,6 +7,7 @@
 #include "render/scene/input_dispatcher.h"
 #include "render/scene/node.h"
 #include "shell/bar/screen_wrap.h"
+#include "shell/bar/dynamic_island.h"
 #include "shell/bar/widget.h"
 #include "shell/panel/attached_panel_context.h"
 #include "ui/signal.h"
@@ -67,6 +68,7 @@ struct BarInstance {
   // sceneRoot must be destroyed before `animations` — ~Node() calls cancelForOwner().
   AnimationManager animations;
   std::unique_ptr<Node> sceneRoot;
+  std::unique_ptr<DynamicIsland> dynamicIsland;
   Node* slideRoot = nullptr;
   float slideHiddenDx = 0.0F;
   float slideHiddenDy = 0.0F;

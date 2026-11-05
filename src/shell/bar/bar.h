@@ -77,6 +77,8 @@ public:
   // time source should wake on second boundaries.
   [[nodiscard]] bool wantsSecondTicks() const;
   void refresh();
+  bool routeDynamicFeedback(const OsdContent& content);
+  std::string toggleDynamicIslandIpc(std::string_view args);
   void requestLayout();
   void setAutoHideSuppressionCallback(std::function<bool(const BarInstance&)> callback);
   // Re-run auto-hide after a panel closes so unrelated bars are not left visible.

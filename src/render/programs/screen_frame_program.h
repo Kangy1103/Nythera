@@ -32,5 +32,6 @@ private:
   GLint m_fillLocation = -1, m_borderLocation = -1, m_borderWidthLocation = -1;
   GLint m_frameLocation = -1, m_shapeLocation = -1, m_offsetLocation = -1;
   GLint m_edgeLocation = -1, m_islandsLocation = -1;
+  GLint m_exclusionLocation = -1;
   GLint m_transformLocation = -1;
 };

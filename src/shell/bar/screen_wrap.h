@@ -19,7 +19,10 @@ public:
   void refreshPalette();
   void setOpacity(float opacity);
   void setLayer(LayerShellLayer layer);
-  void setIslands(const std::array<ScreenFrameSpan, 3>& spans);
+  void setIslands(const std::array<ScreenFrameSpan, 3>& spans, float depth = -1.0F);
+  const ScreenFrameContour& contour() const { return m_contour; }
+  void setForegroundHole(InputRect rect);
+  std::vector<InputRect> blurRegion(const screen_wrap::Rect& rect) const;
 
 private:
   struct Strip {
@@ -37,4 +40,5 @@ private:
   ScreenFrameContour m_contour;
   std::array<ScreenFrameSpan, 3> m_islands{};
   std::vector<InputRect> m_islandBlur;
+  InputRect m_foregroundHole;
 };

@@ -4,9 +4,11 @@
 #include "wayland/layer_surface.h"
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 class ConfigService;
@@ -75,6 +77,9 @@ public:
   void requestRedraw();
 
   void show(const OsdContent& content);
+  void setContentInterceptor(std::function<bool(const OsdContent&)> interceptor) {
+    m_contentInterceptor = std::move(interceptor);
+  }
   [[nodiscard]] bool isEnabled() const noexcept;
 
   // True while any instance is on screen or animating into view. Callers use this to correct
@@ -133,6 +138,7 @@ private:
   ConfigService* m_config = nullptr;
   RenderContext* m_renderContext = nullptr;
   OsdContent m_content;
+  std::function<bool(const OsdContent&)> m_contentInterceptor;
   std::string m_lastPosition;
   std::string m_lastOrientation;
   bool m_lastShowProgress = true;

@@ -44,6 +44,10 @@ namespace {
 
   BarConfig resolveBarForOutput(const BarConfig& bar, const WaylandOutput& output) {
     auto resolved = ConfigService::resolveForOutput(bar, output);
+    if (resolved.surfaceMode == "dynamic") {
+      resolved.autoHide = resolved.smartAutoHide = false;
+      resolved.shadow = false;
+    }
     if (resolved.screenWrap) {
       // Runtime geometry only: retain the user's unwrapped margins in config.
       resolved.wrapWidth = std::min(resolved.wrapWidth, std::max(1, resolved.thickness / 2));
@@ -761,6 +765,7 @@ namespace {
   ) {
     const bool sameShadowSurface =
         (!a.shadow && !b.shadow) || shell::surface_shadow::sameSurfaceMetrics(previousShadow, nextShadow);
+    if ((a.surfaceMode == "dynamic" || b.surfaceMode == "dynamic") && a != b) return false;
     return a.name == b.name
         && a.screenWrap == b.screenWrap
         && a.wrapWidth == b.wrapWidth
@@ -1864,6 +1869,10 @@ void Bar::reload() {
     }
 
     inst.barIndex = it->second.second;
+    if (inst.dynamicIsland) {
+      inst.surface->requestUpdate();
+      return false;
+    }
     rebuildInstanceContents(inst, resolved);
     return false;
   });
@@ -2152,6 +2161,12 @@ void Bar::clearInstancePointerState(BarInstance& instance) {
 }
 
 void Bar::setInstanceIpcVisible(BarInstance& instance, bool visible) {
+  if (instance.dynamicIsland) {
+    instance.hideOpacity = visible ? 1.0F : 0.0F;
+    instance.ipcLayoutReleased = !visible;
+    instance.dynamicIsland->setVisible(visible);
+    return;
+  }
   if (instance.surface == nullptr) {
     return;
   }
@@ -2238,6 +2253,13 @@ void Bar::syncBarExclusiveZone(BarInstance& instance) {
 }
 
 void Bar::syncBarSurfaceChrome(BarInstance& instance) {
+  if (instance.dynamicIsland) {
+    syncBarExclusiveZone(instance);
+    const bool visible = !m_overlayDisplaySuppressed && instance.hideOpacity > 0;
+    instance.dynamicIsland->setVisible(visible);
+    if (instance.screenWrap) instance.screenWrap->setOpacity(visible ? 1.0F : 0.0F);
+    return;
+  }
   syncBarExclusiveZone(instance);
   if (instance.screenWrap)
     instance.screenWrap->setOpacity(m_overlayDisplaySuppressed ? 0.0F : instance.hideOpacity);
@@ -2663,6 +2685,8 @@ void Bar::createInstance(const WaylandOutput& output, std::size_t barIndex, cons
       .prewarmBlur = barConfig.compositorBlur,
   };
 
+  if (barConfig.surfaceMode == "dynamic") surfaceConfig = DynamicIsland::surfaceConfig(barConfig, output.effectiveLogicalWidth(), output.effectiveLogicalHeight());
+
   if (barConfig.screenWrap) {
     instance->screenWrap = std::make_unique<ScreenWrap>(
         m_platform->wayland(), m_renderContext, output.output, barConfig, output.effectiveLogicalWidth(),
@@ -2673,6 +2697,23 @@ void Bar::createInstance(const WaylandOutput& output, std::size_t barIndex, cons
   instance->surface->setRenderContext(m_renderContext);
 
   auto* inst = instance.get();
+  if (barConfig.surfaceMode == "dynamic") {
+    instance->dynamicIsland = std::make_unique<DynamicIsland>(services(), barConfig, *instance->surface,
+        instance->animations, instance->screenWrap.get(), output.output,
+        output.effectiveLogicalWidth(), output.effectiveLogicalHeight());
+    instance->surface->setAnimationManager(&instance->animations);
+    instance->surface->setConfigureCallback([inst](std::uint32_t, std::uint32_t) { inst->surface->requestUpdate(); });
+    instance->surface->setPrepareFrameCallback([this, inst](bool update, bool) {
+      m_renderContext->makeCurrent(inst->surface->renderTarget());
+      UiPhaseScope phase(UiPhase::Layout);
+      inst->dynamicIsland->prepare(inst->surface->renderTarget().renderer(), update);
+    });
+    if (!instance->surface->initialize(output.output)) return;
+    instance->surface->setInputRegion({});
+    m_surfaceMap[instance->surface->wlSurface()] = instance.get();
+    m_instances.push_back(std::move(instance));
+    return;
+  }
   instance->surface->setConfigureCallback([this, inst](std::uint32_t width, std::uint32_t height) {
     buildScene(*inst, width, height);
   });
@@ -3927,6 +3968,12 @@ bool Bar::onPointerEvent(const PointerEvent& event) {
     };
     return routeGroup(instance.startWidgets) || routeGroup(instance.centerWidgets) || routeGroup(instance.endWidgets);
   };
+  if (targetInstance == nullptr && event.type == PointerEvent::Type::Leave) targetInstance = m_hoveredInstance;
+  if (targetInstance != nullptr && targetInstance->dynamicIsland) {
+    if (event.type == PointerEvent::Type::Enter) m_hoveredInstance = targetInstance;
+    if (event.type == PointerEvent::Type::Leave) m_hoveredInstance = nullptr;
+    return targetInstance->dynamicIsland->onPointerEvent(event);
+  }
   if (targetInstance != nullptr) {
     if (!instanceAcceptsPointerInput(*targetInstance)) {
       clearInstancePointerState(*targetInstance);
@@ -4541,6 +4588,7 @@ void Bar::registerIpc(IpcService& ipc) {
     return "ok\n";
   });
 
+  ipc.bind(noctalia::cli::msg::barIslandToggle, [this](const std::string& args) { return toggleDynamicIslandIpc(args); });
   ipc.bind(noctalia::cli::msg::barShow, [this](const std::string& args) -> std::string { return showBarIpc(args); });
 
   ipc.bind(noctalia::cli::msg::barHide, [this](const std::string& args) -> std::string { return hideBarIpc(args); });
@@ -4560,4 +4608,27 @@ void Bar::registerIpc(IpcService& ipc) {
   ipc.bind(noctalia::cli::msg::barLayerSet, [this](const std::string& args) -> std::string {
     return setBarLayerIpc(args);
   });
+}
+
+bool Bar::routeDynamicFeedback(const OsdContent& content) {
+  if (!m_platform || m_overlayDisplaySuppressed) return false;
+  wl_output* output = m_platform->preferredInteractiveOutput();
+  bool handled = false;
+  for (const auto& instance : m_instances) {
+    if (instance->dynamicIsland && instance->output == output && !instance->ipcLayoutReleased)
+      handled = instance->dynamicIsland->feedback(content) || handled;
+  }
+  return handled;
+}
+
+std::string Bar::toggleDynamicIslandIpc(std::string_view args) {
+  std::optional<std::string> barName, selector;
+  if (const auto error = parseBarVisibilityIpcArgs("bar-island-toggle", args, barName, selector)) return *error;
+  std::vector<BarInstance*> targets;
+  if (const auto error = collectBarIpcInstances(barName, selector, targets)) return *error;
+  bool found = false;
+  for (auto* instance : targets) if (instance->dynamicIsland) {
+    instance->dynamicIsland->toggleExpanded(); found = true;
+  }
+  return found ? "ok\n" : "error: selected bar is not in Dynamic Island mode\n";
 }

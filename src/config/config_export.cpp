@@ -165,6 +165,13 @@ namespace config_export {
         resolved.wrapRadius = *ovr.wrapRadius;
       if (ovr.wrapJoinDistance)
         resolved.wrapJoinDistance = *ovr.wrapJoinDistance;
+      if (ovr.dynamicMedia) resolved.dynamicMedia = *ovr.dynamicMedia;
+      if (ovr.dynamicVolume) resolved.dynamicVolume = *ovr.dynamicVolume;
+      if (ovr.dynamicBrightness) resolved.dynamicBrightness = *ovr.dynamicBrightness;
+      if (ovr.dynamicHoverExpand) resolved.dynamicHoverExpand = *ovr.dynamicHoverExpand;
+      if (ovr.dynamicDwellMs) resolved.dynamicDwellMs = *ovr.dynamicDwellMs;
+      if (ovr.dynamicWidth) resolved.dynamicWidth = *ovr.dynamicWidth;
+      if (ovr.dynamicClockFormat) resolved.dynamicClockFormat = *ovr.dynamicClockFormat;
       if (ovr.compositorBlur)
         resolved.compositorBlur = *ovr.compositorBlur;
       if (ovr.border)

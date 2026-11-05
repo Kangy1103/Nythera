@@ -3746,7 +3746,8 @@ namespace settings {
           tr("settings.schema.bar.surface-mode.description"), path("surface_mode"),
           asSegmented(plainSelect(
               {{"full", "settings.options.bar.surface-mode.full"},
-               {"islands", "settings.options.bar.surface-mode.islands"}},
+               {"islands", "settings.options.bar.surface-mode.islands"},
+               {"dynamic", "settings.options.bar.surface-mode.dynamic"}},
               bar.surfaceMode
           )),
           "bar surface full continuous floating islands capsules"
@@ -3776,6 +3777,41 @@ namespace settings {
           tr("settings.schema.bar.wrap-join-distance.description"), path("wrap_join_distance"),
           SliderSetting{static_cast<float>(bar.wrapJoinDistance), 0.0F, 500.0F, 1.0F, true},
           "frame island outer edge corner merge cutoff distance"
+      ));
+      entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.dynamic-media.label"),
+          tr("settings.schema.bar.dynamic-media.description"), path("dynamic_media"),
+          ToggleSetting{bar.dynamicMedia}, "dynamic island"
+      ));
+      entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.dynamic-volume.label"),
+          tr("settings.schema.bar.dynamic-volume.description"), path("dynamic_volume"),
+          ToggleSetting{bar.dynamicVolume}, "dynamic island"
+      ));
+      entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.dynamic-brightness.label"),
+          tr("settings.schema.bar.dynamic-brightness.description"), path("dynamic_brightness"),
+          ToggleSetting{bar.dynamicBrightness}, "dynamic island"
+      ));
+      entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.dynamic-hover-expand.label"),
+          tr("settings.schema.bar.dynamic-hover-expand.description"), path("dynamic_hover_expand"),
+          ToggleSetting{bar.dynamicHoverExpand}, "dynamic island"
+      ));
+      entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.dynamic-dwell-ms.label"),
+          tr("settings.schema.bar.dynamic-dwell-ms.description"), path("dynamic_dwell_ms"),
+          SliderSetting{static_cast<float>(bar.dynamicDwellMs), 500.0F, 15000.0F, 100.0F, true}, "dynamic island"
+      ));
+      entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.dynamic-width.label"),
+          tr("settings.schema.bar.dynamic-width.description"), path("dynamic_width"),
+          SliderSetting{static_cast<float>(bar.dynamicWidth), 240.0F, 600.0F, 1.0F, true}, "dynamic island"
+      ));
+      entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.dynamic-clock-format.label"),
+          tr("settings.schema.bar.dynamic-clock-format.description"), path("dynamic_clock_format"),
+          TextSetting{bar.dynamicClockFormat}, "dynamic island"
       ));
       entries.push_back(makeEntry(
           section, "effects", tr("settings.schema.bar.dynamic-center.label"),
@@ -4175,7 +4211,8 @@ namespace settings {
             section, "effects", tr("settings.schema.bar.surface-mode.label"),
             tr("settings.schema.bar.surface-mode.description"), monitorPath("surface_mode"),
             asSegmented(plainSelect({{"full", "settings.options.bar.surface-mode.full"},
-                                    {"islands", "settings.options.bar.surface-mode.islands"}},
+                                    {"islands", "settings.options.bar.surface-mode.islands"},
+               {"dynamic", "settings.options.bar.surface-mode.dynamic"}},
                                    ovr.surfaceMode.value_or(bar.surfaceMode))), "bar surface islands full"
         ));
         entries.push_back(makeEntry(
@@ -4202,6 +4239,41 @@ namespace settings {
                 static_cast<float>(ovr.wrapJoinDistance.value_or(bar.wrapJoinDistance)), 0.0F, 500.0F, 1.0F, true
             },
             "frame island outer edge corner merge cutoff distance"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.dynamic-media.label"),
+            tr("settings.schema.bar.dynamic-media.description"), monitorPath("dynamic_media"),
+            ToggleSetting{ovr.dynamicMedia.value_or(bar.dynamicMedia)}, "dynamic island"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.dynamic-volume.label"),
+            tr("settings.schema.bar.dynamic-volume.description"), monitorPath("dynamic_volume"),
+            ToggleSetting{ovr.dynamicVolume.value_or(bar.dynamicVolume)}, "dynamic island"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.dynamic-brightness.label"),
+            tr("settings.schema.bar.dynamic-brightness.description"), monitorPath("dynamic_brightness"),
+            ToggleSetting{ovr.dynamicBrightness.value_or(bar.dynamicBrightness)}, "dynamic island"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.dynamic-hover-expand.label"),
+            tr("settings.schema.bar.dynamic-hover-expand.description"), monitorPath("dynamic_hover_expand"),
+            ToggleSetting{ovr.dynamicHoverExpand.value_or(bar.dynamicHoverExpand)}, "dynamic island"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.dynamic-dwell-ms.label"),
+            tr("settings.schema.bar.dynamic-dwell-ms.description"), monitorPath("dynamic_dwell_ms"),
+            SliderSetting{static_cast<float>(ovr.dynamicDwellMs.value_or(bar.dynamicDwellMs)), 500.0F, 15000.0F, 100.0F, true}, "dynamic island"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.dynamic-width.label"),
+            tr("settings.schema.bar.dynamic-width.description"), monitorPath("dynamic_width"),
+            SliderSetting{static_cast<float>(ovr.dynamicWidth.value_or(bar.dynamicWidth)), 240.0F, 600.0F, 1.0F, true}, "dynamic island"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.dynamic-clock-format.label"),
+            tr("settings.schema.bar.dynamic-clock-format.description"), monitorPath("dynamic_clock_format"),
+            TextSetting{ovr.dynamicClockFormat.value_or(bar.dynamicClockFormat)}, "dynamic island"
         ));
         entries.push_back(makeEntry(
             section, "effects", tr("settings.schema.bar.dynamic-center.label"),

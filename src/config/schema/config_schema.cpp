@@ -2369,10 +2369,10 @@ namespace noctalia::config::schema {
           "surface_mode",
           [](const toml::table& tbl, BarConfig& out, std::string_view parentPath, Diagnostics& diag) {
             if (auto v = tbl["surface_mode"].value<std::string>()) {
-              if (*v == "full" || *v == "islands") {
+              if (*v == "full" || *v == "islands" || *v == "dynamic") {
                 out.surfaceMode = *v;
               } else {
-                diag.warn(joinPath(parentPath, "surface_mode"), "expected full or islands, got \"" + *v + "\"");
+                diag.warn(joinPath(parentPath, "surface_mode"), "expected full, islands or dynamic, got \"" + *v + "\"");
               }
             } else {
               warnWrongType(tbl, "surface_mode", parentPath, diag, "a string");
@@ -2604,6 +2604,13 @@ namespace noctalia::config::schema {
         field(&BarConfig::wrapWidth, "wrap_width", kBarWrapWidthRange),
         field(&BarConfig::wrapRadius, "wrap_radius", kBarWrapRadiusRange),
         field(&BarConfig::wrapJoinDistance, "wrap_join_distance", kBarRadiusRange),
+        field(&BarConfig::dynamicMedia, "dynamic_media"),
+        field(&BarConfig::dynamicVolume, "dynamic_volume"),
+        field(&BarConfig::dynamicBrightness, "dynamic_brightness"),
+        field(&BarConfig::dynamicHoverExpand, "dynamic_hover_expand"),
+        field(&BarConfig::dynamicDwellMs, "dynamic_dwell_ms", Range<std::int64_t>{500, 15000}),
+        field(&BarConfig::dynamicWidth, "dynamic_width", Range<std::int64_t>{240, 600}),
+        field(&BarConfig::dynamicClockFormat, "dynamic_clock_format"),
         field(&BarConfig::dynamicCenter, "dynamic_center"),
         field(&BarConfig::compositorBlur, "compositor_blur"),
         colorField(&BarConfig::border, "border"),
@@ -2690,10 +2697,10 @@ namespace noctalia::config::schema {
               if (!tbl.contains("surface_mode"))
                 return;
               auto value = tbl["surface_mode"].value<std::string>();
-              if (value && (*value == "full" || *value == "islands"))
+              if (value && (*value == "full" || *value == "islands" || *value == "dynamic"))
                 out.surfaceMode = *value;
               else
-                diag.warn(joinPath(path, "surface_mode"), "expected full or islands");
+                diag.warn(joinPath(path, "surface_mode"), "expected full, islands or dynamic");
             },
             [](toml::table& tbl, const BarMonitorOverride& in) {
               if (in.surfaceMode)
@@ -2704,6 +2711,13 @@ namespace noctalia::config::schema {
         optionalIntField(&BarMonitorOverride::wrapWidth, "wrap_width", kBarWrapWidthRange),
         optionalIntField(&BarMonitorOverride::wrapRadius, "wrap_radius", kBarWrapRadiusRange),
         optionalIntField(&BarMonitorOverride::wrapJoinDistance, "wrap_join_distance", kBarRadiusRange),
+        optionalBoolField(&BarMonitorOverride::dynamicMedia, "dynamic_media"),
+        optionalBoolField(&BarMonitorOverride::dynamicVolume, "dynamic_volume"),
+        optionalBoolField(&BarMonitorOverride::dynamicBrightness, "dynamic_brightness"),
+        optionalBoolField(&BarMonitorOverride::dynamicHoverExpand, "dynamic_hover_expand"),
+        optionalIntField(&BarMonitorOverride::dynamicDwellMs, "dynamic_dwell_ms", Range<std::int64_t>{500, 15000}),
+        optionalIntField(&BarMonitorOverride::dynamicWidth, "dynamic_width", Range<std::int64_t>{240, 600}),
+        field(&BarMonitorOverride::dynamicClockFormat, "dynamic_clock_format"),
         optionalBoolField(&BarMonitorOverride::dynamicCenter, "dynamic_center"),
         optionalBoolField(&BarMonitorOverride::compositorBlur, "compositor_blur"),
         optionalColorField(&BarMonitorOverride::border, "border"),

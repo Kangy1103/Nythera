@@ -345,6 +345,7 @@ void OsdOverlay::requestLayout() {
 }
 
 void OsdOverlay::show(const OsdContent& content) {
+  if (m_contentInterceptor && m_contentInterceptor(content)) return;
   if (m_wayland == nullptr || m_renderContext == nullptr) {
     return;
   }

@@ -761,6 +761,7 @@ void Application::initNotificationAndOsd() {
 
   TooltipManager::instance().initialize(m_wayland, &m_configService, &m_renderContext);
   m_osdOverlay.initialize(m_wayland, m_compositorPlatform, &m_configService, &m_renderContext);
+  m_osdOverlay.setContentInterceptor([this](const OsdContent& content) { return m_bar.routeDynamicFeedback(content); });
   m_windowSwitcher.initialize(
       m_wayland, &m_renderContext, m_compositorPlatform, &m_configService, &m_asyncTextureCache
   );

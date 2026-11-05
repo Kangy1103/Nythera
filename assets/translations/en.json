@@ -1573,7 +1573,8 @@
         },
         "surface-mode": {
           "full": "Full Bar",
-          "islands": "Floating Islands"
+          "islands": "Floating Islands",
+          "dynamic": "Dynamic Island"
         }
       },
       "clipboard": {
@@ -2063,12 +2064,19 @@
           "label": "Frame Rounding",
           "description": "Radius of the rounded desktop opening in logical pixels"
         },
+        "dynamic-media": {"label": "Island Media", "description": "Show track-change feedback and an expandable player in Dynamic Island mode"},
+        "dynamic-volume": {"label": "Island Volume", "description": "Route volume and microphone feedback into Dynamic Island instead of the ordinary OSD"},
+        "dynamic-brightness": {"label": "Island Brightness", "description": "Route brightness feedback into Dynamic Island instead of the ordinary OSD"},
+        "dynamic-hover-expand": {"label": "Island Hover Expansion", "description": "Expand the current event or player on hover; clicking pins it until closed"},
+        "dynamic-dwell-ms": {"label": "Island Event Duration", "description": "Milliseconds before temporary feedback returns to the resting clock; interaction holds it open"},
+        "dynamic-width": {"label": "Island Expanded Width", "description": "Maximum expanded card width in logical pixels"},
+        "dynamic-clock-format": {"label": "Island Clock Format", "description": "Resting clock format, using strftime syntax such as %H:%M"},
         "dynamic-center": {
           "label": "Dynamic Centre",
           "description": "Animate changes in size of the configured centre widgets; contents are managed in the widget editor"
         },
         "surface-mode": {
-          "description": "Choose one continuous background or one rounded island around each complete bar section",
+          "description": "Choose Full Bar, section-based Floating Islands, or a standalone event-driven Dynamic Island",
           "label": "Bar Surface"
         },
         "auto-hide-delay": {

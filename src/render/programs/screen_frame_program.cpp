@@ -26,6 +26,7 @@ precision highp float;
 uniform vec4 u_frame; // width, height, rail, opening radius
 uniform vec3 u_shape; // island depth, island radius, junction smoothing
 uniform vec2 u_offset;
+uniform vec4 u_exclusion;
 uniform int u_edge;
 uniform vec2 u_islands[3];
 uniform vec4 u_fill;
@@ -39,6 +40,8 @@ float roundedDistance(vec2 p, vec2 halfSize, float r) {
 }
 void main() {
   vec2 p = v_local + u_offset;
+  if (u_exclusion.z > 0.0 && p.x >= u_exclusion.x && p.y >= u_exclusion.y
+      && p.x < u_exclusion.x + u_exclusion.z && p.y < u_exclusion.y + u_exclusion.w) discard;
   float d = -roundedDistance(p - u_frame.xy * 0.5, u_frame.xy * 0.5 - u_frame.z, u_frame.w);
   float crossSize = (u_edge == 1 || u_edge == 3) ? u_frame.x : u_frame.y;
   vec2 uv = p;
@@ -78,6 +81,7 @@ void ScreenFrameProgram::ensureInitialized() {
   m_frameLocation = glGetUniformLocation(m_program.id(), "u_frame");
   m_shapeLocation = glGetUniformLocation(m_program.id(), "u_shape");
   m_offsetLocation = glGetUniformLocation(m_program.id(), "u_offset");
+  m_exclusionLocation = glGetUniformLocation(m_program.id(), "u_exclusion");
   m_edgeLocation = glGetUniformLocation(m_program.id(), "u_edge");
   m_islandsLocation = glGetUniformLocation(m_program.id(), "u_islands[0]");
   if (m_positionLocation < 0
@@ -90,6 +94,7 @@ void ScreenFrameProgram::ensureInitialized() {
       || m_frameLocation < 0
       || m_shapeLocation < 0
       || m_offsetLocation < 0
+      || m_exclusionLocation < 0
       || m_edgeLocation < 0
       || m_islandsLocation < 0)
     throw std::runtime_error("failed to query screen-frame shader locations");
@@ -120,6 +125,7 @@ void ScreenFrameProgram::draw(
   glUniform4f(m_frameLocation, g.width, g.height, g.rail, g.radius);
   glUniform3f(m_shapeLocation, g.depth, g.islandRadius, g.join);
   glUniform2f(m_offsetLocation, style.offsetX, style.offsetY);
+  glUniform4fv(m_exclusionLocation, 1, style.exclusion.data());
   glUniform1i(m_edgeLocation, g.edge);
   glUniform2fv(m_islandsLocation, 3, spans.data());
   const auto attr = static_cast<GLuint>(m_positionLocation);

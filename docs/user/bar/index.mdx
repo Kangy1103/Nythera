@@ -153,13 +153,38 @@ Only the fields you specify are overridden; everything else falls through to the
 
 `compositor_blur = true` publishes the bar's shape as a blur region when the compositor supports `ext-background-effect-v1`. Set it to `false` to clear the bar's blur request without changing blur for panels, the dock, notifications, or other surfaces. This setting is independent of `background_opacity`, defaults to `true`, applies immediately on reload, and can be overridden per monitor. In the Settings GUI it lives under **Bar → Effects** and only appears when the compositor supports `ext-background-effect-v1`; on other compositors the key has no effect.
 
-`surface_mode` selects the bar background. `"full"` uses the normal continuous bar; `"islands"` draws one rounded, translucent background around each complete start, centre and end section. Empty sections disappear. Capsule groups retain their spacing and hover behaviour, with their individual backgrounds suppressed in islands mode. Rounded island shapes define input and compositor blur regions, so gaps pass through to the desktop. The previous capsule-only islands presentation has been replaced. Choose **Full Bar** or **Floating Islands** under **Bar → Effects**. Both modes support every bar edge and per-monitor overrides.
+`surface_mode` selects the bar background. `"full"` uses the normal continuous bar; `"islands"` draws one rounded, translucent background around each complete start, centre and end section. Empty sections disappear. Capsule groups retain their spacing and hover behaviour, with their individual backgrounds suppressed in islands mode. Rounded island shapes define input and compositor blur regions, so gaps pass through to the desktop. The previous capsule-only islands presentation has been replaced. Choose **Full Bar**, **Floating Islands**, or **Dynamic Island** under **Bar → Effects**. All three modes support every bar edge and per-monitor overrides.
 
 `dynamic_center = true` smoothly animates changes in the size of the existing centre section. It uses precisely the widgets selected in the bar editor; it does not insert a clock, media player, visualiser or transport controls. Add and configure those using the shell's existing widgets. Existing accordion groups continue to control hover expansion. The feature defaults to false and follows the global motion settings. Find **Dynamic Centre** under **Bar → Effects**, including per-monitor settings.
 
+### Dynamic Island
+
+Select **Bar → Effects → Surface → Dynamic Island** (`surface_mode = "dynamic"`). This is a standalone event-driven presentation, separate from Full Bar and Floating Islands. The usual start/centre/end widget layouts remain saved and return when switching back; Dynamic Island does not populate those lanes.
+
+The resting clock morphs into temporary media, volume/microphone and brightness feedback on the focused output. Volume and brightness take priority over track changes; expired feedback returns to the clock. Disabled or unsupported events retain the normal OSD. Hover expands the current view (or active media from the clock); clicking pins it, and the close button returns it to compact mode. Media expansion includes artwork, transport buttons and seeking. Expanded level views allow click-to-set. Motion follows the shell's global animation settings.
+
+All controls are in **Bar → Effects**, also available as monitor overrides:
+
+```toml
+[bar.default]
+surface_mode = "dynamic"
+dynamic_media = true
+dynamic_volume = true
+dynamic_brightness = true
+dynamic_hover_expand = true
+dynamic_dwell_ms = 3500       # 500–15000 ms
+dynamic_width = 360           # expanded width, 240–600 logical pixels
+dynamic_clock_format = "%H:%M"
+screen_wrap = true           # independent; also works without it
+```
+
+The compact surface centres on the selected edge. Vertical clocks stack their time fields and expansion grows inward with upright controls. A bounded small surface hosts the interactive view; the optional wrap retains narrow edge buffers. Its palette, opacity, rounding, border and blur follow the bar settings.
+
+`noctalia msg bar-island-toggle [bar-name] [monitor-selector]` toggles the expanded/pinned view. Manual bar hide/show remains available. This initial implementation stays present rather than applying automatic/smart hiding or a separate shadow; saved settings for the ordinary modes remain intact. With Reserve Space enabled, the bar thickness stays reserved and the expanded view overlays windows. Notification, timer and call views, and workspace-content adaptation, are not part of this first pass.
+
 ### Screen wrap
 
-**Bar → Effects → Screen Wrap** connects the bar to a rounded frame around the display. It works with both Full Bar and Floating Islands, on any bar edge, and can be overridden per monitor. **Frame Width** controls the thin rails (1–32 logical pixels, capped at half the bar thickness); **Frame Rounding** controls the desktop opening (0–100 logical pixels).
+**Bar → Effects → Screen Wrap** connects the bar to a rounded frame around the display. It works with Full Bar, Floating Islands and Dynamic Island, on any bar edge, and can be overridden per monitor. **Frame Width** controls the thin rails (1–32 logical pixels, capped at half the bar thickness); **Frame Rounding** controls the desktop opening (0–100 logical pixels).
 
 ```toml
 [bar.default]

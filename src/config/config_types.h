@@ -85,6 +85,13 @@ struct BarMonitorOverride {
   std::optional<std::int32_t> wrapWidth;
   std::optional<std::int32_t> wrapRadius;
   std::optional<std::int32_t> wrapJoinDistance;
+  std::optional<bool> dynamicMedia;
+  std::optional<bool> dynamicVolume;
+  std::optional<bool> dynamicBrightness;
+  std::optional<bool> dynamicHoverExpand;
+  std::optional<std::int32_t> dynamicDwellMs;
+  std::optional<std::int32_t> dynamicWidth;
+  std::optional<std::string> dynamicClockFormat;
   std::optional<bool> dynamicCenter;
   std::optional<bool> compositorBlur;
   std::optional<ColorSpec> border;
@@ -168,6 +175,13 @@ struct BarConfig {
   std::int32_t wrapWidth = 6;
   std::int32_t wrapRadius = 20;
   std::int32_t wrapJoinDistance = 80;
+  bool dynamicMedia = true;
+  bool dynamicVolume = true;
+  bool dynamicBrightness = true;
+  bool dynamicHoverExpand = true;
+  std::int32_t dynamicDwellMs = 3500;
+  std::int32_t dynamicWidth = 360;
+  std::string dynamicClockFormat = "%H:%M";
   bool dynamicCenter = false;
   bool compositorBlur = true;
   // Inside outline for the bar background; attached panels inherit the resolved values.
