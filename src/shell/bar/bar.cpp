@@ -41,6 +41,21 @@
 namespace {
 
   constexpr Logger kLog("bar");
+
+  BarConfig resolveBarForOutput(const BarConfig& bar, const WaylandOutput& output) {
+    auto resolved = ConfigService::resolveForOutput(bar, output);
+    if (resolved.screenWrap) {
+      // Runtime geometry only: retain the user's unwrapped margins in config.
+      resolved.wrapWidth = std::min(resolved.wrapWidth, std::max(1, resolved.thickness / 2));
+      resolved.marginEdge = 0;
+      resolved.marginEnds = resolved.surfaceMode == "full"
+          ? resolved.wrapWidth
+          : std::max(resolved.marginEnds, resolved.wrapWidth + resolved.wrapRadius);
+      resolved.concaveEdgeCorners = false;
+      resolved.shadow = false;
+    }
+    return resolved;
+  }
   constexpr std::chrono::milliseconds kWorkspaceRevealDebounce{80};
   constexpr std::chrono::milliseconds kWorkspacePeekHold{450};
   constexpr std::int32_t kAutoHideTriggerPx = 3;
@@ -747,6 +762,15 @@ namespace {
     const bool sameShadowSurface =
         (!a.shadow && !b.shadow) || shell::surface_shadow::sameSurfaceMetrics(previousShadow, nextShadow);
     return a.name == b.name
+        && a.screenWrap == b.screenWrap
+        && a.wrapWidth == b.wrapWidth
+        && a.wrapRadius == b.wrapRadius
+        && (!a.screenWrap
+            || (a.surfaceMode == b.surfaceMode
+                && a.backgroundOpacity == b.backgroundOpacity
+                && a.border == b.border
+                && a.borderWidth == b.borderWidth
+                && a.compositorBlur == b.compositorBlur))
         && a.position == b.position
         && a.enabled == b.enabled
         && a.autoHide == b.autoHide
@@ -1405,11 +1429,28 @@ namespace {
       bg->setVisible(islands && content && size > 0.0F);
       const float paintedBegin = i == 1 ? 0.0F : begin;
       const float paintedSize = i == 1 ? slotMain : size;
-      bg->setPosition(slot->x() + (isVertical ? 0.0F : paintedBegin), slot->y() + (isVertical ? paintedBegin : 0.0F));
+      bg->setPosition(
+          slot->x() + (isVertical ? 0.0F : paintedBegin) - instance.islandClip->x(),
+          slot->y() + (isVertical ? paintedBegin : 0.0F) - instance.islandClip->y()
+      );
       bg->setSize(isVertical ? slotCross : paintedSize, isVertical ? paintedSize : slotCross);
       bg->setFill(colorForRole(ColorRole::Surface, instance.barConfig.backgroundOpacity));
       bg->setBorder(resolveColorSpec(instance.barConfig.border), instance.barConfig.borderWidth);
-      bg->setRadius(std::min(static_cast<float>(instance.barConfig.radius), std::min(bg->width(), bg->height()) * 0.5F));
+      const float radius =
+          std::min(static_cast<float>(instance.barConfig.radius), std::min(bg->width(), bg->height()) * 0.5F);
+      Radii radii{radius, radius, radius, radius};
+      if (instance.barConfig.screenWrap) {
+        const auto& edge = instance.barConfig.position;
+        if (edge == "left")
+          radii.tl = radii.bl = 0.0F;
+        else if (edge == "right")
+          radii.tr = radii.br = 0.0F;
+        else if (edge == "bottom")
+          radii.bl = radii.br = 0.0F;
+        else
+          radii.tl = radii.tr = 0.0F;
+      }
+      bg->setRadii(radii);
     }
 
     applyBarWidgetHitTargets(instance.startSection, instance.startSlot, isVertical);
@@ -1758,7 +1799,7 @@ void Bar::reload() {
     if (outIt == outputs.end()) {
       return true;
     }
-    auto resolved = ConfigService::resolveForOutput(*it->second.first, *outIt);
+    auto resolved = resolveBarForOutput(*it->second.first, *outIt);
     if (!resolved.enabled) {
       return true;
     }
@@ -1802,7 +1843,7 @@ void Bar::reload() {
       return destroy();
     }
 
-    auto resolved = ConfigService::resolveForOutput(*it->second.first, *outIt);
+    auto resolved = resolveBarForOutput(*it->second.first, *outIt);
     if (!resolved.enabled) {
       return destroy();
     }
@@ -2183,6 +2224,8 @@ void Bar::syncBarExclusiveZone(BarInstance& instance) {
 
 void Bar::syncBarSurfaceChrome(BarInstance& instance) {
   syncBarExclusiveZone(instance);
+  if (instance.screenWrap)
+    instance.screenWrap->setOpacity(m_overlayDisplaySuppressed ? 0.0F : instance.hideOpacity);
   applyBarCompositorBlur(instance);
   if (instance.barConfig.surfaceMode == "islands") syncBarAutoHideInputRegion(instance);
 }
@@ -2556,7 +2599,7 @@ void Bar::syncInstances() {
         return inst->outputName == output.name && inst->barIndex == barIdx;
       });
       if (!exists) {
-        auto resolved = ConfigService::resolveForOutput(bars[barIdx], output);
+        auto resolved = resolveBarForOutput(bars[barIdx], output);
         if (!resolved.enabled) {
           continue;
         }
@@ -2605,6 +2648,12 @@ void Bar::createInstance(const WaylandOutput& output, std::size_t barIndex, cons
       .prewarmBlur = barConfig.compositorBlur,
   };
 
+  if (barConfig.screenWrap) {
+    instance->screenWrap = std::make_unique<ScreenWrap>(
+        m_platform->wayland(), m_renderContext, output.output, barConfig, output.effectiveLogicalWidth(),
+        output.effectiveLogicalHeight()
+    );
+  }
   instance->surface = std::make_unique<LayerSurface>(m_platform->wayland(), std::move(surfaceConfig));
   instance->surface->setRenderContext(m_renderContext);
 
@@ -3315,9 +3364,11 @@ void Bar::applyBackgroundPalette(BarInstance& instance) {
     bg->setFill(colorForRole(ColorRole::Surface, instance.barConfig.backgroundOpacity));
     bg->setBorder(resolveColorSpec(instance.barConfig.border), instance.barConfig.borderWidth);
   }
-  style.fill = colorForRole(ColorRole::Surface, islands ? 0.0F : instance.barConfig.backgroundOpacity);
+  style.fill = colorForRole(
+      ColorRole::Surface, islands || instance.barConfig.screenWrap ? 0.0F : instance.barConfig.backgroundOpacity
+  );
   style.border = resolveColorSpec(instance.barConfig.border);
-  style.borderWidth = islands ? 0.0F : instance.barConfig.borderWidth;
+  style.borderWidth = islands || instance.barConfig.screenWrap ? 0.0F : instance.barConfig.borderWidth;
   instance.bg->setStyle(style);
 }
 
@@ -3432,7 +3483,8 @@ void Bar::applyBarCompositorBlur(BarInstance& instance) const {
   if (instance.surface == nullptr) {
     return;
   }
-  if (!instance.barConfig.compositorBlur
+  if ((instance.barConfig.screenWrap && instance.barConfig.surfaceMode == "full")
+      || !instance.barConfig.compositorBlur
       || !barContentVisuallyShown(instance)) {
     instance.surface->clearBlurRegion();
     return;
@@ -3589,10 +3641,13 @@ void Bar::buildScene(BarInstance& instance, std::uint32_t width, std::uint32_t h
     hoverUnderlay->setSize(static_cast<float>(w), static_cast<float>(h));
     instance.hoverUnderlay = instance.slideRoot->addChild(std::move(hoverUnderlay));
 
+    auto islandClip = ui::node({});
+    islandClip->setClipChildren(true);
+    instance.islandClip = instance.contentClip->addChild(std::move(islandClip));
     for (auto& bg : instance.islandBackgrounds) {
       auto box = ui::box();
       box->setHitTestVisible(false);
-      bg = static_cast<Box*>(instance.contentClip->addChild(std::move(box)));
+      bg = static_cast<Box*>(instance.islandClip->addChild(std::move(box)));
     }
 
     auto makeSlot = [&instance] {
@@ -3670,7 +3725,10 @@ void Bar::buildScene(BarInstance& instance, std::uint32_t width, std::uint32_t h
   if (instance.bg != nullptr) {
     const RoundedRectStyle bgStyle{
         .fill = colorForRole(
-            ColorRole::Surface, instance.barConfig.surfaceMode == "islands" ? 0.0F : instance.barConfig.backgroundOpacity
+            ColorRole::Surface,
+            instance.barConfig.surfaceMode == "islands" || instance.barConfig.screenWrap
+                ? 0.0F
+                : instance.barConfig.backgroundOpacity
         ),
         .border = resolveColorSpec(instance.barConfig.border),
         .fillMode = FillMode::Solid,
@@ -3678,7 +3736,9 @@ void Bar::buildScene(BarInstance& instance, std::uint32_t width, std::uint32_t h
         .logicalInset = concave.logicalInset,
         .radius = concave.radii,
         .softness = 0.0F,
-        .borderWidth = instance.barConfig.surfaceMode == "islands" ? 0.0F : instance.barConfig.borderWidth,
+        .borderWidth = instance.barConfig.surfaceMode == "islands" || instance.barConfig.screenWrap
+            ? 0.0F
+            : instance.barConfig.borderWidth,
     };
     instance.bg->setStyle(bgStyle);
     // (barAreaX/Y/W/H) is the body; the shader expands outward by logicalInset into
@@ -3692,6 +3752,8 @@ void Bar::buildScene(BarInstance& instance, std::uint32_t width, std::uint32_t h
 
   instance.paletteConn = paletteChanged().connect([inst = &instance] {
     applyBackgroundPalette(*inst);
+    if (inst->screenWrap)
+      inst->screenWrap->refreshPalette();
     if (inst->surface != nullptr) {
       inst->surface->requestRedraw();
     }
@@ -3701,6 +3763,13 @@ void Bar::buildScene(BarInstance& instance, std::uint32_t width, std::uint32_t h
     instance.contentClip->setSize(barAreaW, barAreaH);
   }
 
+  if (instance.islandClip) {
+    const float inset = instance.barConfig.screenWrap ? static_cast<float>(instance.barConfig.wrapWidth) : 0.0F;
+    instance.islandClip->setPosition(isVertical && !isRight ? inset : 0.0F, !isVertical && !isBottom ? inset : 0.0F);
+    instance.islandClip->setSize(
+        std::max(0.0F, barAreaW - (isVertical ? inset : 0.0F)), std::max(0.0F, barAreaH - (isVertical ? 0.0F : inset))
+    );
+  }
   applyBarShadowStyle(instance, shadowConfig, w, h);
 
   layoutBarSections(instance, renderer, barAreaW, barAreaH, padding, isVertical);
@@ -4397,6 +4466,8 @@ std::string Bar::setBarLayerIpc(std::string_view args) {
       continue;
     }
     instance->surface->setLayer(shellLayer);
+    if (instance->screenWrap)
+      instance->screenWrap->setLayer(shellLayer);
     instance->barConfig.layer = layer;
   }
 

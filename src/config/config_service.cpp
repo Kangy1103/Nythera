@@ -1012,6 +1012,16 @@ BarConfig ConfigService::resolveForOutput(const BarConfig& base, const WaylandOu
       resolved.thickness = *ovr.thickness;
     if (ovr.backgroundOpacity)
       resolved.backgroundOpacity = *ovr.backgroundOpacity;
+    if (ovr.surfaceMode)
+      resolved.surfaceMode = *ovr.surfaceMode;
+    if (ovr.dynamicCenter)
+      resolved.dynamicCenter = *ovr.dynamicCenter;
+    if (ovr.screenWrap)
+      resolved.screenWrap = *ovr.screenWrap;
+    if (ovr.wrapWidth)
+      resolved.wrapWidth = *ovr.wrapWidth;
+    if (ovr.wrapRadius)
+      resolved.wrapRadius = *ovr.wrapRadius;
     if (ovr.compositorBlur)
       resolved.compositorBlur = *ovr.compositorBlur;
     if (ovr.border)

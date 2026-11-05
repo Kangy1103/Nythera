@@ -81,6 +81,9 @@ struct BarMonitorOverride {
   std::optional<std::int32_t> thickness;
   std::optional<float> backgroundOpacity;
   std::optional<std::string> surfaceMode;
+  std::optional<bool> screenWrap;
+  std::optional<std::int32_t> wrapWidth;
+  std::optional<std::int32_t> wrapRadius;
   std::optional<bool> dynamicCenter;
   std::optional<bool> compositorBlur;
   std::optional<ColorSpec> border;
@@ -160,6 +163,9 @@ struct BarConfig {
   // Bar background presentation: "full" draws one continuous bar surface; "islands"
   // draws one background around each complete start/centre/end section.
   std::string surfaceMode = "full";
+  bool screenWrap = false;
+  std::int32_t wrapWidth = 6;
+  std::int32_t wrapRadius = 20;
   bool dynamicCenter = false;
   bool compositorBlur = true;
   // Inside outline for the bar background; attached panels inherit the resolved values.

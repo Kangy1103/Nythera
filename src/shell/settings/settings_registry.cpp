@@ -3757,6 +3757,21 @@ namespace settings {
           SliderSetting{bar.backgroundOpacity, 0.0F, 1.0F, 0.01F, false}, "alpha transparency translucent opacity"
       ));
       entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.screen-wrap.label"),
+          tr("settings.schema.bar.screen-wrap.description"), path("screen_wrap"), ToggleSetting{bar.screenWrap},
+          "screen frame wrap outline all edges"
+      ));
+      entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.wrap-width.label"),
+          tr("settings.schema.bar.wrap-width.description"), path("wrap_width"),
+          SliderSetting{static_cast<float>(bar.wrapWidth), 1.0F, 32.0F, 1.0F, true}, "frame rail thickness"
+      ));
+      entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.wrap-radius.label"),
+          tr("settings.schema.bar.wrap-radius.description"), path("wrap_radius"),
+          SliderSetting{static_cast<float>(bar.wrapRadius), 0.0F, 100.0F, 1.0F, true}, "frame corners rounding radius"
+      ));
+      entries.push_back(makeEntry(
           section, "effects", tr("settings.schema.bar.dynamic-center.label"),
           tr("settings.schema.bar.dynamic-center.description"), path("dynamic_center"),
           ToggleSetting{bar.dynamicCenter}, "centre content resize animation"
@@ -4156,6 +4171,23 @@ namespace settings {
             asSegmented(plainSelect({{"full", "settings.options.bar.surface-mode.full"},
                                     {"islands", "settings.options.bar.surface-mode.islands"}},
                                    ovr.surfaceMode.value_or(bar.surfaceMode))), "bar surface islands full"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.screen-wrap.label"),
+            tr("settings.schema.bar.screen-wrap.description"), monitorPath("screen_wrap"),
+            ToggleSetting{ovr.screenWrap.value_or(bar.screenWrap)}, "screen frame wrap outline all edges"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.wrap-width.label"),
+            tr("settings.schema.bar.wrap-width.description"), monitorPath("wrap_width"),
+            SliderSetting{static_cast<float>(ovr.wrapWidth.value_or(bar.wrapWidth)), 1.0F, 32.0F, 1.0F, true},
+            "frame rail thickness"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.wrap-radius.label"),
+            tr("settings.schema.bar.wrap-radius.description"), monitorPath("wrap_radius"),
+            SliderSetting{static_cast<float>(ovr.wrapRadius.value_or(bar.wrapRadius)), 0.0F, 100.0F, 1.0F, true},
+            "frame corners rounding radius"
         ));
         entries.push_back(makeEntry(
             section, "effects", tr("settings.schema.bar.dynamic-center.label"),

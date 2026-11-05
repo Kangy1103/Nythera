@@ -188,6 +188,12 @@ namespace {
       resolved.backgroundOpacity = *ovr.backgroundOpacity;
     }
     if (ovr.surfaceMode) resolved.surfaceMode = *ovr.surfaceMode;
+    if (ovr.screenWrap)
+      resolved.screenWrap = *ovr.screenWrap;
+    if (ovr.wrapWidth)
+      resolved.wrapWidth = *ovr.wrapWidth;
+    if (ovr.wrapRadius)
+      resolved.wrapRadius = *ovr.wrapRadius;
     if (ovr.dynamicCenter) resolved.dynamicCenter = *ovr.dynamicCenter;
     if (ovr.compositorBlur) {
       resolved.compositorBlur = *ovr.compositorBlur;

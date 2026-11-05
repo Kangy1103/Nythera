@@ -157,6 +157,23 @@ Only the fields you specify are overridden; everything else falls through to the
 
 `dynamic_center = true` smoothly animates changes in the size of the existing centre section. It uses precisely the widgets selected in the bar editor; it does not insert a clock, media player, visualiser or transport controls. Add and configure those using the shell's existing widgets. Existing accordion groups continue to control hover expansion. The feature defaults to false and follows the global motion settings. Find **Dynamic Centre** under **Bar → Effects**, including per-monitor settings.
 
+### Screen wrap
+
+**Bar → Effects → Screen Wrap** connects the bar to a rounded frame around the display. It works with both Full Bar and Floating Islands, on any bar edge, and can be overridden per monitor. **Frame Width** controls the thin rails (1–32 logical pixels, capped at half the bar thickness); **Frame Rounding** controls the desktop opening (0–100 logical pixels).
+
+```toml
+[bar.default]
+screen_wrap = true
+wrap_width = 6
+wrap_radius = 20
+```
+
+Full Bar becomes the thick edge of the frame. Islands join the narrow rail on their chosen edge and keep their configured contents and size animations. The frame uses the bar's palette, background opacity, border and compositor-blur settings. It has no independently hardcoded colours or widgets. Use one wrapped bar per monitor.
+
+While wrapped, the bar attaches to its selected edge, its drop shadow is suppressed, and its ends leave room for the frame. These are runtime adjustments: switching wrap off restores the saved margins, corners and shadow settings. The extra rails are click-through overlays; they do not reserve additional desktop space. The existing bar reservation is unchanged. Bar hide/show fades the frame with the bar.
+
+The renderer uses four disjoint edge buffers rather than a full-screen transparent buffer. Frame surfaces are destroyed with their owning bar and rebuilt when the output geometry changes. Placing independently configurable widgets on the other frame edges remains a separate design step.
+
 Grouped Workspaces/Taskbar animates its own extent, group capsules and application
 positions when workspace contents change. The containing island and following
 widgets track that extent directly, using the same 300 ms cubic easing as Active

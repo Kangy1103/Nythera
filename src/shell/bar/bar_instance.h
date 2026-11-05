@@ -6,6 +6,7 @@
 #include "render/scene/input_area.h"
 #include "render/scene/input_dispatcher.h"
 #include "render/scene/node.h"
+#include "shell/bar/screen_wrap.h"
 #include "shell/bar/widget.h"
 #include "shell/panel/attached_panel_context.h"
 #include "ui/signal.h"
@@ -61,6 +62,7 @@ struct BarInstance {
   std::int32_t outputLogicalHeight = 0;
   std::size_t barIndex = 0;
   BarConfig barConfig;
+  std::unique_ptr<ScreenWrap> screenWrap;
   std::unique_ptr<LayerSurface> surface;
   // sceneRoot must be destroyed before `animations` — ~Node() calls cancelForOwner().
   AnimationManager animations;
@@ -90,6 +92,7 @@ struct BarInstance {
 
   // Bar background, shadow, and layout sections (start/center/end along main axis)
   Box* bg = nullptr;
+  Node* islandClip = nullptr;
   std::array<Box*, 3> islandBackgrounds{};
   float centerExtent = 0.0F;
   float centerTargetExtent = 0.0F;

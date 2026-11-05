@@ -11,6 +11,7 @@
 //   - clamp goldens: pin parse-time range behavior.
 
 #include "config/config_export.h"
+#include "config/config_service.h"
 #include "config/config_types.h"
 #include "config/schema/config_schema.h"
 #include "config/schema/config_sections.h"
@@ -19,6 +20,7 @@
 #include "core/input/key_chord.h"
 #include "core/toml.h"
 #include "scripting/plugin_id.h"
+#include "wayland/wayland_connection.h"
 
 #include <algorithm>
 #include <optional>
@@ -286,6 +288,9 @@ location = "https://example.invalid/bad"
     ovr.backgroundOpacity = 0.7F;
     ovr.surfaceMode = "islands";
     ovr.dynamicCenter = true;
+    ovr.screenWrap = false;
+    ovr.wrapWidth = 6;
+    ovr.wrapRadius = 20;
     ovr.compositorBlur = true;
     ovr.border = colorSpecFromConfigString("#a1a2a3");
     ovr.borderWidth = 3.0F;
@@ -1147,18 +1152,42 @@ int main() {
   checkIdleActionResolution();
   {
     const auto table = toml::parse(R"(surface_mode = "full"
-dynamic_center = false)");
+dynamic_center = false
+screen_wrap = false
+wrap_width = 9
+wrap_radius = 24)");
     BarMonitorOverride monitor;
     Diagnostics diag;
     readInto(table, monitor, barMonitorOverrideSchema(), "bar.default.monitor.DP-1", diag);
-    if (monitor.surfaceMode != "full" || monitor.dynamicCenter != false)
+    if (monitor.surfaceMode != "full"
+        || monitor.dynamicCenter != false
+        || monitor.screenWrap != false
+        || monitor.wrapWidth != 9
+        || monitor.wrapRadius != 24)
       fail("monitor presentation overrides lost explicit values");
     const auto exported = writeTable(monitor, barMonitorOverrideSchema());
     BarMonitorOverride restored;
     readInto(exported, restored, barMonitorOverrideSchema(), "bar.default.monitor.DP-1", diag);
     if (!(monitor == restored)) fail("monitor presentation override round trip changed values");
+    BarConfig base;
+    base.screenWrap = true;
+    base.surfaceMode = "islands";
+    monitor.match = "DP-1";
+    base.monitorOverrides.push_back(monitor);
+    WaylandOutput output;
+    output.connectorName = "DP-1";
+    const auto resolved = ConfigService::resolveForOutput(base, output);
+    if (resolved.screenWrap || resolved.wrapWidth != 9 || resolved.wrapRadius != 24 || resolved.surfaceMode != "full")
+      fail("runtime monitor frame overrides did not resolve");
+    Config config;
+    config.bars = {base};
+    const auto exportedConfig = config_export::serialize(config);
+    if (exportedConfig["bar"]["default"]["monitor"]["DP-1"]["screen_wrap"].value<bool>() != false
+        || exportedConfig["bar"]["default"]["monitor"]["DP-1"]["wrap_width"].value<int>() != 9)
+      fail("flattened monitor frame export lost explicit overrides");
     BarConfig defaults;
-    if (defaults.dynamicCenter || defaults.surfaceMode != "full") fail("experimental presentation enabled by default");
+    if (defaults.dynamicCenter || defaults.screenWrap || defaults.surfaceMode != "full")
+      fail("experimental presentation enabled by default");
   }
   // Captured from the pre-refactor config_export::serialize for the fully-specified probe
   // bar. Pins byte-identical bar serialization across the schema migration: the
@@ -1209,6 +1238,7 @@ radius_top_left = 4
 radius_top_right = 6
 reserve_space = false
 scale = 2.0
+screen_wrap = false
 shadow = false
 show_on_workspace_switch = true
 show_tooltip = false
@@ -1217,6 +1247,8 @@ start = [ "launcher" ]
 surface_mode = "islands"
 thickness = 44
 widget_spacing = 8
+wrap_radius = 20
+wrap_width = 6
 
     [default.actions]
     middle = "none"
@@ -1277,6 +1309,7 @@ widget_spacing = 8
     radius_top_right = 2
     reserve_space = true
     scale = 1.5
+    screen_wrap = false
     shadow = true
     show_on_workspace_switch = true
     show_tooltip = true
@@ -1285,6 +1318,8 @@ widget_spacing = 8
     surface_mode = "islands"
     thickness = 50
     widget_spacing = 7
+    wrap_radius = 20
+    wrap_width = 6
 
         [default.monitor.DP-1.actions]
         middle = "none"

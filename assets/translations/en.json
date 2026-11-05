@@ -2047,6 +2047,18 @@
         "auto-hide": {
           "description": "Off keeps the bar visible; On hides it until you move the pointer to the screen edge; Smart shows the bar on an empty workspace and hides it when windows are open"
         },
+        "screen-wrap": {
+          "label": "Screen Wrap",
+          "description": "Connect the bar sections with a rounded frame around the screen. Works with Full Bar and Islands; attaches the bar to its chosen edge while enabled. Use one wrapped bar per monitor."
+        },
+        "wrap-width": {
+          "label": "Frame Width",
+          "description": "Thickness of the screen-edge rails in logical pixels"
+        },
+        "wrap-radius": {
+          "label": "Frame Rounding",
+          "description": "Radius of the rounded desktop opening in logical pixels"
+        },
         "dynamic-center": {
           "label": "Dynamic Centre",
           "description": "Animate changes in size of the configured centre widgets; contents are managed in the widget editor"
