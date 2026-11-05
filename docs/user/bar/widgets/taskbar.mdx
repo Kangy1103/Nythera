@@ -134,13 +134,11 @@ names; `1` gives compact labels such as M and G. Unicode characters are preserve
 numeric labels such as 12 are not truncated, and hovering a label shows the full
 workspace name. Labels leave a clear gap before the first application icon.
 
-Grouped Scale applies one fitted scale to labels, application icons, borders and
-spacing. Increasing it grows the group until it reaches the bar/capsule's fixed
-cross-axis size; further increases stop growing the whole group instead of taking
-space away from its icons. Under pressure, group padding compresses before the
-scale is capped; the fit calculation reserves minimum clearance rather than full
-decorative padding. Increase the bar thickness or capsule thickness to allow
-a larger group. Font Scale grows workspace-label text, background and padding
+Scale follows upstream Noctalia: the widget scale multiplies the bar content scale,
+without a separate whole-group scale cap. Icons are measured at that scale, then
+tile padding is reduced and icon size is constrained to the available bar/capsule
+thickness when necessary. Accepting a scale value such as 2.00 does not guarantee
+icons grow beyond the physical space available. Font Scale grows workspace-label text, background and padding
 together; Icon Scale remains independent. Label growth is capped by the available
 bar/capsule thickness. No separate label-scale setting is needed.
 

@@ -4948,7 +4948,6 @@
         },
         "scale": {
           "description": "Scale this widget relative to the bar content scale",
-          "taskbar-description": "Scale labels, icons and spacing together. Grouped content stops growing when it reaches the available bar height; increase bar thickness for more room.",
           "label": "Scale"
         },
         "scope": {

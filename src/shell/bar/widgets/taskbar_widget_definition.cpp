@@ -301,10 +301,6 @@ const noctalia::bar::WidgetDefinition<TaskbarWidgetOptions>& taskbarWidgetDefini
                           .descriptionKey = "settings.widgets.settings.font-scale.taskbar-description",
                       },
                       {
-                          .key = "scale",
-                          .descriptionKey = "settings.widgets.settings.scale.taskbar-description",
-                      },
-                      {
                           .key = "capsule_radius",
                           .descriptionKey = "settings.widgets.settings.capsule-radius.taskbar-description",
                           .replaceVisibleWhen = settings::WidgetSettingVisibility{

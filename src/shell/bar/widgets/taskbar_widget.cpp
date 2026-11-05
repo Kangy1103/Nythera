@@ -865,27 +865,15 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
   if (m_taskStrip == nullptr) {
     return;
   }
-  const float barCross = m_vertical ? m_containerWidth : m_containerHeight;
-  const float capsuleThickness = barCapsuleThicknessFor(m_configService, m_barName);
-  const bool barCapsule = barCapsuleSpec().enabled;
-  const float shellCross = taskbarShellCross(barCross, barCapsule, capsuleThickness);
-  struct RestoreScale {
-    float& value;
-    float original;
-    ~RestoreScale() { value = original; }
-  } restoreScale{m_contentScale, m_contentScale};
-  if (m_groupByWorkspace) {
-    m_contentScale = noctalia::bar::fitTaskbarGroupScale(
-        m_contentScale, shellCross,
-        m_workspaceGroupContent == WorkspaceGroupContent::Icons ? m_configOptions.iconScale : 1.0F,
-        barCapsule, m_workspaceGroupCapsule,
-        barCapsuleSpec().border.has_value() ? barCapsuleSpec().borderWidth : 0.0F);
-  }
   const float effectiveIconScale =
       m_groupByWorkspace && m_workspaceGroupContent != WorkspaceGroupContent::Icons ? 1.0F : m_configOptions.iconScale;
   float iconSize = std::round(Style::baseGlyphSize * effectiveIconScale * m_contentScale);
   float tilePadding = Style::spaceXs * 0.35F * m_contentScale;
   float tileSize = std::round(iconSize + tilePadding * 2.0F);
+  const float barCross = m_vertical ? m_containerWidth : m_containerHeight;
+  const float capsuleThickness = barCapsuleThicknessFor(m_configService, m_barName);
+  const bool barCapsule = barCapsuleSpec().enabled;
+  const float shellCross = taskbarShellCross(barCross, barCapsule, capsuleThickness);
   const float crossExtent = taskbarGroupedCrossBudget(
       shellCross, barCapsule, m_groupByWorkspace && m_workspaceGroupCapsule,
       barCapsuleSpec().border.has_value() ? barCapsuleSpec().borderWidth : 0.0F, m_contentScale
