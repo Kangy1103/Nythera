@@ -3772,6 +3772,12 @@ namespace settings {
           SliderSetting{static_cast<float>(bar.wrapRadius), 0.0F, 100.0F, 1.0F, true}, "frame corners rounding radius"
       ));
       entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.wrap-join-distance.label"),
+          tr("settings.schema.bar.wrap-join-distance.description"), path("wrap_join_distance"),
+          SliderSetting{static_cast<float>(bar.wrapJoinDistance), 0.0F, 500.0F, 1.0F, true},
+          "frame island outer edge corner merge cutoff distance"
+      ));
+      entries.push_back(makeEntry(
           section, "effects", tr("settings.schema.bar.dynamic-center.label"),
           tr("settings.schema.bar.dynamic-center.description"), path("dynamic_center"),
           ToggleSetting{bar.dynamicCenter}, "centre content resize animation"
@@ -4188,6 +4194,14 @@ namespace settings {
             tr("settings.schema.bar.wrap-radius.description"), monitorPath("wrap_radius"),
             SliderSetting{static_cast<float>(ovr.wrapRadius.value_or(bar.wrapRadius)), 0.0F, 100.0F, 1.0F, true},
             "frame corners rounding radius"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.wrap-join-distance.label"),
+            tr("settings.schema.bar.wrap-join-distance.description"), monitorPath("wrap_join_distance"),
+            SliderSetting{
+                static_cast<float>(ovr.wrapJoinDistance.value_or(bar.wrapJoinDistance)), 0.0F, 500.0F, 1.0F, true
+            },
+            "frame island outer edge corner merge cutoff distance"
         ));
         entries.push_back(makeEntry(
             section, "effects", tr("settings.schema.bar.dynamic-center.label"),

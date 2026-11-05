@@ -21,6 +21,7 @@
 #include "render/scene/node.h"
 #include "render/scene/rect_node.h"
 #include "render/scene/screen_corner_node.h"
+#include "render/scene/screen_frame_node.h"
 #include "render/scene/spinner_node.h"
 #include "render/scene/text_node.h"
 #include "render/scene/wallpaper_node.h"
@@ -455,6 +456,13 @@ void RenderContext::renderNode(
     auto style = corner->style();
     style.color.a *= effectiveOpacity;
     m_backend->drawScreenCorner(sw, sh, node->width(), node->height(), style, worldTransform);
+    break;
+  }
+  case NodeType::ScreenFrame: {
+    auto style = static_cast<const ScreenFrameNode*>(node)->style();
+    style.fill.a *= effectiveOpacity;
+    style.border.a *= effectiveOpacity;
+    m_backend->drawScreenFrame(sw, sh, node->width(), node->height(), style, worldTransform);
     break;
   }
   case NodeType::AudioSpectrum: {

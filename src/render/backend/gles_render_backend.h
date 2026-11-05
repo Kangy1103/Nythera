@@ -14,6 +14,7 @@
 #include "render/programs/lockscreen_transition_program.h"
 #include "render/programs/rect_program.h"
 #include "render/programs/screen_corner_program.h"
+#include "render/programs/screen_frame_program.h"
 #include "render/programs/spinner_program.h"
 #include "render/programs/wallpaper_mask_program.h"
 #include "render/programs/wallpaper_program.h"
@@ -70,6 +71,10 @@ public:
       float surfaceWidth, float surfaceHeight, float width, float height, const ScreenCornerStyle& style,
       const Mat3& transform
   ) override;
+  void drawScreenFrame(
+      float surfaceWidth, float surfaceHeight, float width, float height, const ScreenFrameStyle& style,
+      const Mat3& transform
+  ) override;
   void drawAudioSpectrum(
       float surfaceWidth, float surfaceHeight, float pixelScaleX, float pixelScaleY, float width, float height,
       const AudioSpectrumStyle& style, std::span<const float> values, const Mat3& transform
@@ -123,6 +128,7 @@ private:
   SpinnerProgram m_spinnerProgram;
   CountdownRingProgram m_countdownRingProgram;
   ScreenCornerProgram m_screenCornerProgram;
+  ScreenFrameProgram m_screenFrameProgram;
   AudioSpectrumProgram m_audioSpectrumProgram;
   FancyAudioVisualizerProgram m_fancyAudioVisualizerProgram;
   EffectProgram m_effectProgram;

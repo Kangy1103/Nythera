@@ -603,6 +603,13 @@ void GlesRenderBackend::drawScreenCorner(
   m_screenCornerProgram.draw(surfaceWidth, surfaceHeight, width, height, style, transform);
 }
 
+void GlesRenderBackend::drawScreenFrame(
+    float sw, float sh, float width, float height, const ScreenFrameStyle& style, const Mat3& transform
+) {
+  m_screenFrameProgram.ensureInitialized();
+  m_screenFrameProgram.draw(sw, sh, width, height, style, transform);
+}
+
 void GlesRenderBackend::drawAudioSpectrum(
     float surfaceWidth, float surfaceHeight, float pixelScaleX, float pixelScaleY, float width, float height,
     const AudioSpectrumStyle& style, std::span<const float> values, const Mat3& transform
@@ -707,6 +714,7 @@ void GlesRenderBackend::destroyGpuObjects() {
   m_spinnerProgram.destroy();
   m_countdownRingProgram.destroy();
   m_screenCornerProgram.destroy();
+  m_screenFrameProgram.destroy();
   m_audioSpectrumProgram.destroy();
   m_fancyAudioVisualizerProgram.destroy();
   m_effectProgram.destroy();
@@ -727,6 +735,7 @@ void GlesRenderBackend::abandonGpuObjects() noexcept {
   m_spinnerProgram.abandon();
   m_countdownRingProgram.abandon();
   m_screenCornerProgram.abandon();
+  m_screenFrameProgram.abandon();
   m_audioSpectrumProgram.abandon();
   m_fancyAudioVisualizerProgram.abandon();
   m_effectProgram.abandon();

@@ -51,4 +51,24 @@ namespace screen_wrap {
     };
     return g;
   }
+
+  inline void reserveIslandSpace(Geometry& g, std::string_view edge, int depth) {
+    if (edge == "top" || edge == "bottom") {
+      const bool top = edge == "top";
+      auto& strip = g.strips[top ? 0 : 1];
+      const int other = g.strips[top ? 1 : 0].height;
+      strip.height = std::max(strip.height, std::min(depth, g.height - other - 1));
+      strip.y = top ? 0 : g.height - strip.height;
+      for (int i : {2, 3}) {
+        g.strips[i].y = g.strips[0].height;
+        g.strips[i].height = g.height - g.strips[0].height - g.strips[1].height;
+      }
+    } else {
+      const bool left = edge == "left";
+      auto& strip = g.strips[left ? 2 : 3];
+      const int other = g.strips[left ? 3 : 2].width;
+      strip.width = std::max(strip.width, std::min(depth, g.width - other - 1));
+      strip.x = left ? 0 : g.width - strip.width;
+    }
+  }
 } // namespace screen_wrap

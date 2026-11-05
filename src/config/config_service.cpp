@@ -1022,6 +1022,8 @@ BarConfig ConfigService::resolveForOutput(const BarConfig& base, const WaylandOu
       resolved.wrapWidth = *ovr.wrapWidth;
     if (ovr.wrapRadius)
       resolved.wrapRadius = *ovr.wrapRadius;
+    if (ovr.wrapJoinDistance)
+      resolved.wrapJoinDistance = *ovr.wrapJoinDistance;
     if (ovr.compositorBlur)
       resolved.compositorBlur = *ovr.compositorBlur;
     if (ovr.border)

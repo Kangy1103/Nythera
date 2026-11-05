@@ -1,3 +1,4 @@
+#include "render/core/screen_frame_geometry.h"
 #include "shell/bar/screen_wrap_geometry.h"
 #include "shell/settings/settings_registry.h"
 
@@ -6,6 +7,41 @@
 #include <utility>
 
 int main() {
+  const std::array<ScreenFrameSpan, 3> spans{{{40, 200}, {450, 550}, {800, 960}}};
+  const auto joined = joinedScreenFrameSpans(spans, 1000, 80, 50);
+  assert(joined[0].begin == -50 && joined[2].end == 1050 && joined[1] == spans[1]);
+  assert(joinedScreenFrameSpans(spans, 1000, 0, 50) == spans);
+  assert(joinedScreenFrameSpans(spans, 1000, 39, 50) == spans);
+  auto far = spans;
+  far[0].begin = 81;
+  far[2].end = 919;
+  assert(joinedScreenFrameSpans(far, 1000, 80, 50) == far);
+  auto empty = spans;
+  empty[0] = empty[2] = {};
+  assert(joinedScreenFrameSpans(empty, 1000, 500, 50) == empty);
+  ScreenFrameContour contour;
+  contour.width = 1000;
+  contour.height = 600;
+  contour.islands = spans;
+  assert(screenFrameDistance(contour, 20, 35) > 0);  // detached outer gap
+  assert(screenFrameDistance(contour, 35, 8) < 0);   // curved shoulder fills the old sharp junction
+  assert(screenFrameDistance(contour, 300, 20) > 0); // gaps between islands remain open
+  assert(screenFrameDistance(contour, 100, 49) < 0);
+  assert(screenFrameDistance(contour, 200, 50) > 0); // rounded lower corner
+  contour.islands = joined;
+  assert(screenFrameDistance(contour, 20, 35) < 0); // outer island reaches the frame
+  for (int edge = 0; edge < 4; ++edge) {
+    auto rotated = contour;
+    rotated.edge = edge;
+    const bool vertical = edge == 1 || edge == 3;
+    rotated.width = vertical ? 600 : 1000;
+    rotated.height = vertical ? 1000 : 600;
+    for (const auto [u, v] : {std::pair{20.0F, 35.0F}, std::pair{201.0F, 12.0F}, std::pair{500.0F, 49.0F}}) {
+      const float x = edge == 1 ? 600 - v : vertical ? v : u;
+      const float y = edge == 2 ? 600 - v : vertical ? u : v;
+      assert(std::abs(screenFrameDistance(rotated, x, y) - screenFrameDistance(contour, u, v)) < 0.001F);
+    }
+  }
   const auto square = screen_wrap::geometry(3440, 1440, 6, 0, 50, "top", false, 2);
   assert(square.radius == 0 && square.strips[0].height == 8 && square.strips[2].width == 8);
   Config config;
@@ -20,7 +56,7 @@ int main() {
   config.bars = {bar};
   for (bool perMonitor : {false, true}) {
     const auto entries = settings::buildSettingsRegistry(config, &bar, perMonitor ? &monitor : nullptr);
-    for (auto key : {"screen_wrap", "wrap_width", "wrap_radius"}) {
+    for (auto key : {"screen_wrap", "wrap_width", "wrap_radius", "wrap_join_distance"}) {
       const std::vector<std::string> path = perMonitor
           ? std::vector<std::string>{"bar", "default", "monitor", "DP-1", key}
           : std::vector<std::string>{"bar", "default", key};
@@ -34,7 +70,9 @@ int main() {
   for (auto edge : {"top", "bottom", "left", "right"}) {
     for (bool full : {false, true}) {
       for (auto size : {std::pair{3440, 1440}, std::pair{1440, 2560}, std::pair{853, 533}}) {
-        const auto g = screen_wrap::geometry(size.first, size.second, 6, 20, 50, edge, full);
+        auto g = screen_wrap::geometry(size.first, size.second, 6, 20, 50, edge, full);
+        if (!full)
+          screen_wrap::reserveIslandSpace(g, edge, 75);
         int area = 0;
         for (std::size_t i = 0; i < g.strips.size(); ++i) {
           const auto& a = g.strips[i];

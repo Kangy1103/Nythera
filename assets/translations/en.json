@@ -2055,6 +2055,10 @@
           "label": "Frame Width",
           "description": "Thickness of the screen-edge rails in logical pixels"
         },
+        "wrap-join-distance": {
+          "label": "Corner Join Distance",
+          "description": "Merge the outer start/end islands into the screen corners when their painted edge is within this many logical pixels. 0 keeps the outer gaps. Default 80 is twice the original 40px gap."
+        },
         "wrap-radius": {
           "label": "Frame Rounding",
           "description": "Radius of the rounded desktop opening in logical pixels"

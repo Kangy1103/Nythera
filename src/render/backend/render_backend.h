@@ -1,5 +1,7 @@
 #pragma once
 
+struct ScreenFrameStyle;
+
 #include "render/core/color.h"
 #include "render/core/mat3.h"
 #include "render/core/render_styles.h"
@@ -151,6 +153,10 @@ public:
   ) = 0;
   virtual void drawScreenCorner(
       float surfaceWidth, float surfaceHeight, float width, float height, const ScreenCornerStyle& style,
+      const Mat3& transform
+  ) = 0;
+  virtual void drawScreenFrame(
+      float surfaceWidth, float surfaceHeight, float width, float height, const ScreenFrameStyle& style,
       const Mat3& transform
   ) = 0;
   virtual void drawAudioSpectrum(

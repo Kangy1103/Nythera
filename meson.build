@@ -604,6 +604,7 @@ _noctalia_sources = files(
   'src/render/programs/linear_gradient_program.cpp',
   'src/render/programs/rect_program.cpp',
   'src/render/programs/screen_corner_program.cpp',
+  'src/render/programs/screen_frame_program.cpp',
   'src/render/programs/countdown_ring_program.cpp',
   'src/render/programs/spinner_program.cpp',
   'src/render/programs/audio_spectrum_program.cpp',

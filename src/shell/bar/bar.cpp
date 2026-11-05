@@ -765,6 +765,8 @@ namespace {
         && a.screenWrap == b.screenWrap
         && a.wrapWidth == b.wrapWidth
         && a.wrapRadius == b.wrapRadius
+        && a.wrapJoinDistance == b.wrapJoinDistance
+        && (!a.screenWrap || a.radius == b.radius)
         && (!a.screenWrap
             || (a.surfaceMode == b.surfaceMode
                 && a.backgroundOpacity == b.backgroundOpacity
@@ -1412,6 +1414,7 @@ namespace {
       for (auto& widget : *widgets) widget->finishBarLayout();
     }
 
+    std::array<ScreenFrameSpan, 3> frameSpans{};
     const std::array<Node*, 3> slots{instance.startSlot, instance.centerSlot, instance.endSlot};
     const std::array<Flex*, 3> sections{instance.startSection, instance.centerSection, instance.endSection};
     for (std::size_t i = 0; i < slots.size(); ++i) {
@@ -1434,8 +1437,13 @@ namespace {
           slot->y() + (isVertical ? paintedBegin : 0.0F) - instance.islandClip->y()
       );
       bg->setSize(isVertical ? slotCross : paintedSize, isVertical ? paintedSize : slotCross);
-      bg->setFill(colorForRole(ColorRole::Surface, instance.barConfig.backgroundOpacity));
-      bg->setBorder(resolveColorSpec(instance.barConfig.border), instance.barConfig.borderWidth);
+      bg->setFill(
+          colorForRole(ColorRole::Surface, instance.barConfig.screenWrap ? 0.0F : instance.barConfig.backgroundOpacity)
+      );
+      bg->setBorder(
+          resolveColorSpec(instance.barConfig.border),
+          instance.barConfig.screenWrap ? 0.0F : instance.barConfig.borderWidth
+      );
       const float radius =
           std::min(static_cast<float>(instance.barConfig.radius), std::min(bg->width(), bg->height()) * 0.5F);
       Radii radii{radius, radius, radius, radius};
@@ -1451,7 +1459,14 @@ namespace {
           radii.tl = radii.tr = 0.0F;
       }
       bg->setRadii(radii);
+      if (bg->visible()) {
+        const float mainStart =
+            static_cast<float>(instance.barConfig.marginEnds) + (isVertical ? slot->y() : slot->x()) + paintedBegin;
+        frameSpans[i] = {mainStart, mainStart + paintedSize};
+      }
     }
+    if (instance.screenWrap)
+      instance.screenWrap->setIslands(frameSpans);
 
     applyBarWidgetHitTargets(instance.startSection, instance.startSlot, isVertical);
     applyBarWidgetHitTargets(instance.centerSection, instance.centerSlot, isVertical);
@@ -3361,8 +3376,13 @@ void Bar::applyBackgroundPalette(BarInstance& instance) {
   const bool islands = instance.barConfig.surfaceMode == "islands";
   for (auto* bg : instance.islandBackgrounds) {
     if (bg == nullptr) continue;
-    bg->setFill(colorForRole(ColorRole::Surface, instance.barConfig.backgroundOpacity));
-    bg->setBorder(resolveColorSpec(instance.barConfig.border), instance.barConfig.borderWidth);
+    bg->setFill(
+        colorForRole(ColorRole::Surface, instance.barConfig.screenWrap ? 0.0F : instance.barConfig.backgroundOpacity)
+    );
+    bg->setBorder(
+        resolveColorSpec(instance.barConfig.border),
+        instance.barConfig.screenWrap ? 0.0F : instance.barConfig.borderWidth
+    );
   }
   style.fill = colorForRole(
       ColorRole::Surface, islands || instance.barConfig.screenWrap ? 0.0F : instance.barConfig.backgroundOpacity
@@ -3483,9 +3503,7 @@ void Bar::applyBarCompositorBlur(BarInstance& instance) const {
   if (instance.surface == nullptr) {
     return;
   }
-  if ((instance.barConfig.screenWrap && instance.barConfig.surfaceMode == "full")
-      || !instance.barConfig.compositorBlur
-      || !barContentVisuallyShown(instance)) {
+  if (instance.barConfig.screenWrap || !instance.barConfig.compositorBlur || !barContentVisuallyShown(instance)) {
     instance.surface->clearBlurRegion();
     return;
   }

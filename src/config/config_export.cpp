@@ -163,6 +163,8 @@ namespace config_export {
         resolved.wrapWidth = *ovr.wrapWidth;
       if (ovr.wrapRadius)
         resolved.wrapRadius = *ovr.wrapRadius;
+      if (ovr.wrapJoinDistance)
+        resolved.wrapJoinDistance = *ovr.wrapJoinDistance;
       if (ovr.compositorBlur)
         resolved.compositorBlur = *ovr.compositorBlur;
       if (ovr.border)

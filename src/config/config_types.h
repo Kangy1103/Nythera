@@ -84,6 +84,7 @@ struct BarMonitorOverride {
   std::optional<bool> screenWrap;
   std::optional<std::int32_t> wrapWidth;
   std::optional<std::int32_t> wrapRadius;
+  std::optional<std::int32_t> wrapJoinDistance;
   std::optional<bool> dynamicCenter;
   std::optional<bool> compositorBlur;
   std::optional<ColorSpec> border;
@@ -166,6 +167,7 @@ struct BarConfig {
   bool screenWrap = false;
   std::int32_t wrapWidth = 6;
   std::int32_t wrapRadius = 20;
+  std::int32_t wrapJoinDistance = 80;
   bool dynamicCenter = false;
   bool compositorBlur = true;
   // Inside outline for the bar background; attached panels inherit the resolved values.

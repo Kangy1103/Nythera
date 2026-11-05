@@ -291,6 +291,7 @@ location = "https://example.invalid/bad"
     ovr.screenWrap = false;
     ovr.wrapWidth = 6;
     ovr.wrapRadius = 20;
+    ovr.wrapJoinDistance = 80;
     ovr.compositorBlur = true;
     ovr.border = colorSpecFromConfigString("#a1a2a3");
     ovr.borderWidth = 3.0F;
@@ -1155,7 +1156,8 @@ int main() {
 dynamic_center = false
 screen_wrap = false
 wrap_width = 9
-wrap_radius = 24)");
+wrap_radius = 24
+wrap_join_distance = 0)");
     BarMonitorOverride monitor;
     Diagnostics diag;
     readInto(table, monitor, barMonitorOverrideSchema(), "bar.default.monitor.DP-1", diag);
@@ -1163,7 +1165,8 @@ wrap_radius = 24)");
         || monitor.dynamicCenter != false
         || monitor.screenWrap != false
         || monitor.wrapWidth != 9
-        || monitor.wrapRadius != 24)
+        || monitor.wrapRadius != 24
+        || monitor.wrapJoinDistance != 0)
       fail("monitor presentation overrides lost explicit values");
     const auto exported = writeTable(monitor, barMonitorOverrideSchema());
     BarMonitorOverride restored;
@@ -1177,13 +1180,18 @@ wrap_radius = 24)");
     WaylandOutput output;
     output.connectorName = "DP-1";
     const auto resolved = ConfigService::resolveForOutput(base, output);
-    if (resolved.screenWrap || resolved.wrapWidth != 9 || resolved.wrapRadius != 24 || resolved.surfaceMode != "full")
+    if (resolved.screenWrap
+        || resolved.wrapWidth != 9
+        || resolved.wrapRadius != 24
+        || resolved.wrapJoinDistance != 0
+        || resolved.surfaceMode != "full")
       fail("runtime monitor frame overrides did not resolve");
     Config config;
     config.bars = {base};
     const auto exportedConfig = config_export::serialize(config);
     if (exportedConfig["bar"]["default"]["monitor"]["DP-1"]["screen_wrap"].value<bool>() != false
-        || exportedConfig["bar"]["default"]["monitor"]["DP-1"]["wrap_width"].value<int>() != 9)
+        || exportedConfig["bar"]["default"]["monitor"]["DP-1"]["wrap_width"].value<int>() != 9
+        || exportedConfig["bar"]["default"]["monitor"]["DP-1"]["wrap_join_distance"].value<int>() != 0)
       fail("flattened monitor frame export lost explicit overrides");
     BarConfig defaults;
     if (defaults.dynamicCenter || defaults.screenWrap || defaults.surfaceMode != "full")
@@ -1247,6 +1255,7 @@ start = [ "launcher" ]
 surface_mode = "islands"
 thickness = 44
 widget_spacing = 8
+wrap_join_distance = 80
 wrap_radius = 20
 wrap_width = 6
 
@@ -1318,6 +1327,7 @@ wrap_width = 6
     surface_mode = "islands"
     thickness = 50
     widget_spacing = 7
+    wrap_join_distance = 80
     wrap_radius = 20
     wrap_width = 6
 

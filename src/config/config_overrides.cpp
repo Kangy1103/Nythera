@@ -194,6 +194,8 @@ namespace {
       resolved.wrapWidth = *ovr.wrapWidth;
     if (ovr.wrapRadius)
       resolved.wrapRadius = *ovr.wrapRadius;
+    if (ovr.wrapJoinDistance)
+      resolved.wrapJoinDistance = *ovr.wrapJoinDistance;
     if (ovr.dynamicCenter) resolved.dynamicCenter = *ovr.dynamicCenter;
     if (ovr.compositorBlur) {
       resolved.compositorBlur = *ovr.compositorBlur;
