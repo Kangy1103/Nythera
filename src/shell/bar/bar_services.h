@@ -1,5 +1,6 @@
 #pragma once
 
+class IslandActivities;
 class BluetoothService;
 class BrightnessService;
 class ClipboardService;
@@ -37,6 +38,7 @@ struct BarServices {
   CompositorPlatform& platform;
   ConfigService& config;
   NotificationManager* notifications = nullptr;
+  IslandActivities* activities = nullptr;
   TrayService* tray = nullptr;
   PipeWireService* audio = nullptr;
   EasyEffectsService* easyEffects = nullptr;

@@ -3778,6 +3778,13 @@ namespace settings {
           SliderSetting{static_cast<float>(bar.wrapJoinDistance), 0.0F, 500.0F, 1.0F, true},
           "frame island outer edge corner merge cutoff distance"
       ));
+entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-notifications.label"), tr("settings.schema.bar.dynamic-notifications.description"), path("dynamic_notifications"), ToggleSetting{bar.dynamicNotifications}, "dynamic island"));
+entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-timers.label"), tr("settings.schema.bar.dynamic-timers.description"), path("dynamic_timers"), ToggleSetting{bar.dynamicTimers}, "dynamic island"));
+entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-alarms.label"), tr("settings.schema.bar.dynamic-alarms.description"), path("dynamic_alarms"), ToggleSetting{bar.dynamicAlarms}, "dynamic island"));
+entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-calls.label"), tr("settings.schema.bar.dynamic-calls.description"), path("dynamic_calls"), ToggleSetting{bar.dynamicCalls}, "dynamic island"));
+entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-timer-seconds.label"), tr("settings.schema.bar.dynamic-timer-seconds.description"), path("dynamic_timer_seconds"), SliderSetting{static_cast<float>(bar.dynamicTimerSeconds), 1.0F, 86400.0F, 1.0F, true}, "dynamic island"));
+entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-alarm-time.label"), tr("settings.schema.bar.dynamic-alarm-time.description"), path("dynamic_alarm_time"), TextSetting{bar.dynamicAlarmTime}, "dynamic island"));
+entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-snooze-seconds.label"), tr("settings.schema.bar.dynamic-snooze-seconds.description"), path("dynamic_snooze_seconds"), SliderSetting{static_cast<float>(bar.dynamicSnoozeSeconds), 1.0F, 86400.0F, 1.0F, true}, "dynamic island"));
       entries.push_back(makeEntry(
           section, "effects", tr("settings.schema.bar.dynamic-media.label"),
           tr("settings.schema.bar.dynamic-media.description"), path("dynamic_media"),
@@ -4240,6 +4247,13 @@ namespace settings {
             },
             "frame island outer edge corner merge cutoff distance"
         ));
+entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-notifications.label"), tr("settings.schema.bar.dynamic-notifications.description"), monitorPath("dynamic_notifications"), ToggleSetting{ovr.dynamicNotifications.value_or(bar.dynamicNotifications)}, "dynamic island"));
+entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-timers.label"), tr("settings.schema.bar.dynamic-timers.description"), monitorPath("dynamic_timers"), ToggleSetting{ovr.dynamicTimers.value_or(bar.dynamicTimers)}, "dynamic island"));
+entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-alarms.label"), tr("settings.schema.bar.dynamic-alarms.description"), monitorPath("dynamic_alarms"), ToggleSetting{ovr.dynamicAlarms.value_or(bar.dynamicAlarms)}, "dynamic island"));
+entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-calls.label"), tr("settings.schema.bar.dynamic-calls.description"), monitorPath("dynamic_calls"), ToggleSetting{ovr.dynamicCalls.value_or(bar.dynamicCalls)}, "dynamic island"));
+entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-timer-seconds.label"), tr("settings.schema.bar.dynamic-timer-seconds.description"), monitorPath("dynamic_timer_seconds"), SliderSetting{static_cast<float>(ovr.dynamicTimerSeconds.value_or(bar.dynamicTimerSeconds)), 1.0F, 86400.0F, 1.0F, true}, "dynamic island"));
+entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-alarm-time.label"), tr("settings.schema.bar.dynamic-alarm-time.description"), monitorPath("dynamic_alarm_time"), TextSetting{ovr.dynamicAlarmTime.value_or(bar.dynamicAlarmTime)}, "dynamic island"));
+entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-snooze-seconds.label"), tr("settings.schema.bar.dynamic-snooze-seconds.description"), monitorPath("dynamic_snooze_seconds"), SliderSetting{static_cast<float>(ovr.dynamicSnoozeSeconds.value_or(bar.dynamicSnoozeSeconds)), 1.0F, 86400.0F, 1.0F, true}, "dynamic island"));
         entries.push_back(makeEntry(
             section, "effects", tr("settings.schema.bar.dynamic-media.label"),
             tr("settings.schema.bar.dynamic-media.description"), monitorPath("dynamic_media"),

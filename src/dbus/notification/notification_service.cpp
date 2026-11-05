@@ -288,6 +288,9 @@ namespace notification_dbus {
       } catch (...) {
       }
     }
+    if (auto it = hints.find("x-kde-eventId"); it != hints.end()) {
+      try { const auto event = it->second.get<std::string>(); if (event == "callReceived") return event; } catch (...) {}
+    }
     return std::nullopt;
   }
 

@@ -2,6 +2,7 @@
 
 #include "config/config_types.h"
 #include "core/timer_manager.h"
+#include "notification/notification_manager.h"
 #include "render/animation/animation_manager.h"
 #include "render/scene/input_dispatcher.h"
 #include "shell/bar/bar_services.h"
@@ -35,6 +36,10 @@ public:
   void prepare(Renderer& renderer, bool update);
   bool onPointerEvent(const PointerEvent& event);
   bool feedback(const OsdContent& content);
+  bool notification(const Notification& notification, NotificationEvent event);
+  void syncActivities();
+  bool activityCommand(const std::string& command, const std::string& value);
+
   void toggleExpanded();
   void setVisible(bool visible);
   Node* root() const { return m_root.get(); }
@@ -62,11 +67,18 @@ private:
   float m_width = 0, m_height = 0, m_targetWidth = 0, m_targetHeight = 0;
   float m_fromWidth = 0, m_fromHeight = 0;
   bool m_initialized = false, m_visible = true, m_hovered = false, m_pinned = false, m_hoverBlocked = false;
-  bool m_expanded = false, m_displayExpanded = false;
+  bool m_expanded = false, m_displayExpanded = false, m_clockTools = false;
   IslandEvent m_event = IslandEvent::Resting, m_displayEvent = IslandEvent::Resting;
   AnimationManager::Id m_resizeAnimation = 0;
   DynamicIslandState m_state;
-  std::array<OsdContent, 4> m_feedback;
+  std::array<OsdContent, static_cast<unsigned>(IslandEvent::Count)> m_feedback;
+  std::array<Notification, 2> m_notices{};
+  unsigned m_timerRevision = 0, m_alarmRevision = 0;
+  std::uint32_t m_heldNotificationId = 0;
+  int m_heldNotificationRemaining = 0;
+  Signal<>::ScopedConnection m_activityConnection;
+  std::array<Button*, 6> m_actions{};
+
   Timer m_expiryTimer, m_hoverTimer, m_clockTimer, m_progressTimer;
   Signal<>::ScopedConnection m_paletteConnection;
   std::unique_ptr<Node> m_root;
@@ -80,6 +92,7 @@ private:
   Label *m_title = nullptr, *m_detail = nullptr;
   Image* m_art = nullptr;
   Button *m_previous = nullptr, *m_play = nullptr, *m_next = nullptr, *m_close = nullptr;
+  Button* m_tools = nullptr;
   InputArea* m_levelArea = nullptr;
   ProgressBar* m_progress = nullptr;
   std::string m_artPath;

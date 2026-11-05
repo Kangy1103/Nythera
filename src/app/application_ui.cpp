@@ -1,5 +1,6 @@
 #include "app/main_loop.h"
 #include "application.h"
+#include "pipewire/sound_player.h"
 #include "application_internal.h"
 #include "compositors/compositor_detect.h"
 #include "config/config_types.h"
@@ -740,6 +741,8 @@ void Application::initNotificationAndOsd() {
   m_notificationToast.initialize(
       m_wayland, m_compositorPlatform, &m_configService, &m_notificationManager, &m_renderContext, &m_httpClient
   );
+  m_bar.setIslandAlertCallback([this] { if (m_soundPlayer) m_soundPlayer->play(SoundPlayer::kEventNotification); });
+  m_notificationToast.setContentInterceptor([this](const Notification& n, NotificationEvent event) { return m_bar.routeDynamicNotification(n,event); });
   m_configService.addReloadCallback([this] { m_notificationToast.onConfigReload(); });
   auto applyNotificationFilterConfig = [this] {
     m_notificationManager.setFilters(m_configService.config().notification.filters);

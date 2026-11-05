@@ -2,6 +2,8 @@
 #include "config/schema/engine.h"
 #include "core/toml.h"
 #include "shell/bar/dynamic_island.h"
+#include "shell/bar/island_activities.h"
+#include "shell/bar/island_notification.h"
 #include "shell/osd/media_osd.h"
 #include "shell/settings/settings_registry.h"
 
@@ -24,6 +26,44 @@ int main() {
   assert(!playback.observe("Paused", false, true)); // Pause cancels a pending start.
   assert(!playback.observe("Paused", true, true));
 
+  assert(IslandActivities::validTime("08:00"));
+  assert(!IslandActivities::validTime("24:00"));
+  assert(!IslandActivities::validTime("09:60"));
+  assert(!IslandActivities::validTime("garbage"));
+  IslandActivities activities;
+  int timerAlerts = 0, alarmAlerts = 0;
+  activities.alert = [&](bool timer, bool alarm) {
+    timerAlerts += timer;
+    alarmAlerts += alarm;
+  };
+  activities.startTimer(3, nullptr, 100);
+  assert(activities.countdown(101) == "0:02");
+  activities.tick(103);
+  assert(activities.timerFinished && !activities.timerEnd);
+  activities.cancelTimer();
+  assert(!activities.timerFinished);
+  activities.alarmAt = 110;
+  activities.tick(110);
+  assert(activities.alarmRinging);
+  assert(timerAlerts == 1 && alarmAlerts == 1);
+  activities.tick(111);
+  assert(timerAlerts == 1 && alarmAlerts == 1);
+  activities.dismissAlarm();
+  assert(!activities.alarmRinging);
+  Notification call{};
+  call.appName = "Vesktop";
+  call.summary = "Alice is calling you";
+  assert(isIslandCall(call));
+  call.summary = "A normal message";
+  assert(!isIslandCall(call));
+  call.appName = "Other app";
+  call.category = "call.incoming";
+  assert(isIslandCall(call));
+  call.category.reset();
+  call.appName = "KDE Connect";
+  call.category = "callReceived";
+  assert(isIslandCall(call));
+
   DynamicIslandState state;
   state.push(IslandEvent::Media, 0, 10000);
   state.push(IslandEvent::Volume, 100, 1000);
@@ -38,6 +78,13 @@ int main() {
   state.push(IslandEvent::Volume, 12500, 1000);
   assert(state.resolve(13200) == IslandEvent::Volume);
   assert(state.resolve(14000) == IslandEvent::Resting);
+
+  state.push(IslandEvent::Notification, 15000, 1000);
+  state.push(IslandEvent::Call, 15000, 1000);
+  state.push(IslandEvent::Alarm, 15000, 1000);
+  assert(state.resolve(15001) == IslandEvent::Alarm);
+  state.clear(IslandEvent::Alarm);
+  assert(state.resolve(15001) == IslandEvent::Call);
 
   BarConfig bar;
   using namespace noctalia::config::schema;
@@ -68,8 +115,9 @@ int main() {
   for (bool perMonitor : {false, true}) {
     const auto entries = settings::buildSettingsRegistry(config, &bar, perMonitor ? &monitor : nullptr);
     for (auto key :
-         {"dynamic_media", "dynamic_volume", "dynamic_brightness", "dynamic_hover_expand", "dynamic_width",
-          "dynamic_dwell_ms", "dynamic_clock_format"}) {
+         {"dynamic_notifications", "dynamic_timers", "dynamic_alarms", "dynamic_calls", "dynamic_timer_seconds",
+          "dynamic_alarm_time", "dynamic_snooze_seconds", "dynamic_media", "dynamic_volume", "dynamic_brightness",
+          "dynamic_hover_expand", "dynamic_width", "dynamic_dwell_ms", "dynamic_clock_format"}) {
       const auto path = perMonitor ? std::vector<std::string>{"bar", "default", "monitor", "DP-1", key}
                                    : std::vector<std::string>{"bar", "default", key};
       assert(std::ranges::find(entries, path, &settings::SettingEntry::path) != entries.end());

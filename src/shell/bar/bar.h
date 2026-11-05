@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/timer_manager.h"
+#include "shell/bar/island_activities.h"
 #include "ipc/ipc_invocation_context.h"
 #include "shell/bar/bar_instance.h"
 #include "shell/bar/bar_services.h"
@@ -18,6 +19,8 @@
 #include <unordered_set>
 #include <vector>
 
+struct Notification;
+enum class NotificationEvent;
 class TaskbarWidget;
 
 class ConfigService;
@@ -72,12 +75,14 @@ public:
   void onOutputChange();
   void onWorkspaceChanged();
   void scheduleSmartAutoHideReevaluation();
+  void setIslandAlertCallback(std::function<void()> callback);
   void onSecondTick();
   // True when any bar widget renders a value that changes every second, so the
   // time source should wake on second boundaries.
   [[nodiscard]] bool wantsSecondTicks() const;
   void refresh();
   bool routeDynamicFeedback(const OsdContent& content);
+  bool routeDynamicNotification(const Notification& notification, NotificationEvent event);
   std::string toggleDynamicIslandIpc(std::string_view args);
   void requestLayout();
   void setAutoHideSuppressionCallback(std::function<bool(const BarInstance&)> callback);
@@ -179,6 +184,7 @@ private:
 
   CompositorPlatform* m_platform = nullptr;
   ConfigService* m_config = nullptr;
+  IslandActivities m_activities;
   NotificationManager* m_notifications = nullptr;
   TrayService* m_tray = nullptr;
   PipeWireService* m_audio = nullptr;

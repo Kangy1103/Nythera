@@ -6,6 +6,8 @@
 #include "pipewire/pipewire_service.h"
 #include "render/core/renderer.h"
 #include "render/scene/screen_frame_node.h"
+#include "shell/bar/island_activities.h"
+#include "shell/bar/island_notification.h"
 #include "shell/bar/screen_wrap.h"
 #include "system/brightness_service.h"
 #include "time/time_format.h"
@@ -60,9 +62,17 @@ DynamicIsland::DynamicIsland(
       m_output(output), m_outputWidth(outputWidth), m_outputHeight(outputHeight), m_vertical(vertical(config)),
       m_reverse(config.position == "bottom" || config.position == "right") {
   m_paletteConnection = paletteChanged().connect([this] { m_surface.requestUpdate(); });
+  if (m_services.activities) {
+    m_activityConnection = m_services.activities->changed.connect([this] { syncActivities(); });
+    syncActivities();
+  }
 }
 
-DynamicIsland::~DynamicIsland() { m_alive.reset(); }
+DynamicIsland::~DynamicIsland() {
+  m_alive.reset();
+  if (m_heldNotificationId && m_services.notifications)
+    m_services.notifications->resumeExpiry(m_heldNotificationId, m_heldNotificationRemaining);
+}
 
 void DynamicIsland::build() {
   m_root = ui::node({});
@@ -121,12 +131,26 @@ void DynamicIsland::build() {
           .glyph = "x",
           .variant = ButtonVariant::Ghost,
           .onClick = [this] {
+            if (m_services.activities) {
+              if (m_event == IslandEvent::Alarm)
+                m_services.activities->dismissAlarm();
+              if (m_event == IslandEvent::TimerFinished)
+                m_services.activities->cancelTimer();
+            }
             m_pinned = false;
+            m_clockTools = false;
             m_hoverBlocked = true;
             m_surface.requestUpdate();
           },
       })
   ));
+  m_tools = static_cast<Button*>(
+      m_content->addChild(ui::button({.text = "Clock & timers", .variant = ButtonVariant::Ghost, .onClick = [this] {
+                                        m_clockTools = !m_clockTools;
+                                        m_pinned = true;
+                                        m_surface.requestUpdate();
+                                      }}))
+  );
   auto level = ui::inputArea({});
   level->setOnClick([this](const auto& p) {
     setLevel(std::clamp(p.localX / std::max(1.0F, m_levelArea->width()), 0.0F, 1.0F));
@@ -134,6 +158,8 @@ void DynamicIsland::build() {
   m_levelArea = static_cast<InputArea*>(m_content->addChild(std::move(level)));
   auto progress = std::make_unique<ProgressBar>();
   m_progress = static_cast<ProgressBar*>(m_levelArea->addChild(std::move(progress)));
+  for (auto& action : m_actions)
+    action = static_cast<Button*>(m_content->addChild(ui::button({.variant = ButtonVariant::Ghost})));
   m_dispatcher.setSceneRoot(m_root.get());
   m_surface.setSceneRoot(m_root.get());
   syncClockTimer();
@@ -158,23 +184,31 @@ bool DynamicIsland::feedback(const OsdContent& content) {
 }
 
 void DynamicIsland::resolve() {
+  if (m_services.notifications && m_services.notifications->doNotDisturb()) {
+    for (auto kind : {IslandEvent::Notification, IslandEvent::Call})
+      if (m_notices[kind == IslandEvent::Call ? 1 : 0].dndPolicy == NotificationDndPolicy::Respect)
+        m_state.clear(kind);
+  }
   const auto player = m_services.mpris ? m_services.mpris->activePlayer() : std::nullopt;
   const bool expand = m_pinned || (m_config.dynamicHoverExpand && m_hovered && !m_hoverBlocked);
   auto kind = m_state.resolve(nowMs(), (m_hovered && !m_hoverBlocked) || m_pinned ? m_event : IslandEvent::Resting);
   if (kind == IslandEvent::Media && (!player || !m_config.dynamicMedia))
     kind = IslandEvent::Resting;
-  if (kind == IslandEvent::Resting && expand && player && m_config.dynamicMedia)
+  if (m_clockTools && (kind == IslandEvent::Resting || kind == IslandEvent::Media || kind == IslandEvent::Timer))
+    kind = IslandEvent::Resting;
+  if (kind == IslandEvent::Resting && expand && player && m_config.dynamicMedia && !m_clockTools)
     kind = IslandEvent::Media;
-  const bool changed = kind != m_event || expand != m_expanded;
+  const bool expanded = expand || kind == IslandEvent::Alarm || kind == IslandEvent::TimerFinished;
+  const bool changed = kind != m_event || expanded != m_expanded;
   m_event = kind;
-  m_expanded = expand;
+  m_expanded = expanded;
   if (changed || !m_initialized)
-    changeContent(kind, expand);
+    changeContent(kind, expanded);
   float w = m_vertical ? static_cast<float>(m_config.thickness) : kind == IslandEvent::Resting ? 112.0F : 280.0F;
   float h = m_vertical ? 76.0F : static_cast<float>(m_config.thickness);
-  if (expand) {
+  if (expanded) {
     w = static_cast<float>(m_config.dynamicWidth);
-    h = kind == IslandEvent::Media ? 190.0F : kind == IslandEvent::Resting ? 110.0F : 120.0F;
+    h = 220.0F;
   }
   w = std::min(w, std::max(1.0F, static_cast<float>(m_surface.width()) - flare(m_config) * 2));
   h = std::min(h, std::max(1.0F, static_cast<float>(m_surface.height()) - flare(m_config)));
@@ -199,6 +233,24 @@ void DynamicIsland::resolve() {
         {}, m_root.get()
     );
     m_surface.requestRedraw();
+  }
+  const auto* notice = (kind == IslandEvent::Notification || kind == IslandEvent::Call)
+      ? &m_notices[kind == IslandEvent::Call ? 1 : 0]
+      : nullptr;
+  const auto held = expanded && notice && notice->expiryTime ? notice->id : 0;
+  if (held != m_heldNotificationId && m_services.notifications) {
+    if (m_heldNotificationId)
+      m_services.notifications->resumeExpiry(m_heldNotificationId, m_heldNotificationRemaining);
+    m_heldNotificationId = held;
+    if (held) {
+      m_heldNotificationRemaining = std::max(
+          1,
+          static_cast<int>(
+              std::chrono::duration_cast<std::chrono::milliseconds>(*notice->expiryTime - Clock::now()).count()
+          )
+      );
+      m_services.notifications->pauseExpiry(held);
+    }
   }
   m_expiryTimer.stop();
   const auto remaining = m_state.remaining(m_event, nowMs());
@@ -308,8 +360,13 @@ void DynamicIsland::layout(Renderer& renderer) {
   const std::string font = m_config.fontFamily.value_or(m_services.config.config().shell.fontFamily);
   const auto& feedback = m_feedback[static_cast<unsigned>(m_displayEvent)];
   std::string title = m_displayEvent == IslandEvent::Resting ? formatLocalTime(m_config.dynamicClockFormat.c_str())
-      : media ? (player->title.empty() ? player->identity : player->title)
-              : feedback.value;
+      : media                                       ? (player->title.empty() ? player->identity : player->title)
+      : m_displayEvent == IslandEvent::Notification ? m_notices[0].summary
+      : m_displayEvent == IslandEvent::Call         ? m_notices[1].summary
+      : m_displayEvent == IslandEvent::Timer && m_services.activities ? m_services.activities->countdown()
+      : m_displayEvent == IslandEvent::TimerFinished                  ? "Timer finished"
+      : m_displayEvent == IslandEvent::Alarm                          ? "Alarm"
+                                                                      : feedback.value;
   if (!expanded && m_vertical) {
     if (m_displayEvent == IslandEvent::Resting)
       std::ranges::replace(title, ':', '\n');
@@ -324,7 +381,7 @@ void DynamicIsland::layout(Renderer& renderer) {
       std::max(
           1.0F,
           m_width
-              - (expanded                                     ? 92.0F
+              - (expanded                                     ? (media ? 138.0F : 92.0F)
                      : m_vertical                             ? 12.0F
                      : m_displayEvent == IslandEvent::Resting ? 24.0F
                                                               : 60.0F)
@@ -334,19 +391,33 @@ void DynamicIsland::layout(Renderer& renderer) {
   m_title->setFontWeight(static_cast<FontWeight>(m_config.fontWeight));
   m_title->measure(renderer);
   m_detail->setText(
-      media                                           ? mpris::joinArtists(player->artists)
-          : m_displayEvent == IslandEvent::Resting    ? formatLocalTime("%A, %d %B")
-          : m_displayEvent == IslandEvent::Brightness ? "Brightness"
-          : feedback.kind == OsdKind::Microphone      ? "Microphone"
-                                                      : "Volume"
+      media                                              ? mpris::joinArtists(player->artists)
+          : m_displayEvent == IslandEvent::Resting       ? formatLocalTime("%A, %d %B")
+          : m_displayEvent == IslandEvent::Notification  ? m_notices[0].body
+          : m_displayEvent == IslandEvent::Call          ? m_notices[1].body
+          : m_displayEvent == IslandEvent::Timer         ? "Countdown"
+          : m_displayEvent == IslandEvent::TimerFinished ? "Your countdown has finished"
+          : m_displayEvent == IslandEvent::Alarm         ? "Scheduled alarm"
+          : m_displayEvent == IslandEvent::Brightness    ? "Brightness"
+          : feedback.kind == OsdKind::Microphone         ? "Microphone"
+                                                         : "Volume"
   );
   m_detail->setFontFamily(font);
   m_detail->setFontSize(13 * fontScale);
   m_detail->setColor(colorSpecFromRole(ColorRole::OnSurfaceVariant));
-  m_detail->setMaxWidth(std::max(1.0F, m_width - 100));
+  m_detail->setMaxWidth(std::max(1.0F, m_width - 80));
+  m_detail->setMaxLines(m_displayEvent == IslandEvent::Notification || m_displayEvent == IslandEvent::Call ? 3 : 1);
   m_detail->measure(renderer);
   m_detail->setVisible(expanded);
-  m_glyph->setGlyph(media ? "disc" : m_displayEvent == IslandEvent::Resting ? "clock" : feedback.icon);
+  m_glyph->setGlyph(
+      m_displayEvent == IslandEvent::Notification                                                  ? "bell"
+          : m_displayEvent == IslandEvent::Call                                                    ? "phone"
+          : m_displayEvent == IslandEvent::Alarm                                                   ? "alarm"
+          : (m_displayEvent == IslandEvent::Timer || m_displayEvent == IslandEvent::TimerFinished) ? "hourglass"
+          : media                                                                                  ? "disc"
+          : m_displayEvent == IslandEvent::Resting                                                 ? "clock"
+                                                                                                   : feedback.icon
+  );
   m_glyph->setGlyphSize(20 * m_config.scale);
   m_glyph->setColor(colorSpecFromRole(ColorRole::Primary));
   m_glyph->measure(renderer);
@@ -404,6 +475,65 @@ void DynamicIsland::layout(Renderer& renderer) {
     m_previous->setPosition(m_play->x() - m_previous->width() - 16, 124);
     m_next->setPosition(m_play->x() + m_play->width() + 16, 124);
   }
+  for (auto* action : m_actions)
+    action->setVisible(false);
+  std::vector<std::pair<std::string, std::function<void()>>> actions;
+  const bool notice = m_displayEvent == IslandEvent::Notification || m_displayEvent == IslandEvent::Call;
+  if (expanded && notice && m_services.notifications) {
+    const auto n = m_notices[m_displayEvent == IslandEvent::Call ? 1 : 0];
+    for (std::size_t i = 0; i + 1 < n.actions.size() && actions.size() < 5; i += 2) {
+      const auto id = n.id;
+      const auto key = n.actions[i];
+      actions.emplace_back(n.actions[i + 1], [this, id, key] {
+        (void)m_services.notifications->invokeAction(id, key);
+      });
+    }
+    actions.emplace_back("Dismiss", [this, id = n.id] {
+      (void)m_services.notifications->close(id, CloseReason::Dismissed);
+    });
+  } else if (expanded && m_services.activities) {
+    auto* a = m_services.activities;
+    if (m_config.dynamicTimers
+        && (m_displayEvent == IslandEvent::Resting
+            || m_displayEvent == IslandEvent::Timer
+            || m_displayEvent == IslandEvent::TimerFinished))
+      actions.emplace_back(a->timerEnd || a->timerFinished ? "Cancel timer" : "Start timer", [this, a] {
+        if (a->timerEnd || a->timerFinished)
+          a->cancelTimer();
+        else
+          a->startTimer(m_config.dynamicTimerSeconds, m_output);
+      });
+    if (m_config.dynamicAlarms && (m_displayEvent == IslandEvent::Resting || m_displayEvent == IslandEvent::Alarm)) {
+      actions.emplace_back(
+          a->alarmRinging  ? "Dismiss alarm"
+              : a->alarmAt ? "Cancel alarm"
+                           : "Arm " + m_config.dynamicAlarmTime,
+          [this, a] {
+            if (a->alarmRinging || a->alarmAt)
+              a->dismissAlarm();
+            else
+              (void)a->armAlarm(m_config.dynamicAlarmTime, m_output);
+          }
+      );
+      if (a->alarmRinging)
+        actions.emplace_back("Snooze", [this, a] { a->snooze(m_config.dynamicSnoozeSeconds); });
+    }
+  }
+  for (std::size_t i = 0; i < actions.size() && i < m_actions.size(); ++i) {
+    auto* action = m_actions[i];
+    action->setVisible(true);
+    action->setText(actions[i].first);
+    action->setOnClick(actions[i].second);
+    action->setControlHeight(30);
+    action->setMaxWidth((m_width - 44) / 2);
+    action->layout(renderer);
+    action->setPosition(18 + static_cast<float>(i % 2) * (m_width - 36) / 2, 112 + static_cast<float>(i / 2) * 32);
+  }
+  m_tools->setVisible(expanded && (media || m_clockTools));
+  m_tools->setText(m_clockTools ? "Media" : "Clock & timers");
+  m_tools->setControlHeight(30);
+  m_tools->layout(renderer);
+  m_tools->setPosition((m_width - m_tools->width()) / 2, 178);
   m_levelArea->setVisible(expanded && (media || level));
   m_progress->setSize(m_levelArea->width(), 5);
   m_progress->setPosition(0, 10);
@@ -513,9 +643,98 @@ void DynamicIsland::setVisible(bool visible) {
     m_root->setOpacity(visible ? 1.0F : 0.0F);
   if (!visible) {
     m_dispatcher.pointerLeave();
-    m_hovered = m_pinned = false;
+    m_hovered = m_pinned = m_clockTools = false;
     m_hoverTimer.stop();
     m_progressTimer.stop();
   }
   m_surface.requestUpdate();
+}
+
+bool DynamicIsland::notification(const Notification& n, NotificationEvent event) {
+  const bool call = isIslandCall(n);
+  const auto kind = call ? IslandEvent::Call : IslandEvent::Notification;
+  auto& stored = m_notices[call ? 1 : 0];
+  if (event == NotificationEvent::Closed) {
+    for (auto k : {IslandEvent::Notification, IslandEvent::Call}) {
+      auto& old = m_notices[k == IslandEvent::Call ? 1 : 0];
+      if (old.id == n.id) {
+        old = {};
+        m_state.clear(k);
+      }
+    }
+    m_surface.requestUpdate();
+    return false;
+  }
+  if (!m_visible || (call ? !m_config.dynamicCalls : !m_config.dynamicNotifications))
+    return false;
+  if (event == NotificationEvent::Updated && stored.id != n.id)
+    return false;
+  stored = n;
+  if (call && n.timeout == 0)
+    m_state.hold(kind);
+  else
+    m_state.push(kind, nowMs(), m_config.dynamicDwellMs);
+  m_surface.requestUpdate();
+  return true;
+}
+
+void DynamicIsland::syncActivities() {
+  auto* a = m_services.activities;
+  if (!a)
+    return;
+  const bool timer = m_config.dynamicTimers && a->timerTarget == m_output;
+  const bool alarm = m_config.dynamicAlarms && a->alarmTarget == m_output;
+  if (!timer || (!a->timerEnd && !a->timerFinished)) {
+    m_state.clear(IslandEvent::Timer);
+    m_state.clear(IslandEvent::TimerFinished);
+  } else if (m_timerRevision != a->timerRevision || !m_initialized) {
+    m_state.clear(IslandEvent::Timer);
+    m_state.clear(IslandEvent::TimerFinished);
+    m_state.hold(a->timerFinished ? IslandEvent::TimerFinished : IslandEvent::Timer);
+  }
+  if (!alarm || !a->alarmRinging)
+    m_state.clear(IslandEvent::Alarm);
+  else if (m_alarmRevision != a->alarmRevision || !m_initialized)
+    m_state.hold(IslandEvent::Alarm);
+  m_timerRevision = a->timerRevision;
+  m_alarmRevision = a->alarmRevision;
+  m_surface.requestUpdate();
+}
+
+bool DynamicIsland::activityCommand(const std::string& command, const std::string& value) {
+  auto* a = m_services.activities;
+  if (!a)
+    return false;
+  if (command == "timer-start" && m_config.dynamicTimers) {
+    int seconds = m_config.dynamicTimerSeconds;
+    if (!value.empty()) {
+      try {
+        std::size_t end;
+        seconds = std::stoi(value, &end);
+        if (end != value.size())
+          return false;
+      } catch (...) {
+        return false;
+      }
+    }
+    if (seconds < 1 || seconds > 86400)
+      return false;
+    a->startTimer(seconds, m_output);
+    return true;
+  }
+  if (command == "timer-cancel") {
+    a->cancelTimer();
+    return true;
+  }
+  if (command == "alarm-arm" && m_config.dynamicAlarms)
+    return a->armAlarm(value.empty() ? m_config.dynamicAlarmTime : value, m_output);
+  if (command == "alarm-dismiss") {
+    a->dismissAlarm();
+    return true;
+  }
+  if (command == "alarm-snooze" && a->alarmRinging) {
+    a->snooze(m_config.dynamicSnoozeSeconds);
+    return true;
+  }
+  return false;
 }

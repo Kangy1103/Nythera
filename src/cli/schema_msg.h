@@ -133,6 +133,10 @@ namespace noctalia::cli {
   inline constexpr std::array kMsgConfigGetPositionals{
       Positional{"path", "Dotted config path (e.g. theme.shell_mode)", {}, true, false, false},
   };
+  inline constexpr std::array kMsgIslandActivityPositionals{
+      Positional{"action", "timer-start, timer-cancel, alarm-arm, alarm-dismiss, alarm-snooze", {}, true, false, false},
+      Positional{"value", "Seconds for timer-start or local HH:MM for alarm-arm", {}, false, false, false},
+  };
   inline constexpr std::array kMsgConfigSetPositionals{
       Positional{"path", "Dotted config path (e.g. theme.shell_mode)", {}, true, false, false},
       Positional{"value", "TOML value; quote strings (e.g. \"'light'\")", {}, true, false, false},
@@ -375,6 +379,7 @@ namespace noctalia::cli {
         false
     };
     inline constexpr Command barShow{"bar-show", "Show one or all bars", {}, {}, {}, kMsgBarShowPositionals, {}, false};
+    inline constexpr Command islandActivity{"island-activity", "Control the shared session timer/alarm", {}, {}, {}, kMsgIslandActivityPositionals, {}, false};
     inline constexpr Command barIslandToggle{
         "bar-island-toggle", "Expand or collapse Dynamic Island", {}, {}, {}, kMsgBarTogglePositionals, {}, false
     };
@@ -942,6 +947,7 @@ namespace noctalia::cli {
       msg::barShow,
       msg::barToggle,
       msg::barIslandToggle,
+      msg::islandActivity,
       msg::bluetoothDisable,
       msg::bluetoothEnable,
       msg::bluetoothStatus,

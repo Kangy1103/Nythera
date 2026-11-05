@@ -7,6 +7,7 @@
 #include "system/icon_resolver.h"
 
 #include <memory>
+#include <functional>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
@@ -44,6 +45,7 @@ public:
       WaylandConnection& wayland, CompositorPlatform& platform, ConfigService* config,
       NotificationManager* notifications, RenderContext* renderContext, HttpClient* httpClient = nullptr
   );
+  void setContentInterceptor(std::function<bool(const Notification&, NotificationEvent)> callback) { m_interceptor = std::move(callback); }
   void onConfigReload();
   void onOutputChange();
   void hideDndSuppressed();
@@ -56,6 +58,7 @@ public:
   [[nodiscard]] float horizontalInnerPad(float scale) const;
 
 private:
+  std::function<bool(const Notification&, NotificationEvent)> m_interceptor;
   // Per-notification visual state (shared across all instances)
   struct PopupEntry {
     uint32_t notificationId = 0;

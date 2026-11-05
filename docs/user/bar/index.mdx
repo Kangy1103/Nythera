@@ -180,7 +180,31 @@ screen_wrap = true           # independent; also works without it
 
 The compact surface centres on the selected edge. Vertical clocks stack their time fields and expansion grows inward with upright controls. A bounded small surface hosts the interactive view; the optional wrap retains narrow edge buffers. Its palette, opacity, rounding, border and blur follow the bar settings.
 
-`noctalia msg bar-island-toggle [bar-name] [monitor-selector]` toggles the expanded/pinned view. Manual bar hide/show remains available. This initial implementation stays present rather than applying automatic/smart hiding or a separate shadow; saved settings for the ordinary modes remain intact. With Reserve Space enabled, the bar thickness stays reserved and the expanded view overlays windows. Notification, timer and call views, and workspace-content adaptation, are not part of this first pass.
+`noctalia msg bar-island-toggle [bar-name] [monitor-selector]` toggles the expanded/pinned view. Manual bar hide/show remains available. This initial implementation stays present rather than applying automatic/smart hiding or a separate shadow; saved settings for the ordinary modes remain intact. With Reserve Space enabled, the bar thickness stays reserved and the expanded view overlays windows. Workspace-content adaptation remains separate from event-driven views.
+
+#### Notifications and calls
+
+With **Island Notifications** enabled, eligible notification arrivals replace the normal toast on the focused output. The existing notification filters, history and Do Not Disturb policy still apply. Hover/click expansion shows the body and up to five supplied actions plus Dismiss. Expanded expiring notifications pause their expiry until released. Replacement and close events update/remove the same card; opening history does not replay old notices.
+
+**Island Calls** is independent of ordinary notifications. Discord/Vesktop and KDE Connect incoming-call notices are recognised by explicit call metadata or conservative English phrases such as “incoming call” and “is calling you”, restricted to those app identities. Other apps can opt in using notification category `call.incoming` or `call.ongoing`. KDE Connect's `callReceived` event hint is retained when no category is supplied. This is notification integration, not a universal telephony API: it cannot infer ongoing state or termination unless the app updates/closes its notification, and only actions actually supplied by the app are shown. KDE Connect commonly supplies Mute Call; no fake Answer/Hang Up controls are added. Non-English Discord notices need explicit call metadata to be recognised reliably.
+
+#### Session countdown and alarm
+
+Expand the resting clock to **Start Timer** or **Arm Alarm**. If expansion opens the active player, choose **Clock & timers** below the transport controls; **Media** returns to the player. These operate one shared countdown and one shared next-occurrence alarm across all outputs. **Bar → Effects** includes Island Timers, Island Alarms, Island Timer Duration (seconds, default 300), Island Alarm Time (local `HH:MM`, default `08:00`) and Island Snooze Duration (seconds, default 300), with monitor overrides for the initiating view. Merely changing a default does not start/arm it.
+
+The countdown stays available while running; completion automatically expands with Cancel Timer. Alarms fire at the next occurrence of the armed local time and expand with Dismiss Alarm and Snooze. The close button acknowledges a finished timer/ringing alarm. There is one notification sound at completion, subject to existing shell audio preferences. If the owner output disappears, its island is disabled/hidden, or the user changes bar mode, completion falls back to a persistent ordinary notification.
+
+These are **session-only activities**: they survive bar/configuration rebuilds, but not a shell restart, and they do not wake a suspended/off machine. Wall-clock deadlines are checked after resume; changing the system clock can affect them. Alarms are one-shot, not recurring. An armed alarm is cancelled from the expanded clock; an invalid HH:MM is not armed.
+
+```sh
+noctalia msg island-activity timer-start 300
+noctalia msg island-activity timer-cancel
+noctalia msg island-activity alarm-arm 08:00
+noctalia msg island-activity alarm-snooze
+noctalia msg island-activity alarm-dismiss
+```
+
+IPC uses the Dynamic Island on the focused output and rejects invalid values. Priority is: ringing alarm/finished timer, calls, notifications, volume/brightness, media, running countdown, resting clock. Equally ranked events use the newest. Running countdowns and completion alerts persist until completion/cancellation/acknowledgement; ordinary notices and media retain their dwell lifetime. A persistent call notice remains until its source closes it or it is dismissed.
 
 ### Screen wrap
 

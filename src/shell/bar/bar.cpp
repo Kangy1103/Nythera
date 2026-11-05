@@ -1,4 +1,6 @@
 #include "shell/bar/bar.h"
+#include "notification/notification_manager.h"
+#include <sstream>
 
 #include "compositors/compositor_platform.h"
 #include "config/config_service.h"
@@ -1725,6 +1727,7 @@ BarServices Bar::services() const {
       .platform = *m_platform,
       .config = *m_config,
       .notifications = m_notifications,
+      .activities = const_cast<IslandActivities*>(&m_activities),
       .tray = m_tray,
       .audio = m_audio,
       .easyEffects = m_easyEffects,
@@ -4588,6 +4591,13 @@ void Bar::registerIpc(IpcService& ipc) {
     return "ok\n";
   });
 
+  ipc.bind(noctalia::cli::msg::islandActivity, [this](const std::string& args) -> std::string {
+    std::istringstream input(args); std::string command, value, extra; input >> command >> value;
+    if (input >> extra) return "error: expected action and optional value\n";
+    for (const auto& instance : m_instances) if (instance->dynamicIsland && instance->output == m_platform->preferredInteractiveOutput())
+      return instance->dynamicIsland->activityCommand(command,value) ? "ok\n" : "error: invalid action/value or event disabled\n";
+    return "error: no Dynamic Island on focused output\n";
+  });
   ipc.bind(noctalia::cli::msg::barIslandToggle, [this](const std::string& args) { return toggleDynamicIslandIpc(args); });
   ipc.bind(noctalia::cli::msg::barShow, [this](const std::string& args) -> std::string { return showBarIpc(args); });
 
@@ -4631,4 +4641,31 @@ std::string Bar::toggleDynamicIslandIpc(std::string_view args) {
     instance->dynamicIsland->toggleExpanded(); found = true;
   }
   return found ? "ok\n" : "error: selected bar is not in Dynamic Island mode\n";
+}
+
+bool Bar::routeDynamicNotification(const Notification& n, NotificationEvent event) {
+  if (!m_platform) return false;
+  bool handled = false;
+  for (const auto& instance : m_instances) {
+    if (!instance->dynamicIsland) continue;
+    if (event == NotificationEvent::Closed || (!m_overlayDisplaySuppressed && !instance->ipcLayoutReleased && (event == NotificationEvent::Updated || instance->output == m_platform->preferredInteractiveOutput())))
+      handled = instance->dynamicIsland->notification(n,event) || handled;
+  }
+  return handled;
+}
+
+void Bar::setIslandAlertCallback(std::function<void()> sound) {
+  m_activities.alert = [this,sound=std::move(sound)](bool timerFired, bool alarmFired) {
+    bool timerVisible = false, alarmVisible = false;
+    for (const auto& instance : m_instances) {
+      if (!instance->dynamicIsland || instance->ipcLayoutReleased || m_overlayDisplaySuppressed) continue;
+      timerVisible |= instance->output == m_activities.timerTarget && instance->barConfig.dynamicTimers;
+      alarmVisible |= instance->output == m_activities.alarmTarget && instance->barConfig.dynamicAlarms;
+    }
+    if (m_notifications) {
+      if (timerFired && !timerVisible) m_notifications->addInternal("Cyberpunk Shell", "Timer finished", "Your countdown has finished", Urgency::Normal, 0);
+      if (alarmFired && !alarmVisible) m_notifications->addInternal("Cyberpunk Shell", "Alarm", "Your scheduled alarm is due", Urgency::Normal, 0);
+    }
+    if (sound) sound();
+  };
 }

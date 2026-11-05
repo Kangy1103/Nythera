@@ -669,6 +669,8 @@ void NotificationToast::requestRedraw() {
 // --- Notification events ---
 
 void NotificationToast::onNotificationEvent(const Notification& n, NotificationEvent event) {
+  const bool dnd = m_notifications && m_notifications->doNotDisturb() && n.dndPolicy == NotificationDndPolicy::Respect;
+  if ((!dnd || event == NotificationEvent::Closed) && m_interceptor && m_interceptor(n,event)) return;
   switch (event) {
   case NotificationEvent::Added:
     if (m_notifications != nullptr

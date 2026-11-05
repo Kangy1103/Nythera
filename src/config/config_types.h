@@ -85,6 +85,13 @@ struct BarMonitorOverride {
   std::optional<std::int32_t> wrapWidth;
   std::optional<std::int32_t> wrapRadius;
   std::optional<std::int32_t> wrapJoinDistance;
+  std::optional<bool> dynamicNotifications;
+  std::optional<bool> dynamicTimers;
+  std::optional<bool> dynamicAlarms;
+  std::optional<bool> dynamicCalls;
+  std::optional<std::int32_t> dynamicTimerSeconds;
+  std::optional<std::string> dynamicAlarmTime;
+  std::optional<std::int32_t> dynamicSnoozeSeconds;
   std::optional<bool> dynamicMedia;
   std::optional<bool> dynamicVolume;
   std::optional<bool> dynamicBrightness;
@@ -175,6 +182,13 @@ struct BarConfig {
   std::int32_t wrapWidth = 6;
   std::int32_t wrapRadius = 20;
   std::int32_t wrapJoinDistance = 80;
+  bool dynamicNotifications = true;
+  bool dynamicTimers = true;
+  bool dynamicAlarms = true;
+  bool dynamicCalls = true;
+  std::int32_t dynamicTimerSeconds = 300;
+  std::string dynamicAlarmTime = "08:00";
+  std::int32_t dynamicSnoozeSeconds = 300;
   bool dynamicMedia = true;
   bool dynamicVolume = true;
   bool dynamicBrightness = true;

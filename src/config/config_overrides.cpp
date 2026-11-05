@@ -196,6 +196,13 @@ namespace {
       resolved.wrapRadius = *ovr.wrapRadius;
     if (ovr.wrapJoinDistance)
       resolved.wrapJoinDistance = *ovr.wrapJoinDistance;
+    if (ovr.dynamicNotifications) resolved.dynamicNotifications = *ovr.dynamicNotifications;
+    if (ovr.dynamicTimers) resolved.dynamicTimers = *ovr.dynamicTimers;
+    if (ovr.dynamicAlarms) resolved.dynamicAlarms = *ovr.dynamicAlarms;
+    if (ovr.dynamicCalls) resolved.dynamicCalls = *ovr.dynamicCalls;
+    if (ovr.dynamicTimerSeconds) resolved.dynamicTimerSeconds = *ovr.dynamicTimerSeconds;
+    if (ovr.dynamicAlarmTime) resolved.dynamicAlarmTime = *ovr.dynamicAlarmTime;
+    if (ovr.dynamicSnoozeSeconds) resolved.dynamicSnoozeSeconds = *ovr.dynamicSnoozeSeconds;
     if (ovr.dynamicMedia) resolved.dynamicMedia = *ovr.dynamicMedia;
     if (ovr.dynamicVolume) resolved.dynamicVolume = *ovr.dynamicVolume;
     if (ovr.dynamicBrightness) resolved.dynamicBrightness = *ovr.dynamicBrightness;
