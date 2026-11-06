@@ -1,6 +1,8 @@
 # Credits
 
-Noctalia is made possible by the incredible work of many open-source projects and contributors.
+Nythera is an independent, AI-assisted fork of [Noctalia](https://github.com/noctalia-dev/noctalia). The original Noctalia team and contributors created the substantial underlying codebase and architecture. Nythera's direction and customisation build on their work.
+
+The original project's third-party acknowledgements are retained below. These credits do not imply that Noctalia's developers endorse or maintain Nythera.
 
 ## Design & Branding
 
@@ -54,7 +56,7 @@ Bundled in `third_party/` and built from source:
 
 ## System Integration
 
-External tools Noctalia integrates with at runtime when present:
+External tools the shell integrates with at runtime when present:
 
 - **[ddcutil](https://www.ddcutil.com/)** — External display brightness control
 
@@ -66,6 +68,6 @@ External tools Noctalia integrates with at runtime when present:
 
 ## License
 
-Noctalia is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+Nythera retains Noctalia's MIT licence and original copyright notice. See [LICENSE](LICENSE) for details. Third-party assets and dependencies remain subject to their respective terms.
 
 Each dependency listed above is governed by its own respective license. Please refer to their individual projects for licensing information.
