@@ -1,6 +1,6 @@
 # Architecture
 
-This file describes how Noctalia is put together and the invariants reviewers enforce. For code style, testing, commit conventions, and the project layout, see [CONTRIBUTING.md](CONTRIBUTING.md).
+This file describes the architecture inherited from Noctalia and the technical invariants that still apply to Nythera. It should be updated as Nythera's implementation diverges. Existing identifiers and code references below intentionally reflect the current implementation, not the planned rebrand. For code style, testing, commit conventions, and the project layout, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Event Loop
 
