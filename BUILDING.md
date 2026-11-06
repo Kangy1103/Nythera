@@ -1,6 +1,6 @@
-# Building Noctalia from source
+# Building Nythera from source
 
-This guide covers source dependencies, distro-specific package installation, build modes, and install layouts. For prebuilt packages and other installation methods, see the [installation documentation](https://docs.noctalia.dev/noctalia/getting-started/installation/).
+This guide covers source dependencies, distro-specific package installation, build modes, and install layouts. Nythera is experimental and does not yet have its own packaged releases. The commands below reflect the current source tree.
 
 ## Dependencies
 
@@ -115,17 +115,17 @@ Vendored dependencies, with no system package needed: `Wuffs`, `Luau`, `fzy`, an
 
 System packages required beyond the Wayland/GL stack: `libwebp` handles WebP decoding and encoding (thumbnails, screenshots), `libjxl` handles JPEG XL decoding and screenshot encoding, `libsndfile` decodes shell sound effects (WAV, FLAC, Ogg/Vorbis, Opus, MP3, and AIFF), and Wuffs handles the other supported raster image formats. `libqalculate` powers the launcher calculator (arithmetic, unit and currency conversion).
 
-HEIC, HEIF, and AVIF decoding is optional and needs no build-time package: Noctalia loads `libheif.so.1` with `dlopen` the first time it meets such an image. Install `libheif` with its AV1 (dav1d or aom) and HEVC (libde265) decoder plugins to use those formats; on Fedora the HEVC plugin comes from RPM Fusion's `libheif-freeworld`.
+HEIC, HEIF, and AVIF decoding is optional and needs no build-time package: Nythera loads `libheif.so.1` with `dlopen` the first time it meets such an image. Install `libheif` with its AV1 (dav1d or aom) and HEVC (libde265) decoder plugins to use those formats; on Fedora the HEVC plugin comes from RPM Fusion's `libheif-freeworld`.
 
 Polkit agent support requires development files that provide the `polkit-agent-1` and `polkit-gobject-1` pkg-config modules. Some distros ship these in the runtime `polkit` package, while split-package distros use names such as `polkit-devel`, `polkit-dev`, or `libpolkit-agent-1-dev` / `libpolkit-gobject-1-dev`.
 
-PipeWire libraries/headers are sufficient to build Noctalia, but the PipeWire daemon is required for audio features at runtime. Noctalia remains running and reconnects in the background while the daemon is unavailable. If your distro splits the PipeWire libraries and daemon into separate packages, make sure you have both installed.
+PipeWire libraries/headers are sufficient to build Nythera, but the PipeWire daemon is required for audio features at runtime. Nythera remains running and reconnects in the background while the daemon is unavailable. If your distro splits the PipeWire libraries and daemon into separate packages, make sure you have both installed.
 
 `upower` is an optional dependency used for battery and power device integration.
 
 `ddcutil` is an optional dependency used for controlling monitor brightness.
 
-Credential and encrypted-state persistence requires a Secret Service provider at runtime, such as GNOME Keyring, KWallet, or KeePassXC. `libsecret` is the client library and does not provide the session service by itself. Noctalia continues to run when no provider is available, but features requiring durable secrets cannot persist them. CalDAV accounts may instead read their password from one explicitly configured regular file, which supports secret provisioners such as agenix and sops-nix without installing a Secret Service provider. Google refresh tokens and other writable credentials still require Secret Service. Encrypted state, including clipboard history and the calendar event cache, may instead read one storage master key from an explicitly configured file.
+Credential and encrypted-state persistence requires a Secret Service provider at runtime, such as GNOME Keyring, KWallet, or KeePassXC. `libsecret` is the client library and does not provide the session service by itself. Nythera continues to run when no provider is available, but features requiring durable secrets cannot persist them. CalDAV accounts may instead read their password from one explicitly configured regular file, which supports secret provisioners such as agenix and sops-nix without installing a Secret Service provider. Google refresh tokens and other writable credentials still require Secret Service. Encrypted state, including clipboard history and the calendar event cache, may instead read one storage master key from an explicitly configured file.
 
 `jemalloc` is recommended but optional. It reduces memory fragmentation in long-running sessions, and on glibc systems it is used automatically when detected. Use Meson's `-Djemalloc=enabled` or `-Djemalloc=disabled` option to require or disable it explicitly.
 
@@ -134,6 +134,9 @@ Sanitizer runtime packages are only needed for ASan/UBSan builds configured with
 The sources are built as C++23, which requires GCC 13+ or Clang 16+. Current rolling and recent stable distros (Arch, Fedora 38+, Debian 13, Ubuntu 24.04+) ship a new enough compiler by default. On Debian 12 "bookworm" install `g++-13` and point Meson at it (e.g. `CXX=g++-13 just configure`).
 
 ## Building and installing
+
+> **Development note:** Until the executable and installation paths are renamed in code, commands and paths containing `noctalia` below describe the current implementation. Do not rename them in this guide ahead of the actual build changes.
+
 
 Requires [just](https://github.com/casey/just) and [meson](https://mesonbuild.com/).
 
@@ -178,7 +181,7 @@ just run
 
 This fork uses Meson's `debugoptimized` build type (`-O2` with debug information) for the default build. The existing `build-debug/` name and shell-switcher path are retained, so daily use and troubleshooting share one executable. Both `just configure` and `just build` preserve this default. To temporarily rebuild without compiler optimisations, use `just debug-buildtype=debug build`; the next ordinary `just build` returns to `debugoptimized`. ASan remains unoptimised and the explicit release mode is unchanged.
 
-Unit tests are not compiled by `just build`, which targets only the Noctalia executable. Build and run them explicitly with `just test` (use `just test release` to force them on for a release build). Direct Meson users can control test target generation with the `-Dtests=enabled|disabled|auto` option. Production sources compile once into an internal static library shared by the shell and test executables.
+Unit tests are not compiled by `just build`, which targets only the Nythera executable. Build and run them explicitly with `just test` (use `just test release` to force them on for a release build). Direct Meson users can control test target generation with the `-Dtests=enabled|disabled|auto` option. Production sources compile once into an internal static library shared by the shell and test executables.
 
 Meson installs the binary and shipped assets using the normal prefix layout:
 
@@ -187,7 +190,7 @@ Meson installs the binary and shipped assets using the normal prefix layout:
 /usr/local/share/noctalia/assets/...
 ```
 
-Noctalia needs the shipped `assets/` tree at runtime. Copying only the `noctalia` binary is not enough.
+Nythera needs the shipped `assets/` tree at runtime. Copying only the `noctalia` binary is not enough.
 
 Firefox theming uses the built-in template `post_action = "firefox-theme"` (same pattern as `kde-color-scheme`) plus the [Pywalfox](https://addons.mozilla.org/en-US/firefox/addon/pywalfox/) browser extension. Manual host helpers: `noctalia firefox-theme --help`.
 
