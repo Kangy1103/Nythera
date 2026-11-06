@@ -2,7 +2,7 @@
 
 # apply.sh must close include.optional.files on the real array ']', not on brackets
 # inside a '#' comment or inside a quoted entry name. Otherwise wallpaper apply
-# moves noctalia.toml into the comment and empties the array
+# moves nythera.toml into the comment and empties the array
 # (noctalia-dev/noctalia#4332), or splices it into a file name.
 
 set -euo pipefail
@@ -78,39 +78,39 @@ expect_config() {
 }
 
 expect reporter \
-  'files = ["noctalia.toml"] # []' \
+  'files = ["nythera.toml"] # []' \
   '[include.optional]' \
-  'files = ["noctalia.toml"] # []'
+  'files = ["nythera.toml"] # []'
 
 expect control_nocomment \
-  'files = ["noctalia.toml"]' \
+  'files = ["nythera.toml"]' \
   '[include.optional]' \
-  'files = ["noctalia.toml"]'
+  'files = ["nythera.toml"]'
 
 expect control_comment \
-  'files = ["noctalia.toml"] # keep this' \
+  'files = ["nythera.toml"] # keep this' \
   '[include.optional]' \
-  'files = ["noctalia.toml"] # keep this'
+  'files = ["nythera.toml"] # keep this'
 
 expect user_comment \
-  'files = ["user.toml", "noctalia.toml"] # []' \
+  'files = ["user.toml", "nythera.toml"] # []' \
   '[include.optional]' \
   'files = ["user.toml"] # []'
 
 expect multiline \
-  $'files = [\n  "user.toml",\n  "noctalia.toml",\n]' \
+  $'files = [\n  "user.toml",\n  "nythera.toml",\n]' \
   '[include.optional]' \
   'files = [' \
   '  "user.toml",' \
   ']'
 
 expect quoted_hash \
-  'files = ["a#b.toml", "noctalia.toml"]' \
+  'files = ["a#b.toml", "nythera.toml"]' \
   '[include.optional]' \
   'files = ["a#b.toml"]'
 
 expect quoted_close \
-  'files = ["a]b.toml", "noctalia.toml"]' \
+  'files = ["a]b.toml", "nythera.toml"]' \
   '[include.optional]' \
   'files = ["a]b.toml"]'
 
@@ -120,14 +120,14 @@ expect_error scalar_bracket_comment \
   'files = "user.toml" # [a]'
 
 expect_config legacy_migration \
-  $'[include]\nfiles = ["user.toml"]\n\n[include.optional]\nfiles = ["noctalia.toml"]' \
+  $'[include]\nfiles = ["user.toml"]\n\n[include.optional]\nfiles = ["nythera.toml"]' \
   '[include]' \
-  'files = ["user.toml", "noctalia.toml"]'
+  'files = ["user.toml", "nythera.toml"]'
 
 expect_config legacy_with_optional \
-  $'[include]\nfiles = ["required.toml"]\n\n[include.optional]\nfiles = ["optional.toml", "noctalia.toml"]' \
+  $'[include]\nfiles = ["required.toml"]\n\n[include.optional]\nfiles = ["optional.toml", "nythera.toml"]' \
   '[include]' \
-  'files = ["required.toml", "noctalia.toml"]' \
+  'files = ["required.toml", "nythera.toml"]' \
   '' \
   '[include.optional]' \
   'files = ["optional.toml"]'

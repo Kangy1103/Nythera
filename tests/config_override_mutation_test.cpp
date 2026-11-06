@@ -47,11 +47,11 @@ namespace {
 
 int main() {
   const std::filesystem::path root =
-      std::filesystem::temp_directory_path() / ("noctalia-override-mutation-" + std::to_string(::getpid()));
+      std::filesystem::temp_directory_path() / ("nythera-override-mutation-" + std::to_string(::getpid()));
   std::filesystem::remove_all(root);
-  writeFile(root / "config" / "noctalia" / "config.toml", "[dock]\nenabled = true\nmonitors = [\"legacy\"]\n");
+  writeFile(root / "config" / "nythera" / "config.toml", "[dock]\nenabled = true\nmonitors = [\"legacy\"]\n");
 
-  ::setenv("NOCTALIA_CONFIG_HOME", (root / "config").c_str(), 1);
+  ::setenv("NYTHERA_CONFIG_HOME", (root / "config").c_str(), 1);
   ::setenv("XDG_STATE_HOME", (root / "state").c_str(), 1);
 
   const std::vector<std::string> typePath{"calendar", "account", "feed", "type"};
@@ -82,7 +82,7 @@ int main() {
     // `path` is required, so both edits belong to the same commit.
     std::vector<std::pair<std::vector<std::string>, ConfigOverrideValue>> switchToVdir;
     switchToVdir.emplace_back(typePath, std::string("vdir"));
-    switchToVdir.emplace_back(vdirPath, std::string("/tmp/noctalia-vdir-mutation-test"));
+    switchToVdir.emplace_back(vdirPath, std::string("/tmp/nythera-vdir-mutation-test"));
     expect(config.mutateOverrides(switchToVdir, {serverUrlPath}, nullptr), "provider switch writes");
 
     expect(reloads == 1, "provider switch reaches the config exactly once");
@@ -94,7 +94,7 @@ int main() {
     expect(account != nullptr, "account survives the switch");
     if (account != nullptr) {
       expect(account->type == "vdir", "account type is vdir");
-      expect(account->path == "/tmp/noctalia-vdir-mutation-test", "account path is set");
+      expect(account->path == "/tmp/nythera-vdir-mutation-test", "account path is set");
       expect(account->serverUrl.empty(), "account server_url is cleared");
     }
 
@@ -128,11 +128,11 @@ int main() {
   }
 
   const std::filesystem::path overlayRoot = root / "overlay-case";
-  writeFile(overlayRoot / "config" / "noctalia" / "config.toml", "[dock]\nenabled = true\n");
+  writeFile(overlayRoot / "config" / "nythera" / "config.toml", "[dock]\nenabled = true\n");
   writeFile(
-      overlayRoot / "state" / "noctalia" / "settings.toml", "config_version = 14\n[dock]\nmonitors = [\"DP-1\"]\n"
+      overlayRoot / "state" / "nythera" / "settings.toml", "config_version = 14\n[dock]\nmonitors = [\"DP-1\"]\n"
   );
-  ::setenv("NOCTALIA_CONFIG_HOME", (overlayRoot / "config").c_str(), 1);
+  ::setenv("NYTHERA_CONFIG_HOME", (overlayRoot / "config").c_str(), 1);
   ::setenv("XDG_STATE_HOME", (overlayRoot / "state").c_str(), 1);
   {
     ConfigService config;
@@ -150,10 +150,10 @@ int main() {
   // widget schema default is a real override and must survive the no-op override pruning.
   const std::filesystem::path inheritRoot = root / "bar-inherit-case";
   writeFile(
-      inheritRoot / "config" / "noctalia" / "config.toml",
+      inheritRoot / "config" / "nythera" / "config.toml",
       "[bar.default]\nshow_tooltip = false\n\n[widget.clock]\ntype = \"clock\"\n"
   );
-  ::setenv("NOCTALIA_CONFIG_HOME", (inheritRoot / "config").c_str(), 1);
+  ::setenv("NYTHERA_CONFIG_HOME", (inheritRoot / "config").c_str(), 1);
   ::setenv("XDG_STATE_HOME", (inheritRoot / "state").c_str(), 1);
   {
     ConfigService config;
@@ -167,8 +167,8 @@ int main() {
   // shell.panel_anchor_bar names a bar: renaming that bar in Settings must carry the key along, or every
   // panel open without a source bar (IPC, shortcuts) fails on the stale name. Deleting it clears the key.
   const std::filesystem::path anchorRoot = root / "anchor-bar-case";
-  writeFile(anchorRoot / "config" / "noctalia" / "config.toml", "");
-  ::setenv("NOCTALIA_CONFIG_HOME", (anchorRoot / "config").c_str(), 1);
+  writeFile(anchorRoot / "config" / "nythera" / "config.toml", "");
+  ::setenv("NYTHERA_CONFIG_HOME", (anchorRoot / "config").c_str(), 1);
   ::setenv("XDG_STATE_HOME", (anchorRoot / "state").c_str(), 1);
   {
     ConfigService config;
@@ -188,10 +188,10 @@ int main() {
   // drops the key again and the legacy-config warning will be back.
   const std::filesystem::path customScheduleRoot = root / "custom-schedule-case";
   writeFile(
-      customScheduleRoot / "config" / "noctalia" / "config.toml",
+      customScheduleRoot / "config" / "nythera" / "config.toml",
       "[location]\nsunset = \"20:30\"\nsunrise = \"07:30\"\n"
   );
-  ::setenv("NOCTALIA_CONFIG_HOME", (customScheduleRoot / "config").c_str(), 1);
+  ::setenv("NYTHERA_CONFIG_HOME", (customScheduleRoot / "config").c_str(), 1);
   ::setenv("XDG_STATE_HOME", (customScheduleRoot / "state").c_str(), 1);
   {
     ConfigService config;

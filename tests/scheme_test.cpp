@@ -44,13 +44,13 @@ namespace {
     return rgb;
   }
 
-  uint32_t token(const noctalia::theme::GeneratedPalette& palette, const std::string& name) {
+  uint32_t token(const nythera::theme::GeneratedPalette& palette, const std::string& name) {
     const auto it = palette.dark.find(name);
     return it == palette.dark.end() ? 0U : it->second;
   }
 
   double saturation(uint32_t argb) {
-    const auto color = noctalia::theme::Color::fromArgb(argb);
+    const auto color = nythera::theme::Color::fromArgb(argb);
     const auto [h, s, l] = color.toHsl();
     (void)h;
     (void)l;
@@ -58,22 +58,22 @@ namespace {
   }
 
   bool checkSchemeStrings() {
-    using noctalia::theme::Scheme;
+    using nythera::theme::Scheme;
     bool ok = true;
-    const auto parsed = noctalia::theme::schemeFromString("soft");
+    const auto parsed = nythera::theme::schemeFromString("soft");
     ok = expect(parsed.has_value() && *parsed == Scheme::Soft, "parses canonical soft scheme") && ok;
-    ok = expect(noctalia::theme::schemeToString(Scheme::Soft) == "soft", "serializes canonical soft scheme") && ok;
-    ok = expect(!noctalia::theme::schemeFromString("softened").has_value(), "rejects non-canonical soft alias") && ok;
+    ok = expect(nythera::theme::schemeToString(Scheme::Soft) == "soft", "serializes canonical soft scheme") && ok;
+    ok = expect(!nythera::theme::schemeFromString("softened").has_value(), "rejects non-canonical soft alias") && ok;
     return ok;
   }
 
   bool checkSoftGeneration() {
-    using noctalia::theme::Scheme;
+    using nythera::theme::Scheme;
 
     const auto rgb = makeColorfulBuffer();
-    const auto faithful = noctalia::theme::generateCustom(rgb, Scheme::Faithful);
-    const auto soft = noctalia::theme::generateCustom(rgb, Scheme::Soft);
-    const auto muted = noctalia::theme::generateCustom(rgb, Scheme::Muted);
+    const auto faithful = nythera::theme::generateCustom(rgb, Scheme::Faithful);
+    const auto soft = nythera::theme::generateCustom(rgb, Scheme::Soft);
+    const auto muted = nythera::theme::generateCustom(rgb, Scheme::Muted);
 
     bool ok = true;
     const std::string required[] = {
@@ -116,12 +116,12 @@ namespace {
 
     // Fixed palette containers keep the accent's identity: a container sits between the surface and
     // its accent, and its content color stays readable on it.
-    for (const auto& builtin : noctalia::theme::builtinPalettes()) {
-      const auto fixed = noctalia::theme::expandBuiltinPalette(builtin);
+    for (const auto& builtin : nythera::theme::builtinPalettes()) {
+      const auto fixed = nythera::theme::expandBuiltinPalette(builtin);
       for (const auto* tokens : {&fixed.dark, &fixed.light}) {
         for (const std::string accent : {"primary", "secondary", "tertiary", "error"}) {
           const auto read = [tokens](const std::string& name) {
-            return noctalia::theme::Color::fromArgb(tokens->at(name));
+            return nythera::theme::Color::fromArgb(tokens->at(name));
           };
           const auto surface = read("surface");
           const auto accentColor = read(accent);
@@ -129,13 +129,13 @@ namespace {
           const auto onContainer = read("on_" + accent + "_container");
           const std::string where = std::string(builtin.name) + " " + accent;
           ok = expect(
-                   noctalia::theme::contrastRatio(surface, container)
-                       < noctalia::theme::contrastRatio(surface, accentColor) + 0.01,
+                   nythera::theme::contrastRatio(surface, container)
+                       < nythera::theme::contrastRatio(surface, accentColor) + 0.01,
                    where + " container is no further from the surface than its accent"
                )
               && ok;
           ok = expect(
-                   noctalia::theme::contrastRatio(onContainer, container) >= 4.5,
+                   nythera::theme::contrastRatio(onContainer, container) >= 4.5,
                    where + " container content color is readable"
                )
               && ok;
@@ -143,7 +143,7 @@ namespace {
       }
     }
 
-    const auto custom = noctalia::theme::generateCustom(makeColorfulBuffer(), noctalia::theme::Scheme::Faithful);
+    const auto custom = nythera::theme::generateCustom(makeColorfulBuffer(), nythera::theme::Scheme::Faithful);
     const double customPrimarySaturation = saturation(token(custom, "primary"));
     const double customContainerSaturation = saturation(token(custom, "primary_container"));
     ok = expect(
@@ -156,33 +156,33 @@ namespace {
   }
 
   bool checkPerceptualContrastAdjustment() {
-    const auto background = noctalia::theme::Color::fromHex("#fbf8ff");
-    const auto paleLavender = noctalia::theme::Color::fromHex("#bdc2ff");
-    const auto adjusted = noctalia::theme::ensureContrast(paleLavender, background, 4.5);
+    const auto background = nythera::theme::Color::fromHex("#fbf8ff");
+    const auto paleLavender = nythera::theme::Color::fromHex("#bdc2ff");
+    const auto adjusted = nythera::theme::ensureContrast(paleLavender, background, 4.5);
     bool ok = true;
     ok = expect(
-             noctalia::theme::contrastRatio(adjusted, background) >= 4.5,
+             nythera::theme::contrastRatio(adjusted, background) >= 4.5,
              "OKLCH-adjusted foreground has readable contrast"
          )
         && ok;
     ok = expect(adjusted.toHex() == "#6b6ea6", "OKLCH adjustment preserves pale lavender character") && ok;
 
-    const auto readable = noctalia::theme::Color::fromHex("#5158a1");
+    const auto readable = nythera::theme::Color::fromHex("#5158a1");
     ok = expect(
-             noctalia::theme::ensureContrast(readable, background, 4.5).toArgb() == readable.toArgb(),
+             nythera::theme::ensureContrast(readable, background, 4.5).toArgb() == readable.toArgb(),
              "already-readable foreground remains unchanged"
          )
         && ok;
 
-    const auto impossibleBackground = noctalia::theme::Color::fromHex("#777777");
-    const auto impossibleForeground = noctalia::theme::Color::fromHex("#888888");
-    const auto bestPossible = noctalia::theme::ensureContrast(impossibleForeground, impossibleBackground, 7.0, 1);
+    const auto impossibleBackground = nythera::theme::Color::fromHex("#777777");
+    const auto impossibleForeground = nythera::theme::Color::fromHex("#888888");
+    const auto bestPossible = nythera::theme::ensureContrast(impossibleForeground, impossibleBackground, 7.0, 1);
     ok = expect(bestPossible.toHex() == "#000000", "impossible target returns the best-contrast endpoint") && ok;
     return ok;
   }
 
   bool checkTerminalContrast() {
-    using noctalia::theme::Scheme;
+    using nythera::theme::Scheme;
 
     constexpr std::array schemes{
         Scheme::TonalSpot, Scheme::Content,  Scheme::FruitSalad, Scheme::Rainbow,       Scheme::Monochrome,
@@ -198,8 +198,8 @@ namespace {
     const auto rgb = makeColorfulBuffer();
     bool ok = true;
     for (const Scheme scheme : schemes) {
-      const auto generated = noctalia::theme::generate(rgb, scheme);
-      if (!expect(generated.has_value(), std::string(noctalia::theme::schemeToString(scheme)) + " palette generated")) {
+      const auto generated = nythera::theme::generate(rgb, scheme);
+      if (!expect(generated.has_value(), std::string(nythera::theme::schemeToString(scheme)) + " palette generated")) {
         ok = false;
         continue;
       }
@@ -208,7 +208,7 @@ namespace {
         const auto backgroundIt = tokens.find("terminal_background");
         if (!expect(
                 backgroundIt != tokens.end(),
-                std::string(noctalia::theme::schemeToString(scheme))
+                std::string(nythera::theme::schemeToString(scheme))
                     + " "
                     + std::string(mode)
                     + " terminal background exists"
@@ -216,13 +216,13 @@ namespace {
           return false;
         }
 
-        const auto background = noctalia::theme::Color::fromArgb(backgroundIt->second);
+        const auto background = nythera::theme::Color::fromArgb(backgroundIt->second);
         bool modeOk = true;
         for (const std::string_view key : colorKeys) {
           const auto colorIt = tokens.find(std::string(key));
           if (!expect(
                   colorIt != tokens.end(),
-                  std::string(noctalia::theme::schemeToString(scheme))
+                  std::string(nythera::theme::schemeToString(scheme))
                       + " "
                       + std::string(mode)
                       + " "
@@ -232,10 +232,10 @@ namespace {
             modeOk = false;
             continue;
           }
-          const auto color = noctalia::theme::Color::fromArgb(colorIt->second);
+          const auto color = nythera::theme::Color::fromArgb(colorIt->second);
           modeOk = expect(
-                       noctalia::theme::contrastRatio(color, background) >= 4.5,
-                       std::string(noctalia::theme::schemeToString(scheme))
+                       nythera::theme::contrastRatio(color, background) >= 4.5,
+                       std::string(nythera::theme::schemeToString(scheme))
                            + " "
                            + std::string(mode)
                            + " "
@@ -250,7 +250,7 @@ namespace {
           const auto foregroundColorIt = tokens.find("on_" + std::string(key));
           if (!expect(
                   backgroundColorIt != tokens.end() && foregroundColorIt != tokens.end(),
-                  std::string(noctalia::theme::schemeToString(scheme))
+                  std::string(nythera::theme::schemeToString(scheme))
                       + " "
                       + std::string(mode)
                       + " "
@@ -260,11 +260,11 @@ namespace {
             modeOk = false;
             continue;
           }
-          const auto backgroundColor = noctalia::theme::Color::fromArgb(backgroundColorIt->second);
-          const auto foregroundColor = noctalia::theme::Color::fromArgb(foregroundColorIt->second);
+          const auto backgroundColor = nythera::theme::Color::fromArgb(backgroundColorIt->second);
+          const auto foregroundColor = nythera::theme::Color::fromArgb(foregroundColorIt->second);
           modeOk = expect(
-                       noctalia::theme::contrastRatio(foregroundColor, backgroundColor) >= 4.5,
-                       std::string(noctalia::theme::schemeToString(scheme))
+                       nythera::theme::contrastRatio(foregroundColor, backgroundColor) >= 4.5,
+                       std::string(nythera::theme::schemeToString(scheme))
                            + " "
                            + std::string(mode)
                            + " "

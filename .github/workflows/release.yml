@@ -42,7 +42,7 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          mkdir -p ../noctalia-release
+          mkdir -p ../nythera-release
           rsync -a \
             --exclude='.git' \
             --exclude='.github' \
@@ -50,9 +50,9 @@ jobs:
             --exclude='flake.nix' \
             --exclude='flake.lock' \
             --exclude='result*' \
-            ./ ../noctalia-release/
-          tar -C .. -czf "noctalia-${RELEASE_TAG}.tar.gz" noctalia-release/
-          cp "noctalia-${RELEASE_TAG}.tar.gz" noctalia-latest.tar.gz
+            ./ ../nythera-release/
+          tar -C .. -czf "nythera-${RELEASE_TAG}.tar.gz" nythera-release/
+          cp "nythera-${RELEASE_TAG}.tar.gz" nythera-latest.tar.gz
 
       - name: Generate release notes
         env:
@@ -84,7 +84,7 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          assets=("noctalia-${RELEASE_TAG}.tar.gz" noctalia-latest.tar.gz)
+          assets=("nythera-${RELEASE_TAG}.tar.gz" nythera-latest.tar.gz)
           if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
             printf 'GitHub release %s already exists; refreshing assets only.\n' "$RELEASE_TAG"
             gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber

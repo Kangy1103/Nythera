@@ -5,7 +5,7 @@
   ...
 }:
 let
-  cfg = config.programs.noctalia;
+  cfg = config.programs.nythera;
   jsonFormat = pkgs.formats.json { };
   tomlFormat = pkgs.formats.toml { };
 
@@ -25,23 +25,23 @@ in
   # Disable the home-manager module to avoid conflicts
   # The module got turned into a folder on 2026-09-30. Disable both old and new.
   disabledModules = [
-    "programs/noctalia.nix"
-    "programs/noctalia"
+    "programs/nythera.nix"
+    "programs/nythera"
   ];
 
   imports = [
     (lib.mkRenamedOptionModule
-      [ "programs" "noctalia" "validateConfig" ]
-      [ "programs" "noctalia" "checkConfig" ]
+      [ "programs" "nythera" "validateConfig" ]
+      [ "programs" "nythera" "checkConfig" ]
     )
   ];
 
-  options.programs.noctalia = {
-    enable = lib.mkEnableOption "noctalia, a lightweight Wayland shell and bar";
+  options.programs.nythera = {
+    enable = lib.mkEnableOption "nythera, a lightweight Wayland shell and bar";
 
-    systemd.enable = lib.mkEnableOption "a systemd user service for noctalia";
+    systemd.enable = lib.mkEnableOption "a systemd user service for nythera";
 
-    package = lib.mkPackageOption pkgs "noctalia" { nullable = true; };
+    package = lib.mkPackageOption pkgs "nythera" { nullable = true; };
 
     checkConfig = lib.mkOption {
       type = lib.types.bool;
@@ -59,7 +59,7 @@ in
         ];
       default = { };
       description = ''
-        Default settings for noctalia, Can be written as:
+        Default settings for nythera, Can be written as:
           - A Nix attrset (converted to TOML via nixpkgs' tomlFormat)
           - A raw TOML string
           - A path to a `.toml` file
@@ -100,16 +100,16 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    systemd.user.services.noctalia = lib.mkIf cfg.systemd.enable {
+    systemd.user.services.nythera = lib.mkIf cfg.systemd.enable {
       Unit = {
-        Description = "Noctalia - A lightweight Wayland shell and bar";
+        Description = "Nythera - A lightweight Wayland shell and bar";
         Documentation = "https://docs.noctalia.dev/noctalia/";
         PartOf = [ config.wayland.systemd.target ];
         After = [ config.wayland.systemd.target ];
         X-Restart-Triggers =
-          lib.optional (cfg.settings != { }) "${config.xdg.configFile."noctalia/config.toml".source}"
+          lib.optional (cfg.settings != { }) "${config.xdg.configFile."nythera/config.toml".source}"
           ++ lib.mapAttrsToList (
-            name: _: "${config.xdg.configFile."noctalia/palettes/${name}.json".source}"
+            name: _: "${config.xdg.configFile."nythera/palettes/${name}.json".source}"
           ) cfg.customPalettes;
       };
 
@@ -126,12 +126,12 @@ in
     xdg = {
       configFile = lib.mkMerge [
         (lib.mkIf (cfg.settings != { }) {
-          "noctalia/config.toml".source =
+          "nythera/config.toml".source =
             let
               rawConfig = generateToml "config.toml" cfg.settings;
             in
             if cfg.checkConfig && cfg.package != null then
-              pkgs.runCommand "noctalia-config.toml" { } ''
+              pkgs.runCommand "nythera-config.toml" { } ''
                 ${lib.getExe cfg.package} config validate ${rawConfig}
                 cp ${rawConfig} $out
               ''
@@ -140,7 +140,7 @@ in
         })
         (lib.mapAttrs' (
           name: palette:
-          lib.nameValuePair "noctalia/palettes/${name}.json" {
+          lib.nameValuePair "nythera/palettes/${name}.json" {
             source = generateJson "${name}-palette.json" palette;
           }
         ) cfg.customPalettes)
@@ -150,7 +150,7 @@ in
     assertions = [
       {
         assertion = !cfg.systemd.enable || cfg.package != null;
-        message = "programs.noctalia.package cannot be null when programs.noctalia.systemd.enable is true";
+        message = "programs.nythera.package cannot be null when programs.nythera.systemd.enable is true";
       }
     ];
   };

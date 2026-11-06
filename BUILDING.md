@@ -135,7 +135,7 @@ The sources are built as C++23, which requires GCC 13+ or Clang 16+. Current rol
 
 ## Building and installing
 
-> **Development note:** Until the executable and installation paths are renamed in code, commands and paths containing `noctalia` below describe the current implementation. Do not rename them in this guide ahead of the actual build changes.
+> Application commands, executable and install paths use Nythera. See [REBRAND.md](REBRAND.md) for migration from the isolated old fork profile and retained upstream integration contracts.
 
 
 Requires [just](https://github.com/casey/just) and [meson](https://mesonbuild.com/).
@@ -186,26 +186,26 @@ Unit tests are not compiled by `just build`, which targets only the Nythera exec
 Meson installs the binary and shipped assets using the normal prefix layout:
 
 ```text
-/usr/local/bin/noctalia
-/usr/local/share/noctalia/assets/...
+/usr/local/bin/nythera
+/usr/local/share/nythera/assets/...
 ```
 
-Nythera needs the shipped `assets/` tree at runtime. Copying only the `noctalia` binary is not enough.
+Nythera needs the shipped `assets/` tree at runtime. Copying only the `nythera` binary is not enough.
 
-Firefox theming uses the built-in template `post_action = "firefox-theme"` (same pattern as `kde-color-scheme`) plus the [Pywalfox](https://addons.mozilla.org/en-US/firefox/addon/pywalfox/) browser extension. Manual host helpers: `noctalia firefox-theme --help`.
+Firefox theming uses the built-in template `post_action = "firefox-theme"` (same pattern as `kde-color-scheme`) plus the [Pywalfox](https://addons.mozilla.org/en-US/firefox/addon/pywalfox/) browser extension. Manual host helpers: `nythera firefox-theme --help`.
 
 Portable bundle layouts are also supported:
 
 ```text
 bundle/
-  noctalia
+  nythera
   assets/
 ```
 
 ```text
 bundle/
-  bin/noctalia
-  share/noctalia/assets/
+  bin/nythera
+  share/nythera/assets/
 ```
 
 See [PACKAGING.md](PACKAGING.md#runtime-asset-lookup) for the full runtime asset lookup order.

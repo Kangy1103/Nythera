@@ -234,7 +234,7 @@ void CalendarReminderMonitor::fireReminder(
   request.origin = NotificationOrigin::Internal;
   request.dndPolicy = NotificationDndPolicy::Respect;
   request.persistInHistory = true;
-  request.icon = std::string("noctalia-glyph:calendar-clock");
+  request.icon = std::string("nythera-glyph:calendar-clock");
 
   // Events with a resolved meeting link become clickable: the toast maps a left click on its body to
   // the freedesktop "default" action.
@@ -312,7 +312,7 @@ void CalendarReminderMonitor::fireCatchUpSummary(std::size_t remaining) {
   request.origin = NotificationOrigin::Internal;
   request.dndPolicy = NotificationDndPolicy::Respect;
   request.persistInHistory = true;
-  request.icon = std::string("noctalia-glyph:calendar-clock");
+  request.icon = std::string("nythera-glyph:calendar-clock");
   (void)m_notifications.addOrReplace(std::move(request));
 }
 
@@ -339,6 +339,6 @@ void CalendarReminderMonitor::fireDigest(std::span<const CalendarEvent* const> e
   request.origin = NotificationOrigin::Internal;
   request.dndPolicy = NotificationDndPolicy::Respect;
   request.persistInHistory = true;
-  request.icon = std::string("noctalia-glyph:calendar-event");
+  request.icon = std::string("nythera-glyph:calendar-event");
   (void)m_notifications.addOrReplace(std::move(request));
 }

@@ -10,16 +10,16 @@ if [[ "$config_dir" == "$HOME"/* ]]; then
 else
     include_dir="$config_dir"
 fi
-include_line="source=$include_dir/mango/noctalia.conf"
+include_line="source=$include_dir/mango/nythera.conf"
 
 mkdir -p "$(dirname "$config_file")"
 
 if [ ! -f "$config_file" ]; then
-    printf 'Warning: %s is missing; add the Noctalia theme source to your active Mango configuration manually:\n%s\n' "$config_file" "$include_line" >&2
+    printf 'Warning: %s is missing; add the Nythera theme source to your active Mango configuration manually:\n%s\n' "$config_file" "$include_line" >&2
     exit 1
 fi
 
-if ! grep -Eq '^[[:space:]]*source(-optional)?[[:space:]]*=[[:space:]]*.*noctalia\.conf' "$config_file"; then
+if ! grep -Eq '^[[:space:]]*source(-optional)?[[:space:]]*=[[:space:]]*.*nythera\.conf' "$config_file"; then
     printf '\n%s\n' "$include_line" >>"$config_file"
 fi
 

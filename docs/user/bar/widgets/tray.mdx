@@ -5,13 +5,13 @@ sidebar:
   order: 28
 ---
 
-System tray (StatusNotifierItem). Tray icons use the global `[shell.app_icon_colorize]` / `[shell.app_icon_color]` settings when enabled (see [Shell → App icon colorization](/noctalia/configuration/shell/#app-icon-colorization)); `[shell.app_icon_colorize]` does not recolor symbolic tray icons. Symbolic/monochrome tray glyphs, the drawer chevron, and letter fallbacks follow the widget's `color` / `icon_color` (items needing attention stay in the error color).
+System tray (StatusNotifierItem). Tray icons use the global `[shell.app_icon_colorize]` / `[shell.app_icon_color]` settings when enabled (see [Shell → App icon colorization](/nythera/configuration/shell/#app-icon-colorization)); `[shell.app_icon_colorize]` does not recolor symbolic tray icons. Symbolic/monochrome tray glyphs, the drawer chevron, and letter fallbacks follow the widget's `color` / `icon_color` (items needing attention stay in the error color).
 
-When Noctalia restarts, running applications can re-register their tray icons. Noctalia also discovers existing StatusNotifierItem services. Icons may take a few seconds to reappear while startup is busy.
+When Nythera restarts, running applications can re-register their tray icons. Nythera also discovers existing StatusNotifierItem services. Icons may take a few seconds to reappear while startup is busy.
 
-When an application registers only its D-Bus service name, Noctalia ignores tray paths that return no StatusNotifierItem properties. This prevents unused paths from creating blank duplicate icons. Applications with multiple valid tray items can still show multiple icons.
+When an application registers only its D-Bus service name, Nythera ignores tray paths that return no StatusNotifierItem properties. This prevents unused paths from creating blank duplicate icons. Applications with multiple valid tray items can still show multiple icons.
 
-Noctalia uses an existing `org.kde.StatusNotifierWatcher` when one is running. If that watcher exits, Noctalia takes over the watcher name and rediscovers tray items.
+Nythera uses an existing `org.kde.StatusNotifierWatcher` when one is running. If that watcher exits, Nythera takes over the watcher name and rediscovers tray items.
 
 For theme icons in `status` or `panel` directories, the tray selects SVG artwork for the displayed logical size across all roots of the first matching theme. Application icons and bitmap icons keep their normal lookup. An inherited theme cannot replace an icon already supplied by a higher-priority theme.
 

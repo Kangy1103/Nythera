@@ -43,7 +43,7 @@ namespace {
 
 int main() {
   const auto dir =
-      std::filesystem::temp_directory_path() / ("noctalia-test-" + std::to_string(getpid()) + "-image-bounds");
+      std::filesystem::temp_directory_path() / ("nythera-test-" + std::to_string(getpid()) + "-image-bounds");
   std::filesystem::create_directories(dir);
 
   // image-data comes from any D-Bus client, so its geometry must not be trusted over the buffer size.

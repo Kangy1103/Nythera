@@ -2,7 +2,7 @@
 
 Nythera is an experimental personal fork of [Noctalia](https://github.com/noctalia-dev/noctalia). It's a native Wayland desktop shell, not a compositor or a full desktop environment.
 
-The goal is to keep the functionality of Noctalia while experimenting with how the shell looks, feels and behaves. I'm mainly developing and testing it on Umbriel.
+The goal is to keep the functionality of Nythera while experimenting with how the shell looks, feels and behaves. I'm mainly developing and testing it on Umbriel.
 
 ## In scope
 

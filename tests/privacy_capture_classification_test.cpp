@@ -1,8 +1,8 @@
 #include "pipewire/privacy_capture_classification.h"
 #include "tests/test_check.h"
 
-using noctalia::pipewire::isPrivacyAudioCaptureConsumer;
-using noctalia::pipewire::PrivacyAudioConsumerProperties;
+using nythera::pipewire::isPrivacyAudioCaptureConsumer;
+using nythera::pipewire::PrivacyAudioConsumerProperties;
 
 int main() {
   TEST_CHECK(isPrivacyAudioCaptureConsumer({.mediaClass = "Stream/Input/Audio"}));

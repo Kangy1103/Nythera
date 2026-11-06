@@ -7,10 +7,10 @@ sidebar:
 
 # Lockscreen widgets
 
-Lockscreen widgets use the same widget types and per-type settings as [desktop widgets](/noctalia/desktop/widgets/). Layout is stored in a dedicated `[lockscreen_widgets]` section (not shared with `[desktop_widgets]` or `[lockscreen]` backdrop keys).
+Lockscreen widgets use the same widget types and per-type settings as [desktop widgets](/nythera/desktop/widgets/). Layout is stored in a dedicated `[lockscreen_widgets]` section (not shared with `[desktop_widgets]` or `[lockscreen]` backdrop keys).
 
-- Declarative config: `[lockscreen_widgets]` in `~/.config/noctalia/*.toml`
-- GUI/editor overrides: `settings.toml` under your Noctalia state directory (same as desktop widgets)
+- Declarative config: `[lockscreen_widgets]` in `~/.config/nythera/*.toml`
+- GUI/editor overrides: `settings.toml` under your Nythera state directory (same as desktop widgets)
 
 ```toml
 [lockscreen_widgets]
@@ -31,7 +31,7 @@ format = "{:%H:%M}"
 
 When enabled, widgets render on each lock surface, over the same blurred and tinted wallpaper as the rest of the lock screen. To show a clock on the lock screen, add a **clock** widget.
 
-Text widgets (clock, weather, media player, label, sysmon) support a per-widget `font_family` setting just like desktop widgets - empty inherits the shell font. See [Desktop widgets - Common settings](/noctalia/desktop/widgets/#common-settings).
+Text widgets (clock, weather, media player, label, sysmon) support a per-widget `font_family` setting just like desktop widgets - empty inherits the shell font. See [Desktop widgets - Common settings](/nythera/desktop/widgets/#common-settings).
 
 ---
 
@@ -41,13 +41,13 @@ Edit mode is only available while the session is **unlocked**. The editor shows 
 
 ### Related IPC
 
-For lockscreen widget edit-mode commands, see [Surfaces → Lockscreen widgets](/noctalia/ipc/surfaces/#lockscreen-widgets).
+For lockscreen widget edit-mode commands, see [Surfaces → Lockscreen widgets](/nythera/ipc/surfaces/#lockscreen-widgets).
 
 You can also use **Settings → Lock Screen → Toggle Editor**.
 
 ### Controls
 
-Same interaction model as desktop widget edit mode (move, rotate, resize, grid snap, center guides, toolbar), except the **login box** widget can only be moved (not resized or rotated). You can toggle the visibility of login boxes for individual monitors using the eye icon in the toolbar, provided that at least one login box remains visible across all monitors. Select it and open the settings inspector to adjust panel and input styling; **Reset to Defaults** at the bottom restores all login box settings. See [Desktop widgets - Edit mode](/noctalia/desktop/widgets/#edit-mode).
+Same interaction model as desktop widget edit mode (move, rotate, resize, grid snap, center guides, toolbar), except the **login box** widget can only be moved (not resized or rotated). You can toggle the visibility of login boxes for individual monitors using the eye icon in the toolbar, provided that at least one login box remains visible across all monitors. Select it and open the settings inspector to adjust panel and input styling; **Reset to Defaults** at the bottom restores all login box settings. See [Desktop widgets - Edit mode](/nythera/desktop/widgets/#edit-mode).
 
 ---
 
@@ -55,7 +55,7 @@ Same interaction model as desktop widget edit mode (move, rotate, resize, grid s
 
 The schema mirrors `[desktop_widgets]`: `enabled`, `schema_version`, optional `[lockscreen_widgets.grid]`, `widget_order`, and `[lockscreen_widgets.widget.<id>]` tables with `type`, `output`, `cx`, `cy`, `box_width`, `box_height`, `rotation`, `enabled`, and `[lockscreen_widgets.widget.<id>.settings]`.
 
-`output` accepts an exact connector name or a unique monitor description, make, model, or serial selector, with the same case-sensitive, whole-token matching as bar and dock overrides. See [Desktop widgets - Monitor matching](/noctalia/desktop/widgets/#monitor-matching). The selector stays in the saved configuration when connectors change, so placement follows the matching monitor. Selectors matching multiple monitors are inactive and logged as warnings; use a more specific description or serial.
+`output` accepts an exact connector name or a unique monitor description, make, model, or serial selector, with the same case-sensitive, whole-token matching as bar and dock overrides. See [Desktop widgets - Monitor matching](/nythera/desktop/widgets/#monitor-matching). The selector stays in the saved configuration when connectors change, so placement follows the matching monitor. Selectors matching multiple monitors are inactive and logged as warnings; use a more specific description or serial.
 
 Widget IDs generated in the editor use the `lockscreen-widget-` prefix. Login box placement uses IDs `lockscreen-login-box@<output>` with `type = "login_box"` (not shown in the add-widget list). New boxes receive a numeric suffix if that ID is already used by a saved box. A login box is assigned by its `output` field, independently of the ID suffix. To follow a monitor across docking cycles, change that field on the existing box while keeping its ID and settings:
 
@@ -65,7 +65,7 @@ type = "login_box"
 output = "HP E273q"
 ```
 
-Noctalia reuses a matching login box instead of creating a default box for its new connector. If several login boxes target the same monitor, the first matching box in widget order is used. Newly generated defaults are appended after saved boxes, so a saved selector takes priority when its monitor returns or its identity metadata arrives. Login boxes for disconnected monitors are retained with their placement and size, so reconnecting restores the layout. Remove unused boxes explicitly from your configuration. A connected monitor without a matching box still receives a default login box, and at least one connected login box remains enabled.
+Nythera reuses a matching login box instead of creating a default box for its new connector. If several login boxes target the same monitor, the first matching box in widget order is used. Newly generated defaults are appended after saved boxes, so a saved selector takes priority when its monitor returns or its identity metadata arrives. Login boxes for disconnected monitors are retained with their placement and size, so reconnecting restores the layout. Remove unused boxes explicitly from your configuration. A connected monitor without a matching box still receives a default login box, and at least one connected login box remains enabled.
 
 ### Login box settings
 

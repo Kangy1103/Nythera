@@ -60,9 +60,9 @@ let
   });
 in
 lib.warnIf cudaSupport
-  "noctalia: `cudaSupport` no longer has any effect (autoAddDriverRunpath is now always applied); this argument will be removed in the future."
+  "nythera: `cudaSupport` no longer has any effect (autoAddDriverRunpath is now always applied); this argument will be removed in the future."
   stdenv.mkDerivation {
-  pname = "noctalia";
+  pname = "nythera";
   inherit version;
 
   src = lib.cleanSource ./..;
@@ -73,13 +73,13 @@ lib.warnIf cudaSupport
   '';
 
   postFixup = ''
-    wrapProgram $out/bin/noctalia \
+    wrapProgram $out/bin/nythera \
       --prefix PATH : ${lib.makeBinPath [ git ]} \
       --prefix XDG_DATA_DIRS : "${glib.getSchemaDataDirPath gsettings-desktop-schemas}"
 
-    $out/bin/noctalia completions bash | install -D /dev/stdin $out/share/bash-completion/completions/noctalia
-    $out/bin/noctalia completions zsh  | install -D /dev/stdin $out/share/zsh/site-functions/_noctalia
-    $out/bin/noctalia completions fish | install -D /dev/stdin $out/share/fish/vendor_completions.d/noctalia.fish
+    $out/bin/nythera completions bash | install -D /dev/stdin $out/share/bash-completion/completions/nythera
+    $out/bin/nythera completions zsh  | install -D /dev/stdin $out/share/zsh/site-functions/_nythera
+    $out/bin/nythera completions fish | install -D /dev/stdin $out/share/fish/vendor_completions.d/nythera.fish
   '';
 
   nativeBuildInputs = [
@@ -134,9 +134,9 @@ lib.warnIf cudaSupport
 
   meta = with lib; {
     description = "A sleek, customizable desktop shell crafted for Wayland.";
-    homepage = "https://github.com/noctalia-dev/noctalia";
+    homepage = "https://github.com/Kangy1103/noctalia";
     license = licenses.mit;
     platforms = platforms.linux;
-    mainProgram = "noctalia";
+    mainProgram = "nythera";
   };
 }

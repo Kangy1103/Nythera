@@ -84,7 +84,7 @@ namespace {
   }
 
   void httpTests(std::filesystem::path caBundlePath) {
-    const char* fixture = std::getenv("NOCTALIA_RECOMMENDATION_FIXTURE");
+    const char* fixture = std::getenv("NYTHERA_RECOMMENDATION_FIXTURE");
     TEST_CHECK(fixture != nullptr && std::string_view(fixture) == "1");
     const char* proxy = std::getenv("HTTPS_PROXY");
     TEST_CHECK(proxy != nullptr && std::string_view(proxy).starts_with("http://127.0.0.1:"));

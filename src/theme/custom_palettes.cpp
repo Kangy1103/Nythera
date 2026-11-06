@@ -18,7 +18,7 @@
 #include <system_error>
 #include <utility>
 
-namespace noctalia::theme {
+namespace nythera::theme {
 
   namespace {
 
@@ -321,4 +321,4 @@ namespace noctalia::theme {
     return true;
   }
 
-} // namespace noctalia::theme
+} // namespace nythera::theme

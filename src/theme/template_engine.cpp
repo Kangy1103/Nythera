@@ -37,7 +37,7 @@
 #include <variant>
 #include <vector>
 
-namespace noctalia::theme {
+namespace nythera::theme {
 
   namespace {
 
@@ -1780,4 +1780,4 @@ namespace noctalia::theme {
     return ok;
   }
 
-} // namespace noctalia::theme
+} // namespace nythera::theme

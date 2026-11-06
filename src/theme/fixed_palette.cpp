@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <tuple>
 
-namespace noctalia::theme {
+namespace nythera::theme {
 
   namespace {
 
@@ -494,4 +494,4 @@ namespace noctalia::theme {
     return terminal;
   }
 
-} // namespace noctalia::theme
+} // namespace nythera::theme

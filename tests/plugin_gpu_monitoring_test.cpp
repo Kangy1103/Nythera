@@ -39,7 +39,7 @@ int main() {
     LuauHost cpuOnly(api, "test/cpu:widget");
     TEST_CHECK(cpuOnly.exec("=cpu-only", R"(
       for i = 1, 3 do
-        local stats = noctalia.systemStats()
+        local stats = nythera.systemStats()
         assert(type(stats.cpu.usagePercent) == 'number')
         assert(type(stats.ram.usedMb) == 'number')
         assert(type(stats.net.rxBytesPerSec) == 'number')
@@ -54,20 +54,20 @@ int main() {
     {
       LuauHost panel(api, "test/gpu:panel");
       TEST_CHECK(panel.exec("=panel", R"(
-        function onOpen() assert(noctalia.setGpuMonitoring(true)) end
-        function onClose() assert(noctalia.setGpuMonitoring(false)) end
+        function onOpen() assert(nythera.setGpuMonitoring(true)) end
+        function onClose() assert(nythera.setGpuMonitoring(false)) end
         onOpen()
         onOpen()
-        assert(type(noctalia.systemStats().gpu) == 'table')
+        assert(type(nythera.systemStats().gpu) == 'table')
       )"));
       expectRefs(1, 2, 1);
       {
         LuauHost second(api, "test/gpu:widget");
-        TEST_CHECK(second.exec("=second", "assert(noctalia.setGpuMonitoring(true))"));
+        TEST_CHECK(second.exec("=second", "assert(nythera.setGpuMonitoring(true))"));
         expectRefs(2, 3, 2);
         TEST_CHECK(panel.exec("=close", "onClose(); onClose()"));
         expectRefs(1, 2, 1);
-        TEST_CHECK(panel.exec("=closed-snapshot", "noctalia.systemStats()"));
+        TEST_CHECK(panel.exec("=closed-snapshot", "nythera.systemStats()"));
         expectRefs(1, 2, 1);
         TEST_CHECK(panel.exec("=reopen", "onOpen()"));
         expectRefs(2, 3, 2);
@@ -77,9 +77,9 @@ int main() {
       // A malformed request cannot accidentally enable monitoring (Lua strings are truthy).
       TEST_CHECK(panel.exec("=invalid", R"(
         onClose()
-        assert(not pcall(noctalia.setGpuMonitoring, 'false'))
-        assert(not pcall(noctalia.setGpuMonitoring))
-        assert(not pcall(noctalia.setGpuMonitoring, 1))
+        assert(not pcall(nythera.setGpuMonitoring, 'false'))
+        assert(not pcall(nythera.setGpuMonitoring))
+        assert(not pcall(nythera.setGpuMonitoring, 1))
       )"));
       expectRefs(0, 1, 0);
       const auto wake = SystemMonitorServiceTestAccess::wakeGeneration(monitor);
@@ -91,7 +91,7 @@ int main() {
       TEST_CHECK(panel.exec("=before-stop", "onOpen()"));
       monitor.setEnabled(false);
       TEST_CHECK(panel.exec("=disabled", R"(
-        assert(noctalia.systemStats() == nil)
+        assert(nythera.systemStats() == nil)
         onClose()
       )"));
       expectRefs(0, 1, 0);
@@ -112,12 +112,12 @@ int main() {
   {
     LuauHost host(api, "test/unavailable:widget");
     TEST_CHECK(host.exec("=unavailable", R"(
-      assert(noctalia.systemStats() == nil)
-      assert(not noctalia.setGpuMonitoring(true))
-      assert(noctalia.setGpuMonitoring(false))
+      assert(nythera.systemStats() == nil)
+      assert(not nythera.setGpuMonitoring(true))
+      assert(nythera.setGpuMonitoring(false))
     )"));
     api.setSystemMonitor(&monitor);
-    TEST_CHECK(host.exec("=retry", "assert(noctalia.setGpuMonitoring(true))"));
+    TEST_CHECK(host.exec("=retry", "assert(nythera.setGpuMonitoring(true))"));
     expectRefs(1, 1, 1);
   }
   expectRefs(0, 0, 0);

@@ -49,7 +49,7 @@ namespace {
 } // namespace
 
 int main() {
-  const fs::path root = fs::temp_directory_path() / ("noctalia-desktop-entry-symlink-" + std::to_string(getpid()));
+  const fs::path root = fs::temp_directory_path() / ("nythera-desktop-entry-symlink-" + std::to_string(getpid()));
   const fs::path applications = root / "data/applications";
   const fs::path elsewhere = root / "elsewhere";
   fs::create_directories(applications / "nested");

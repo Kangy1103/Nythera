@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-# Sync docs/user/**/*.mdx into ../noctalia-docs/src/content/docs/noctalia/.
+# Sync docs/user/**/*.mdx into ../nythera-docs/src/content/docs/nythera/.
 # The source files remain MDX so the docs site can keep using its components.
 # Documentation assets are copied from docs/assets/ into the docs site's
 # src/assets/. Existing generated pages are replaced atomically, and stale
 # generated pages are removed only after a non-empty source sync succeeds.
 # Each vX.Y.Z release tag is archived once, from the tag itself, into
-# noctalia/<tag>/ with its assets in src/assets/<tag>/ and its plugin API
+# nythera/<tag>/ with its assets in src/assets/<tag>/ and its plugin API
 # metadata in src/data/plugin-api/<tag>.json; src/data/versions.json lists
 # them. FORCE_SYNC=1 re-archives every release.
 # Usage: [FORCE_SYNC=1] tools/sync-docs.sh [docs-site-root]
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-site_root="${1:-"$repo_root/../noctalia-docs"}"
+site_root="${1:-"$repo_root/../nythera-docs"}"
 source_dir="$repo_root/docs/user"
-dest_dir="$site_root/src/content/docs/noctalia"
+dest_dir="$site_root/src/content/docs/nythera"
 asset_source="$repo_root/docs/assets"
 asset_dest="$site_root/src/assets"
 plugin_api_source="$repo_root/docs/plugin-api.json"
@@ -61,7 +61,7 @@ git -C "$repo_root" rev-parse --is-inside-work-tree > /dev/null 2>&1 || {
 
 generate_versions_manifest() {
     local manifest_entries=()
-    manifest_entries+=( "$(jq -n '{version: "main", tag: "main", label: "main (rolling)", path: "/noctalia/", status: "rolling", isDefault: true, isLatest: false}')" )
+    manifest_entries+=( "$(jq -n '{version: "main", tag: "main", label: "main (rolling)", path: "/nythera/", status: "rolling", isDefault: true, isLatest: false}')" )
 
     local first_release=1
     while IFS= read -r release_tag; do
@@ -83,7 +83,7 @@ generate_versions_manifest() {
             --arg version "${release_tag#v}" \
             --arg tag "$release_tag" \
             --arg label "$release_label" \
-            --arg path "/noctalia/$release_tag/" \
+            --arg path "/nythera/$release_tag/" \
             --arg releaseDate "$commit_date" \
             --arg commit "$commit_hash" \
             --arg status "$release_status" \
@@ -176,13 +176,13 @@ sync_version_docs() {
 
         local relative_slug="${relative_path%.mdx}"
         relative_slug="${relative_slug%/index}"
-        local page_slug="noctalia/${version_tag}/${relative_slug}"
+        local page_slug="nythera/${version_tag}/${relative_slug}"
         if [[ "$relative_slug" == "index" ]]; then
-            page_slug="noctalia/${version_tag}"
+            page_slug="nythera/${version_tag}"
         fi
 
         # Source pages reach docs/assets/ through one ../ per directory level plus one; the archived
-        # copy sits three levels deeper (src/content/docs/noctalia/<tag>/) and uses its tag's assets.
+        # copy sits three levels deeper (src/content/docs/nythera/<tag>/) and uses its tag's assets.
         local parent_dirs="${relative_path//[^\/]/}"
         local source_asset_prefix="" archived_asset_prefix="../../../"
         local level
@@ -196,8 +196,8 @@ sync_version_docs() {
             -e "1s|^---$|---\nslug: ${page_slug}|" \
             -e "s#\(['\"(]\)${source_asset_prefix}assets/#\1${archived_asset_prefix}#g" \
             -e "s|\.\./components/|../../components/|g" \
-            -e "s|](/noctalia/|](/noctalia/${version_tag}/|g" \
-            -e "s|href=\"/noctalia/|href=\"/noctalia/${version_tag}/|g" \
+            -e "s|](/nythera/|](/nythera/${version_tag}/|g" \
+            -e "s|href=\"/nythera/|href=\"/nythera/${version_tag}/|g" \
             "$mdx_file" > "$destination_file"
         version_source_count=$((version_source_count + 1))
     done < <(find "$version_source_dir" -type f -name '*.mdx' -print0 | sort -z)

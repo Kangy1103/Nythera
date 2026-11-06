@@ -20,7 +20,7 @@ namespace {
   class Server {
   public:
     explicit Server(bool useRuntimePath = false) {
-      char directory[] = "/tmp/noctalia-audio-test-XXXXXX";
+      char directory[] = "/tmp/nythera-audio-test-XXXXXX";
       const auto* created = mkdtemp(directory);
       TEST_CHECK(created != nullptr);
       m_directory = created;

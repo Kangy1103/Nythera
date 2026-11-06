@@ -209,14 +209,14 @@ private:
   void startTrayService();
   void syncNotificationDaemon();
   void installNotificationBusNameWatch();
-  // gnome-keyring / kwalletd usually claim org.freedesktop.secrets a moment after Noctalia starts,
+  // gnome-keyring / kwalletd usually claim org.freedesktop.secrets a moment after Nythera starts,
   // so the first credential lookups report "no provider". Watch the bus name and re-drive the
   // consumers that gave up once an owner appears.
   void installSecretServiceNameWatch();
   // The provider may be present but its collection still locked at startup (PAM holds the password
   // but only opens the store on first request; or a fingerprint/autologin session unlocks it a few
   // seconds later). Watch the collection set and re-drive consumers once the default collection is
-  // actually unlocked, so a lookup that lost the startup race recovers without restarting Noctalia.
+  // actually unlocked, so a lookup that lost the startup race recovers without restarting Nythera.
   void installSecretServiceCollectionWatch();
   void onSecretServiceCollectionChanged();
   void retrySecretServiceConsumers(bool defaultCollectionUnlocked = false);
@@ -257,10 +257,10 @@ private:
   ConfigService m_configService;
   HttpClient m_httpClient;
   FileWatcher m_fileWatcher;
-  noctalia::theme::CommunityPaletteService m_communityPaletteService{m_httpClient};
-  noctalia::theme::CommunityTemplateService m_communityTemplateService{m_httpClient};
-  noctalia::theme::ThemeService m_themeService{m_configService, m_httpClient};
-  noctalia::theme::TemplateApplyService m_templateApplyService{m_configService};
+  nythera::theme::CommunityPaletteService m_communityPaletteService{m_httpClient};
+  nythera::theme::CommunityTemplateService m_communityTemplateService{m_httpClient};
+  nythera::theme::ThemeService m_themeService{m_configService, m_httpClient};
+  nythera::theme::TemplateApplyService m_templateApplyService{m_configService};
   scripting::ScriptApiContext m_scriptApi;
   std::function<void()> m_syncScriptApiOutputs;
   scripting::PluginManager m_pluginManager{m_configService};
@@ -279,7 +279,7 @@ private:
   std::unique_ptr<LogindService> m_logindService;
   // Set on PrepareForSleep(true); cleared when the session lock engages (or the lock aborts).
   bool m_releaseSleepDelayWhenLocked = false;
-  // Set before Noctalia-initiated suspend so PrepareForSleep skips lock-before-sleep.
+  // Set before Nythera-initiated suspend so PrepareForSleep skips lock-before-sleep.
   bool m_skipLockOnNextSleep = false;
   std::uint64_t m_outputPowerRequestGeneration = 0;
   std::unique_ptr<AccountsService> m_accountsService;

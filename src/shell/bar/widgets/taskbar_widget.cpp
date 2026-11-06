@@ -107,7 +107,7 @@ namespace {
     return minFontSize;
   }
 
-  using WorkspaceDiscSize = noctalia::bar::TaskbarBadgeSize;
+  using WorkspaceDiscSize = nythera::bar::TaskbarBadgeSize;
 
   [[nodiscard]] WorkspaceDiscSize measureWorkspaceDiscSize(
       Renderer& renderer, std::string_view label, float fontSize, float minHeight, float scale, const TextFont& font
@@ -115,7 +115,7 @@ namespace {
     const auto metrics = renderer.measureText(label, fontSize, font);
     const float textW = std::max(0.0F, metrics.right - metrics.left);
     const float textH = std::max(0.0F, metrics.bottom - metrics.top);
-    return noctalia::bar::taskbarBadgeSize(textW, textH, minHeight, scale);
+    return nythera::bar::taskbarBadgeSize(textW, textH, minHeight, scale);
   }
 
   [[nodiscard]] WorkspaceDiscSize clampWorkspaceDiscToCrossLimit(WorkspaceDiscSize disc, float maxCross, bool vertical) {
@@ -829,11 +829,11 @@ void TaskbarWidget::doLayout(Renderer& renderer, float containerWidth, float con
   m_root->layout(renderer);
   const float targetExtent = m_vertical ? m_root->height() : m_root->width();
   if (m_groupByWorkspace) {
-    std::unordered_map<std::string, noctalia::bar::TaskbarLayoutFrame> targets;
+    std::unordered_map<std::string, nythera::bar::TaskbarLayoutFrame> targets;
     bool changed = std::abs(targetExtent - m_layoutTargetExtent) > 0.5F
         || m_layoutNodes.size() != m_layoutTargets.size();
     for (const auto& [key, node] : m_layoutNodes) {
-      const noctalia::bar::TaskbarLayoutFrame frame{node->x(), node->y(), node->width(), node->height()};
+      const nythera::bar::TaskbarLayoutFrame frame{node->x(), node->y(), node->width(), node->height()};
       targets.emplace(key, frame);
       const auto previous = m_layoutTargets.find(key);
       changed = changed || previous == m_layoutTargets.end();
@@ -889,7 +889,7 @@ void TaskbarWidget::finishBarLayout() {
     } else {
       from.width = 0.0F;
     }
-    const auto frame = noctalia::bar::interpolateTaskbarFrame(from, target->second, m_layoutProgress);
+    const auto frame = nythera::bar::interpolateTaskbarFrame(from, target->second, m_layoutProgress);
     node->setPosition(frame.x, frame.y);
     if (key.starts_with("group:")) {
       if (m_layoutProgress < 1.0F) {
@@ -1774,7 +1774,7 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
             measureWorkspaceDiscSize(renderer, ws.label, externalBadgeFontSize, badgeBase, fontScale(), labelFont);
         *externalBadgeDisc = clampWorkspaceDiscToCrossLimit(*externalBadgeDisc, externalBadgeCrossLimit, m_vertical);
         if (!tasks.empty() || m_vertical) {
-          const float contentStart = std::ceil(noctalia::bar::taskbarBadgeContentStart(
+          const float contentStart = std::ceil(nythera::bar::taskbarBadgeContentStart(
               m_vertical, m_workspaceLabelPlacement == WorkspaceLabelPlacement::Corner,
               m_vertical ? externalBadgeDisc->height : externalBadgeDisc->width,
               groupOutlineInset, Style::spaceXs * m_contentScale));
@@ -1953,7 +1953,7 @@ void TaskbarWidget::updateModels() {
             ? item.workspace.id
             : (i < displayKeys.size() && !displayKeys[i].empty() ? displayKeys[i] : fallbackLabel);
         item.key = keyPrefix + baseKey;
-        const auto displayLabel = noctalia::bar::taskbarWorkspaceLabel(label, m_configOptions.maxLabelChars);
+        const auto displayLabel = nythera::bar::taskbarWorkspaceLabel(label, m_configOptions.maxLabelChars);
         if (useMultiOutputWorkspaceKeys()) {
           const auto ordIt = monitorOrdinal.find(wo.output);
           if (ordIt != monitorOrdinal.end()) {
@@ -3532,7 +3532,7 @@ void TaskbarWidget::buildDesktopIconIndex() {
 
 ResolvedIcon TaskbarWidget::resolveIcon(const std::string& appId, const std::string& iconNameOrPath) {
   const int iconTargetSize =
-      noctalia::bar::taskbarIconRasterSize(
+      nythera::bar::taskbarIconRasterSize(
           Style::baseGlyphSize * m_configOptions.iconScale * m_contentScale, m_iconRenderScale);
 
   auto resolveIconName = [this, iconTargetSize](const std::string& name) -> ResolvedIcon {

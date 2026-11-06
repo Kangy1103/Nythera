@@ -5,8 +5,8 @@
 #include <pipewire/core.h>
 
 int main() {
-  using noctalia::pipewire::classifyError;
-  using noctalia::pipewire::ErrorDisposition;
+  using nythera::pipewire::classifyError;
+  using nythera::pipewire::ErrorDisposition;
 
   TEST_CHECK(classifyError(PW_ID_CORE, -EPIPE) == ErrorDisposition::Reconnect);
   TEST_CHECK(classifyError(PW_ID_CORE, -ENOENT) == ErrorDisposition::StaleObject);

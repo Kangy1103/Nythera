@@ -126,11 +126,11 @@ End-user documentation lives in [`docs/user/`](docs/user/) (MDX), with images un
 
 The documentation site is generated from these files by `tools/sync-docs.sh`, which copies `docs/user/**/*.mdx` into the docs site checkout and deletes pages that no longer exist here. Never edit the generated copies; the next sync overwrites them.
 
-The same script archives each `vX.Y.Z` release tag once, from the tag's own `docs/user/`, `docs/assets/`, and `docs/plugin-api.json`, under `/noctalia/<tag>/`, and writes the version list the site's switcher reads. It needs `jq` and a checkout with the release tags fetched. Archives are never rewritten afterwards; run it with `FORCE_SYNC=1` to rebuild them after changing the archiving itself.
+The same script archives each `vX.Y.Z` release tag once, from the tag's own `docs/user/`, `docs/assets/`, and `docs/plugin-api.json`, under `/nythera/<tag>/`, and writes the version list the site's switcher reads. It needs `jq` and a checkout with the release tags fetched. Archives are never rewritten afterwards; run it with `FORCE_SYNC=1` to rebuild them after changing the archiving itself.
 
 ### Vendored code
 
-Do not patch vendored code under `third_party/` for Noctalia behavior; local edits are lost when the dependency is refreshed. Put compatibility code in Noctalia-owned sources under `src/`, or fix the issue upstream and update the vendored snapshot from upstream.
+Do not patch vendored code under `third_party/` for Nythera behavior; local edits are lost when the dependency is refreshed. Put compatibility code in Nythera-owned sources under `src/`, or fix the issue upstream and update the vendored snapshot from upstream.
 
 ### Palette colors
 
@@ -267,7 +267,7 @@ src/
   wayland/          Wayland connection, seats, surfaces, clipboard, toplevels, text input
     hyprland/       Hyprland-specific Wayland protocol helpers
 assets/
-  fonts/            Bundled Noctalia Tabler and UI fonts
+  fonts/            Bundled Nythera Tabler and UI fonts
   sounds/           Notification and UI sounds
   templates/        Built-in theme templates
   translations/     Exported translation catalogs
@@ -284,23 +284,23 @@ third_party/
 
 ## Debugging
 
-> The D-Bus identifiers and binary names in the examples below are inherited from Noctalia and may change during the Nythera application rename.
+> Application-owned D-Bus identifiers and executable names use Nythera. See [REBRAND.md](REBRAND.md) for external integration contracts.
 
 
-All debug commands use the `dev.noctalia.Debug` D-Bus service, available at runtime.
+All debug commands use the `dev.nythera.Debug` D-Bus service, available at runtime.
 
 ```sh
 # Enable verbose debug logs
-gdbus call --session --dest dev.noctalia.Debug --object-path /dev/noctalia/Debug --method dev.noctalia.Debug.SetVerboseLogs true
+gdbus call --session --dest dev.nythera.Debug --object-path /dev/nythera/Debug --method dev.nythera.Debug.SetVerboseLogs true
 
 # Disable verbose debug logs
-gdbus call --session --dest dev.noctalia.Debug --object-path /dev/noctalia/Debug --method dev.noctalia.Debug.SetVerboseLogs false
+gdbus call --session --dest dev.nythera.Debug --object-path /dev/nythera/Debug --method dev.nythera.Debug.SetVerboseLogs false
 
 # Check current verbose log state
-gdbus call --session --dest dev.noctalia.Debug --object-path /dev/noctalia/Debug --method dev.noctalia.Debug.GetVerboseLogs
+gdbus call --session --dest dev.nythera.Debug --object-path /dev/nythera/Debug --method dev.nythera.Debug.GetVerboseLogs
 
 # Emit an internal notification (app_name, summary, body, timeout_ms, urgency 0-2)
-gdbus call --session --dest dev.noctalia.Debug --object-path /dev/noctalia/Debug --method dev.noctalia.Debug.EmitInternalNotification "Noctalia" "Test" "Hello from debug" 5000 1
+gdbus call --session --dest dev.nythera.Debug --object-path /dev/nythera/Debug --method dev.nythera.Debug.EmitInternalNotification "Nythera" "Test" "Hello from debug" 5000 1
 ```
 
 ### Crash output
@@ -309,16 +309,16 @@ When reporting a crash, include the complete terminal output from the process if
 
 ### ASan crash reports
 
-AddressSanitizer (ASan) can find memory errors that a normal build reports only as a crash. It requires a temporary source build; it does not replace the Noctalia package you already use.
+AddressSanitizer (ASan) can find memory errors that a normal build reports only as a crash. It requires a temporary source build; it does not replace the Nythera package you already use.
 
 Install the source-build dependencies for your distribution using the commands in [BUILDING.md](BUILDING.md#dependencies), then clone the repository:
 
 ```sh
 git clone https://github.com/Kangy1103/noctalia.git
-cd noctalia
+cd nythera
 ```
 
-Stop the Noctalia instance started by your compositor, then configure and build ASan:
+Stop the Nythera instance started by your compositor, then configure and build ASan:
 
 ```sh
 just configure asan && just build asan
@@ -327,7 +327,7 @@ just configure asan && just build asan
 Start the ASan binary in the foreground and save its output:
 
 ```sh
-ASAN_OPTIONS=log_path=/tmp/noctalia-asan ./build-asan/noctalia 2>&1 | tee noctalia-asan-terminal.log
+ASAN_OPTIONS=log_path=/tmp/nythera-asan ./build-asan/nythera 2>&1 | tee nythera-asan-terminal.log
 ```
 
-Reproduce the crash once. If Noctalia does not exit, press `Ctrl+C`. Attach both `noctalia-asan-terminal.log` and every `/tmp/noctalia-asan.*` file to the GitHub issue. The files in `/tmp` preserve the ASan report if the crash takes down the terminal. If the build or startup fails, attach that complete output instead.
+Reproduce the crash once. If Nythera does not exit, press `Ctrl+C`. Attach both `nythera-asan-terminal.log` and every `/tmp/nythera-asan.*` file to the GitHub issue. The files in `/tmp` preserve the ASan report if the crash takes down the terminal. If the build or startup fails, attach that complete output instead.

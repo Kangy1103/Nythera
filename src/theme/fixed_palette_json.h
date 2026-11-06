@@ -9,9 +9,9 @@
 #include <string>
 #include <string_view>
 
-namespace noctalia::theme {
+namespace nythera::theme {
 
-  // Palette JSON (community, custom, and `noctalia theme --theme-json` files) states its format in a top-level
+  // Palette JSON (community, custom, and `nythera theme --theme-json` files) states its format in a top-level
   // integer "version"; a file without one is version 1. Version 2 names every key after the color role it feeds
   // (`on_primary`, `surface_container`, terminal `selection_fg`) where version 1 used `mOnPrimary`,
   // `mSurfaceVariant`, `selectionFg`. Older versions are upgraded on read.
@@ -34,4 +34,4 @@ namespace noctalia::theme {
   // Loads a community or custom palette file. Missing colors read as transparent black, as before.
   [[nodiscard]] std::optional<ParsedPaletteFile> parsePaletteFile(const std::filesystem::path& path);
 
-} // namespace noctalia::theme
+} // namespace nythera::theme

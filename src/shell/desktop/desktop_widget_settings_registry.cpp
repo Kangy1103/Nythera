@@ -108,7 +108,7 @@ namespace desktop_settings {
     // Empty value = inherit the shell font.
     WidgetSettingSpec fontFamilySpec() {
       auto spec = baseSpec("font_family", WidgetControlKind::Select, std::string{});
-      spec.schema.type = noctalia::config::schema::WidgetSettingType::String;
+      spec.schema.type = nythera::config::schema::WidgetSettingType::String;
       spec.options = settings::buildFontFamilySelectOptions();
       spec.literalLabels = true;
       return spec;
@@ -488,9 +488,9 @@ namespace desktop_settings {
     return specs;
   }
 
-  noctalia::config::schema::WidgetSettingSchema
+  nythera::config::schema::WidgetSettingSchema
   desktopWidgetSettingSchema(std::string_view type, scripting::PluginRegistry* pluginRegistry) {
-    noctalia::config::schema::WidgetSettingSchema out;
+    nythera::config::schema::WidgetSettingSchema out;
     if (auto pluginEntry = resolvePluginDesktopWidget(type, pluginRegistry)) {
       for (const auto& spec : settings::manifestSettingSpecs(pluginEntry->entry->settings)) {
         out.push_back(spec.schema);

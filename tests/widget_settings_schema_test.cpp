@@ -1,7 +1,7 @@
 // The validator and the settings GUI must agree on which keys a plugin widget accepts.
 // Generic bar-widget settings (scale, color, anchor, capsule_*, ...) are applied to plugin
 // widgets at runtime and written by the GUI, so the validator schema has to list them too,
-// or `noctalia config validate` warns "unknown setting" about its own output.
+// or `nythera config validate` warns "unknown setting" about its own output.
 #include "scripting/plugin_registry.h"
 #include "shell/settings/widget_settings_registry.h"
 
@@ -24,7 +24,7 @@ namespace {
   }
 
   std::filesystem::path makeTempDir() {
-    std::string pattern = (std::filesystem::temp_directory_path() / "noctalia-widget-schema-XXXXXX").string();
+    std::string pattern = (std::filesystem::temp_directory_path() / "nythera-widget-schema-XXXXXX").string();
     std::vector<char> buffer(pattern.begin(), pattern.end());
     buffer.push_back('\0');
     char* result = ::mkdtemp(buffer.data());
@@ -41,8 +41,8 @@ namespace {
     return out.good();
   }
 
-  bool hasKey(const noctalia::config::schema::WidgetSettingSchema& schema, std::string_view key) {
-    return std::ranges::any_of(schema, [&](const noctalia::config::schema::WidgetSettingField& field) {
+  bool hasKey(const nythera::config::schema::WidgetSettingSchema& schema, std::string_view key) {
+    return std::ranges::any_of(schema, [&](const nythera::config::schema::WidgetSettingField& field) {
       return field.key == key;
     });
   }

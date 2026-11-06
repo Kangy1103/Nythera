@@ -497,7 +497,7 @@ void EasyEffectsService::registerIpc(
     IpcService& ipc, const ConfigService&, const EffectsProfileFeedbackCallback& effectsProfileFeedback
 ) {
   ipc.bind(
-      noctalia::cli::msg::effectsProfileSet, [this, effectsProfileFeedback](const std::string& args) -> std::string {
+      nythera::cli::msg::effectsProfileSet, [this, effectsProfileFeedback](const std::string& args) -> std::string {
         const auto trimmedView = std::string_view(args);
         const auto split = trimmedView.find(' ');
         if (split == std::string_view::npos) {

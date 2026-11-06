@@ -162,10 +162,10 @@ namespace scripting {
           kLog.info("{}", effect.title);
           break;
         case ScriptSideEffectKind::NotifyInfo:
-          notify::info("Noctalia", effect.title, effect.body);
+          notify::info("Nythera", effect.title, effect.body);
           break;
         case ScriptSideEffectKind::NotifyError:
-          notify::error("Noctalia", effect.title, effect.body);
+          notify::error("Nythera", effect.title, effect.body);
           break;
         case ScriptSideEffectKind::CopyToClipboard:
           if (clipboard == nullptr || !clipboard->copyText(effect.title, effect.body)) {
@@ -273,7 +273,7 @@ namespace scripting {
     bool hasOnKeyKnown = false;
     bool unhealthy = false;
     int consecutiveTimeouts = 0;
-    // Shell config paths the current load read via noctalia.getSetting. Written on the
+    // Shell config paths the current load read via nythera.getSetting. Written on the
     // worker thread, read on the main thread when the config snapshot changes.
     std::unordered_set<std::string> settingDependencies;
     // Last loaded source, so a getSetting dependency change can reload the script in place.
@@ -1084,7 +1084,7 @@ namespace scripting {
       DeferredCall::callLater([name, reason = std::move(reason)] {
         const std::string bodyKey =
             reason == "timeouts" ? "plugins.auto-disabled.body-timeouts" : "plugins.auto-disabled.body-errors";
-        notify::error("Noctalia", i18n::tr("plugins.auto-disabled.title"), i18n::tr(bodyKey, "plugin", name));
+        notify::error("Nythera", i18n::tr("plugins.auto-disabled.title"), i18n::tr(bodyKey, "plugin", name));
       });
     }
 

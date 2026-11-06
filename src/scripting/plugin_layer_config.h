@@ -31,7 +31,7 @@ namespace scripting {
   } // namespace PluginLayerAnchor
 
   // Surface properties of a [[layer]] entry. Declared in plugin.toml and changed at runtime with
-  // noctalia.layer.configure(). Sizes and margins are logical pixels.
+  // nythera.layer.configure(). Sizes and margins are logical pixels.
   struct PluginLayerConfig {
     PluginLayerLevel layer = PluginLayerLevel::Top;
     std::uint32_t anchors = 0;

@@ -74,7 +74,7 @@ namespace {
       ++m_introspectionAttempts;
       try {
         // KeePassXC performs this synchronous tray availability check from the
-        // same thread that serves its Secret Service. Noctalia must remain able to
+        // same thread that serves its Secret Service. Nythera must remain able to
         // dispatch it while either Secret Service request is outstanding.
         auto client = sdbus::createSessionBusConnection();
         auto watcher = sdbus::createProxy(*client, kWatcherBusName, kWatcherPath);

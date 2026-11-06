@@ -14,13 +14,13 @@ config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/hypr"
 lua_config_file="$config_dir/hyprland.lua"
 conf_config_file="$config_dir/hyprland.conf"
 
-lua_output_file="$config_dir/noctalia.lua"
-conf_output_file="$config_dir/noctalia.conf"
+lua_output_file="$config_dir/nythera.lua"
+conf_output_file="$config_dir/nythera.conf"
 
 # hyprland expands ~ in source paths; tilde the include for portability while
 # the rendered file is still written to the real conf_output_file path.
 if [[ "$config_dir" == "$HOME"/* ]]; then
-  conf_source_path="~/${config_dir#"$HOME"/}/noctalia.conf"
+  conf_source_path="~/${config_dir#"$HOME"/}/nythera.conf"
 else
   conf_source_path="$conf_output_file"
 fi
@@ -33,7 +33,7 @@ detect_mode() {
     return
   fi
 
-  # Fallback for cases where noctalia applies templates where hyprland
+  # Fallback for cases where nythera applies templates where hyprland
   # is not reachable. If the user has hyprland.lua, assume Lua config mode.
   if [ -f "$lua_config_file" ]; then
     printf 'lua\n'
@@ -43,35 +43,35 @@ detect_mode() {
 }
 
 apply_lua() {
-  local include_line='-- For Noctalia Color templates
-require("noctalia").apply_theme()'
+  local include_line='-- For Nythera Color templates
+require("nythera").apply_theme()'
 
   mkdir -p "$config_dir"
 
   if [ ! -f "$lua_config_file" ]; then
-    printf 'Warning: %s is missing; add the Noctalia theme setup to your active Hyprland Lua configuration manually:\ndofile("%s").apply_theme()\n' "$lua_config_file" "$lua_output_file" >&2
+    printf 'Warning: %s is missing; add the Nythera theme setup to your active Hyprland Lua configuration manually:\ndofile("%s").apply_theme()\n' "$lua_config_file" "$lua_output_file" >&2
     return 1
   fi
 
-  # Append only if there is no Noctalia include at all
-  if ! grep -qF 'require("noctalia")' "$lua_config_file"; then
+  # Append only if there is no Nythera include at all
+  if ! grep -qF 'require("nythera")' "$lua_config_file"; then
     printf '\n%s\n' "$include_line" >>"$lua_config_file"
   fi
 }
 
 apply_conf() {
-  local include_line="# For Noctalia Color templates
+  local include_line="# For Nythera Color templates
 source = $conf_source_path"
 
   mkdir -p "$config_dir"
 
   if [ ! -f "$conf_config_file" ]; then
-    printf 'Warning: %s is missing; add the Noctalia theme source to your active Hyprland configuration manually:\n%s\n' "$conf_config_file" "$include_line" >&2
+    printf 'Warning: %s is missing; add the Nythera theme source to your active Hyprland configuration manually:\n%s\n' "$conf_config_file" "$include_line" >&2
     return 1
   fi
 
-  # Avoid appending duplicate Noctalia includes
-  if ! grep -qE 'source\s*=.*noctalia\.conf' "$conf_config_file"; then
+  # Avoid appending duplicate Nythera includes
+  if ! grep -qE 'source\s*=.*nythera\.conf' "$conf_config_file"; then
     printf '\n%s\n' "$include_line" >>"$conf_config_file"
   fi
 }

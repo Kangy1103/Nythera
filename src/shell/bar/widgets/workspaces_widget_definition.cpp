@@ -32,11 +32,11 @@ namespace {
 
 } // namespace
 
-const noctalia::bar::WidgetDefinition<WorkspacesWidget::Options>& workspacesWidgetDefinition() {
-  using noctalia::bar::field;
+const nythera::bar::WidgetDefinition<WorkspacesWidget::Options>& workspacesWidgetDefinition() {
+  using nythera::bar::field;
   using Options = WorkspacesWidget::Options;
 
-  static const noctalia::bar::WidgetDefinition<Options> definition{
+  static const nythera::bar::WidgetDefinition<Options> definition{
       .type = "workspaces",
       .fields =
           {

@@ -243,7 +243,7 @@ namespace shell::dock {
   ) {
     const auto geometry = computeSurfaceGeometry(cfg, shadow, fractionalScale, outputLogicalWidth, outputLogicalHeight);
     return LayerSurfaceConfig{
-        .nameSpace = "noctalia-dock",
+        .nameSpace = "nythera-dock",
         .layer = layerShellLayerFromConfig(cfg.layer),
         .anchor = positionToAnchor(cfg.position),
         .width = geometry.surfaceW,

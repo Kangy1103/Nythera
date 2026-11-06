@@ -40,7 +40,7 @@ namespace settings {
   class TemplateStoreContent {
   public:
     TemplateStoreContent(
-        std::vector<noctalia::theme::AvailableTemplate> catalog, std::unordered_set<std::string> selectedIds,
+        std::vector<nythera::theme::AvailableTemplate> catalog, std::unordered_set<std::string> selectedIds,
         ConfigService* config, TemplateStoreCallbacks callbacks
     );
     ~TemplateStoreContent();
@@ -77,7 +77,7 @@ namespace settings {
     void moveSelection(int delta);
     [[nodiscard]] bool activateSelection();
 
-    std::vector<noctalia::theme::AvailableTemplate> m_catalog;
+    std::vector<nythera::theme::AvailableTemplate> m_catalog;
     std::unordered_set<std::string> m_selectedIds;
     std::vector<std::size_t> m_filteredIndices;
     std::vector<std::string> m_allCategories;

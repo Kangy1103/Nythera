@@ -673,8 +673,8 @@ void WindowSwitcher::initialize(
 }
 
 void WindowSwitcher::registerIpc(IpcService& ipc) {
-  ipc.bind(noctalia::cli::msg::windowSwitcher, [this](const std::string& args) -> std::string {
-    const std::vector<std::string> words = noctalia::ipc::splitWords(args);
+  ipc.bind(nythera::cli::msg::windowSwitcher, [this](const std::string& args) -> std::string {
+    const std::vector<std::string> words = nythera::ipc::splitWords(args);
     std::string_view action;
     std::optional<WindowSwitcherScope> scope;
     bool reverse = false;
@@ -1696,7 +1696,7 @@ void WindowSwitcher::ensureSurface() {
   inst->uiLayoutScale = shellUiScale(m_config);
 
   auto config = LayerSurfaceConfig{
-      .nameSpace = "noctalia-window-switcher",
+      .nameSpace = "nythera-window-switcher",
       .layer = LayerShellLayer::Overlay,
       .anchor = LayerShellAnchor::Top | LayerShellAnchor::Bottom | LayerShellAnchor::Left | LayerShellAnchor::Right,
       .width = 0,

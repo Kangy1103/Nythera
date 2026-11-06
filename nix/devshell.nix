@@ -1,9 +1,9 @@
 {
   pkgs,
-  noctalia,
+  nythera,
 }:
 pkgs.mkShell {
-  inputsFrom = [ noctalia ];
+  inputsFrom = [ nythera ];
 
   nativeBuildInputs = with pkgs; [
     # Workflow & Hooks
@@ -30,8 +30,8 @@ pkgs.mkShell {
 
   shellHook = ''
     # Point to local assets so binaries find resources without installation
-    export NOCTALIA_ASSETS_DIR="$PWD/assets"
+    export NYTHERA_ASSETS_DIR="$PWD/assets"
 
-    echo " Noctalia dev-shell | 'just --list' to see available tasks"
+    echo " Nythera dev-shell | 'just --list' to see available tasks"
   '';
 }

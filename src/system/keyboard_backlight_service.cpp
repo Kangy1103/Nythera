@@ -206,8 +206,8 @@ bool KeyboardBacklightService::toggleBrightness() {
 void KeyboardBacklightService::setChangeCallback(ChangeCallback callback) { m_changeCallback = std::move(callback); }
 
 void KeyboardBacklightService::registerIpc(IpcService& ipc) {
-  ipc.bind(noctalia::cli::msg::keyboardBacklightSet, [this](const std::string& args) -> std::string {
-    const auto parts = noctalia::ipc::splitWords(args);
+  ipc.bind(nythera::cli::msg::keyboardBacklightSet, [this](const std::string& args) -> std::string {
+    const auto parts = nythera::ipc::splitWords(args);
     if (parts.size() != 1) {
       return "error: keyboard-backlight-set requires <value>\n";
     }
@@ -221,7 +221,7 @@ void KeyboardBacklightService::registerIpc(IpcService& ipc) {
     return setPercent(*parsed) ? "ok\n" : "error: failed to set keyboard backlight\n";
   });
 
-  ipc.bind(noctalia::cli::msg::keyboardBacklightUp, [this](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::keyboardBacklightUp, [this](const std::string& args) -> std::string {
     if (auto err = rejectArgs("keyboard-backlight-up", args); err.has_value()) {
       return *err;
     }
@@ -231,7 +231,7 @@ void KeyboardBacklightService::registerIpc(IpcService& ipc) {
     return adjustBrightness(kKbdBacklightStepPercent) ? "ok\n" : "error: failed to set keyboard backlight\n";
   });
 
-  ipc.bind(noctalia::cli::msg::keyboardBacklightDown, [this](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::keyboardBacklightDown, [this](const std::string& args) -> std::string {
     if (auto err = rejectArgs("keyboard-backlight-down", args); err.has_value()) {
       return *err;
     }
@@ -241,7 +241,7 @@ void KeyboardBacklightService::registerIpc(IpcService& ipc) {
     return adjustBrightness(-kKbdBacklightStepPercent) ? "ok\n" : "error: failed to set keyboard backlight\n";
   });
 
-  ipc.bind(noctalia::cli::msg::keyboardBacklightToggle, [this](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::keyboardBacklightToggle, [this](const std::string& args) -> std::string {
     if (auto err = rejectArgs("keyboard-backlight-toggle", args); err.has_value()) {
       return *err;
     }

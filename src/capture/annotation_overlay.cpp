@@ -773,7 +773,7 @@ namespace capture {
       inst->output = output.output;
 
       auto config = LayerSurfaceConfig{
-          .nameSpace = "noctalia-annotate",
+          .nameSpace = "nythera-annotate",
           .layer = LayerShellLayer::Overlay,
           .anchor = LayerShellAnchor::Top | LayerShellAnchor::Bottom | LayerShellAnchor::Left | LayerShellAnchor::Right,
           .width = 0,

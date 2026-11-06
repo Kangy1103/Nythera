@@ -260,7 +260,7 @@ private:
   std::optional<SelectionBackup> m_selectionBackup;
   // Text of the live selection, or nullopt when it is empty or not text.
   std::optional<std::string> m_selectionText;
-  std::size_t m_maxHistoryEntries = static_cast<std::size_t>(noctalia::config::kClipboardHistoryDefaultEntries);
+  std::size_t m_maxHistoryEntries = static_cast<std::size_t>(nythera::config::kClipboardHistoryDefaultEntries);
   security::StorageKeyProvider& m_storageKeyProvider;
   std::optional<security::SecureKey> m_dataKey;
   ClipboardPersistenceState m_persistenceState = ClipboardPersistenceState::Opening;

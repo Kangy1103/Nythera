@@ -46,7 +46,7 @@ namespace {
 
     explicit TempHistory(const std::string& suffix)
         : dir(std::filesystem::temp_directory_path()
-              / ("noctalia-test-" + std::to_string(static_cast<long long>(getpid())) + "-" + suffix)),
+              / ("nythera-test-" + std::to_string(static_cast<long long>(getpid())) + "-" + suffix)),
           path(dir / "history.enc") {
       std::filesystem::remove_all(dir);
       std::filesystem::create_directories(dir);

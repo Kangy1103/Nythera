@@ -10,7 +10,7 @@ let
   inherit (lib.attrsets) mapAttrs mapAttrs' attrValues;
   inherit (lib.lists) optional;
 
-  cfg = config.programs.noctalia;
+  cfg = config.programs.nythera;
   toml = pkgs.formats.toml { };
   json = pkgs.formats.json { };
 
@@ -19,7 +19,7 @@ let
       rawConfig = toml.generate "config.toml" cfg.settings;
     in
     if cfg.package != null && cfg.validateConfig then
-      pkgs.runCommand "noctalia-config" { } ''
+      pkgs.runCommand "nythera-config" { } ''
         ${lib.getExe cfg.package} config validate ${rawConfig}
         cp ${rawConfig} $out
       ''
@@ -31,23 +31,23 @@ let
   ) cfg.customPalettes;
 in
 {
-  options.programs.noctalia = {
-    enable = mkEnableOption "Whether to enable noctalia, a lightweight Wayland shell and bar.";
+  options.programs.nythera = {
+    enable = mkEnableOption "Whether to enable nythera, a lightweight Wayland shell and bar.";
 
     systemd = {
-      enable = mkEnableOption "Enables a systemd user service for noctalia.";
+      enable = mkEnableOption "Enables a systemd user service for nythera.";
 
       target = mkOption {
         type = lib.types.str;
         default = "graphical-session.target";
         example = "hyprland-session.target";
-        description = "The systemd target for the noctalia service.";
+        description = "The systemd target for the nythera service.";
       };
     };
 
     package = mkOption {
       type = lib.types.nullOr lib.types.package;
-      description = "The noctalia package to use.";
+      description = "The nythera package to use.";
     };
 
     validateConfig = mkOption {
@@ -60,7 +60,7 @@ in
       type = toml.type;
       default = { };
       description = ''
-        Configuration written to {file}`$XDG_CONFIG_HOME/noctalia/config.toml`.
+        Configuration written to {file}`$XDG_CONFIG_HOME/nythera/config.toml`.
         See <https://docs.noctalia.dev/noctalia/configuration/> for more information and examples.
       '';
       example = lib.literalExpression ''
@@ -81,7 +81,7 @@ in
       type = json.type;
       default = { };
       description = ''
-        Custom color palettes written to {file}`$XDG_CONFIG_HOME/noctalia/palettes/<name>.json`.
+        Custom color palettes written to {file}`$XDG_CONFIG_HOME/nythera/palettes/<name>.json`.
         See <https://docs.noctalia.dev/noctalia/theming/palette/#custom-palette-files> for more information.
       '';
       example = lib.literalExpression ''
@@ -100,8 +100,8 @@ in
   config = mkIf cfg.enable {
     packages = optional (cfg.package != null) cfg.package;
 
-    systemd.services.noctalia = mkIf (cfg.systemd.enable) {
-      description = "Noctalia - A lightweight Wayland shell and bar";
+    systemd.services.nythera = mkIf (cfg.systemd.enable) {
+      description = "Nythera - A lightweight Wayland shell and bar";
       documentation = [ "https://docs.noctalia.dev/noctalia/" ];
       partOf = [ cfg.systemd.target ];
       after = [ cfg.systemd.target ];
@@ -123,17 +123,17 @@ in
 
     xdg.config.files = lib.mkMerge [
       (mkIf (cfg.settings != { }) {
-        "noctalia/config.toml".source = configToml;
+        "nythera/config.toml".source = configToml;
       })
       (mapAttrs' (
-        name: source: lib.nameValuePair "noctalia/palettes/${name}.json" { inherit source; }
+        name: source: lib.nameValuePair "nythera/palettes/${name}.json" { inherit source; }
       ) paletteFiles)
     ];
 
     assertions = [
       {
         assertion = !cfg.systemd.enable || cfg.package != null;
-        message = "programs.noctalia.package cannot be null when programs.noctalia.systemd.enable is true";
+        message = "programs.nythera.package cannot be null when programs.nythera.systemd.enable is true";
       }
     ];
   };

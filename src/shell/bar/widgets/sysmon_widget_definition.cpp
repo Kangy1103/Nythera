@@ -1,7 +1,7 @@
 #include "shell/bar/widgets/sysmon_widget_definition.h"
 
-const noctalia::bar::WidgetDefinition<SysmonWidget::Options, SysmonWidgetDefinitionContext>& sysmonWidgetDefinition() {
-  using noctalia::bar::field;
+const nythera::bar::WidgetDefinition<SysmonWidget::Options, SysmonWidgetDefinitionContext>& sysmonWidgetDefinition() {
+  using nythera::bar::field;
   using Options = SysmonWidget::Options;
 
   static const settings::WidgetSettingVisibility diskStat{
@@ -24,7 +24,7 @@ const noctalia::bar::WidgetDefinition<SysmonWidget::Options, SysmonWidgetDefinit
       {"visualization", {"gauge"}},
   };
 
-  static const noctalia::bar::WidgetDefinition<Options, SysmonWidgetDefinitionContext> definition{
+  static const nythera::bar::WidgetDefinition<Options, SysmonWidgetDefinitionContext> definition{
       .type = "sysmon",
       .fields = {
           field<&Options::stat>({

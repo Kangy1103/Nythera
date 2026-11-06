@@ -108,7 +108,7 @@ namespace {
 
   std::filesystem::path remoteNotificationIconCachePath(std::string_view url) {
     return std::filesystem::path("/tmp")
-        / "noctalia-notification-icons"
+        / "nythera-notification-icons"
         / (std::to_string(std::hash<std::string_view>{}(url)) + ".img");
   }
 

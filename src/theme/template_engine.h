@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace noctalia::theme {
+namespace nythera::theme {
 
   struct GeneratedPalette;
 
@@ -72,4 +72,4 @@ namespace noctalia::theme {
     Options m_options;
   };
 
-} // namespace noctalia::theme
+} // namespace nythera::theme

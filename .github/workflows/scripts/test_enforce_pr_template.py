@@ -201,7 +201,7 @@ class TemplateEnforcementTests(unittest.TestCase):
     OLDER_COMMENT_URL = "https://api.github.test/repos/noctalia-dev/noctalia/issues/comments/5"
     NODE_ID = "PR_node123"
     OWN_USER = {"login": "github-actions[bot]"}
-    FORMER_USER = {"login": "Noctalia-CI"}
+    FORMER_USER = {"login": "Nythera-CI"}
 
     def event(self, body: str, *, draft: bool = False) -> dict[str, object]:
         return {

@@ -16,7 +16,7 @@
 namespace fs = std::filesystem;
 
 int main() {
-  char tempDir[] = "/tmp/noctalia-tray-theme-path-test-XXXXXX";
+  char tempDir[] = "/tmp/nythera-tray-theme-path-test-XXXXXX";
   if (mkdtemp(tempDir) == nullptr) {
     std::perror("mkdtemp");
     return 1;

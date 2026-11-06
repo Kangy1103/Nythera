@@ -20,7 +20,7 @@
 #include <system_error>
 #include <utility>
 
-namespace noctalia::theme {
+namespace nythera::theme {
 
   namespace {
 
@@ -167,7 +167,7 @@ namespace noctalia::theme {
     if (!state.empty()) {
       return std::filesystem::path(state) / "community-palettes";
     }
-    return std::filesystem::path("/tmp") / "noctalia" / "community-palettes";
+    return std::filesystem::path("/tmp") / "nythera" / "community-palettes";
   }
 
   std::filesystem::path communityPaletteCachePath(std::string_view name) {
@@ -178,4 +178,4 @@ namespace noctalia::theme {
     return std::format("{}/{}?version={}", kPaletteUrlBase, StringUtils::urlEncode(name), kPaletteFormatVersion);
   }
 
-} // namespace noctalia::theme
+} // namespace nythera::theme

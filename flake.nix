@@ -29,7 +29,7 @@
     in
     {
       overlays.default = final: prev: {
-        noctalia = final.callPackage ./nix/package.nix { inherit rev; };
+        nythera = final.callPackage ./nix/package.nix { inherit rev; };
       };
 
       packages = forEachSystem (
@@ -37,7 +37,7 @@
         rec {
           default = pkgs.callPackage ./nix/package.nix { inherit rev; };
           # DEPRECATED: identical to `default`; kept for compat, warns on use.
-          cuda = warn "noctalia: the `.#cuda` package output is deprecated and now identical to `.#default` (autoAddDriverRunpath is always applied); switch to `.#default`. This alias will be removed in the future." default;
+          cuda = warn "nythera: the `.#cuda` package output is deprecated and now identical to `.#default` (autoAddDriverRunpath is always applied); switch to `.#default`. This alias will be removed in the future." default;
         }
       );
 
@@ -45,7 +45,7 @@
         { pkgs, system }:
         {
           default = pkgs.callPackage ./nix/devshell.nix {
-            noctalia = self.packages.${system}.default;
+            nythera = self.packages.${system}.default;
           };
         }
       );
@@ -64,21 +64,21 @@
         { pkgs, lib, ... }:
         {
           imports = [ ./nix/home-module.nix ];
-          programs.noctalia.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.default;
+          programs.nythera.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.default;
         };
 
       hjemModules.default =
         { pkgs, lib, ... }:
         {
           imports = [ ./nix/hjem-module.nix ];
-          programs.noctalia.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.default;
+          programs.nythera.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.default;
         };
 
       nixosModules.default =
         { pkgs, lib, ... }:
         {
           imports = [ ./nix/nixos-module.nix ];
-          programs.noctalia.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.default;
+          programs.nythera.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.default;
         };
     };
 }

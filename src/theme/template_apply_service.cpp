@@ -27,7 +27,7 @@
 #include <utility>
 #include <vector>
 
-namespace noctalia::theme {
+namespace nythera::theme {
 
   namespace {
 
@@ -50,7 +50,7 @@ namespace noctalia::theme {
     std::filesystem::path userTemplateConfigPath() {
       const std::string configDir = FileUtils::configDir();
       if (configDir.empty()) {
-        return "noctalia.toml";
+        return "nythera.toml";
       }
       return std::filesystem::path(configDir) / "config.toml";
     }
@@ -153,7 +153,7 @@ namespace noctalia::theme {
       return root;
     }
 
-    // state.toml owner holding the template ids Noctalia has applied, one key per source.
+    // state.toml owner holding the template ids Nythera has applied, one key per source.
     constexpr std::string_view kStateOwner = "theme_templates";
 
     std::set<std::string> enabledBuiltinIds(const ThemeConfig::TemplatesConfig& templates) {
@@ -302,7 +302,7 @@ namespace noctalia::theme {
   }
 
   void TemplateApplyService::registerIpc(IpcService& ipc) {
-    ipc.bind(noctalia::cli::msg::templatesApply, [this](const std::string& args) -> std::string {
+    ipc.bind(nythera::cli::msg::templatesApply, [this](const std::string& args) -> std::string {
       if (!StringUtils::trim(args).empty()) {
         return "error: usage: templates-apply\n";
       }
@@ -374,7 +374,7 @@ namespace noctalia::theme {
     }
     const std::filesystem::path gtk3Dir = gtkConfigDir(GtkToolkit::Gtk3);
     const std::filesystem::path gtk4Dir = gtkConfigDir(GtkToolkit::Gtk4);
-    // noctalia.css imports the extension index; it has to exist before that import is written.
+    // nythera.css imports the extension index; it has to exist before that import is written.
     if (gtkToolkits.gtk3)
       (void)ensureGtkExtensionIndex(gtk3Dir);
     if (gtkToolkits.gtk4)
@@ -716,4 +716,4 @@ namespace noctalia::theme {
     }
   }
 
-} // namespace noctalia::theme
+} // namespace nythera::theme

@@ -123,7 +123,7 @@ adaptation and the frame only after the initial behaviour provides a useful dire
 
 ## Monitor-local grouping follow-up
 
-The approved CNS-style monitor-local workspace/application display uses Noctalia's
+The approved CNS-style monitor-local workspace/application display uses Nythera's
 existing grouped Taskbar widget. The running isolated profile now uses `taskbar`
 in the former `workspaces` slot, with `show_all_outputs = false`,
 `group_by_workspace = true`, `only_active_workspace = false` and icon group content.

@@ -30,7 +30,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace noctalia::theme {
+namespace nythera::theme {
 
   namespace {
 
@@ -54,7 +54,7 @@ namespace noctalia::theme {
 
     std::vector<TemplateListEntry> loadBuiltinTemplateList(std::string& err) {
       std::vector<TemplateListEntry> out;
-      const auto builtins = noctalia::theme::loadBuiltinTemplateInfo(&err);
+      const auto builtins = nythera::theme::loadBuiltinTemplateInfo(&err);
       out.reserve(builtins.size());
       for (const auto& builtin : builtins) {
         out.push_back(
@@ -365,7 +365,7 @@ namespace noctalia::theme {
 
   int runCli(int argc, char* argv[]) {
     auto parsed = cli::parseOrReport(
-        cli::kThemeCmd, "noctalia theme", std::span<char* const>{argv + 2, static_cast<std::size_t>(argc - 2)}
+        cli::kThemeCmd, "nythera theme", std::span<char* const>{argv + 2, static_cast<std::size_t>(argc - 2)}
     );
     if (!parsed)
       return 1;
@@ -410,7 +410,7 @@ namespace noctalia::theme {
     }
 
     if (!imagePath && !themeJsonPath) {
-      std::println(stderr, "error: theme requires an image path or --theme-json (try: noctalia theme --help)");
+      std::println(stderr, "error: theme requires an image path or --theme-json (try: nythera theme --help)");
       return 1;
     }
 
@@ -503,4 +503,4 @@ namespace noctalia::theme {
     return 0;
   }
 
-} // namespace noctalia::theme
+} // namespace nythera::theme

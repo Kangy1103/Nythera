@@ -314,9 +314,9 @@ private:
   std::vector<TaskTile> m_taskTiles;
   // Stable identities survive scene rebuilds; node pointers are rebound on every rebuild.
   std::vector<std::pair<std::string, Node*>> m_layoutNodes;
-  std::unordered_map<std::string, noctalia::bar::TaskbarLayoutFrame> m_layoutTargets;
-  std::unordered_map<std::string, noctalia::bar::TaskbarLayoutFrame> m_layoutFrom;
-  std::unordered_map<std::string, noctalia::bar::TaskbarLayoutFrame> m_layoutVisible;
+  std::unordered_map<std::string, nythera::bar::TaskbarLayoutFrame> m_layoutTargets;
+  std::unordered_map<std::string, nythera::bar::TaskbarLayoutFrame> m_layoutFrom;
+  std::unordered_map<std::string, nythera::bar::TaskbarLayoutFrame> m_layoutVisible;
   float m_layoutProgress = 1.0F;
   float m_layoutExtent = 0.0F;
   float m_layoutFromExtent = 0.0F;

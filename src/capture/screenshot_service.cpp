@@ -55,7 +55,7 @@
 namespace {
 
   constexpr Logger kLog("screenshot");
-  constexpr const char* kScreenshotPathEnv = "NOCTALIA_SCREENSHOT_PATH";
+  constexpr const char* kScreenshotPathEnv = "NYTHERA_SCREENSHOT_PATH";
   constexpr const char* kStateOwner = "screenshot";
   constexpr const char* kLastRegionKey = "last_region";
   constexpr const char* kAnnotateStateOwner = "annotate";
@@ -120,7 +120,7 @@ namespace {
     std::int32_t value = 0;
     const auto* end = text.data() + text.size();
     const auto result = std::from_chars(text.data(), end, value);
-    const auto& range = noctalia::config::schema::kScreenshotQualityRange;
+    const auto& range = nythera::config::schema::kScreenshotQualityRange;
     if (result.ec != std::errc{} || result.ptr != end || value < *range.min || value > *range.max) {
       return std::nullopt;
     }
@@ -713,7 +713,7 @@ namespace {
 } // namespace
 
 std::expected<ScreenshotIpcRequest, std::string> parseScreenshotIpcRequest(
-    const noctalia::cli::Command& command, std::string_view args, ScreenshotService::OutputOptions base,
+    const nythera::cli::Command& command, std::string_view args, ScreenshotService::OutputOptions base,
     std::optional<std::string_view> callerCwd
 ) {
   auto tokens = StringUtils::splitShellWords(args);
@@ -726,12 +726,12 @@ std::expected<ScreenshotIpcRequest, std::string> parseScreenshotIpcRequest(
   for (std::string& token : *tokens) {
     pointers.push_back(token.data());
   }
-  const auto parsed = noctalia::cli::parseArgs(command, pointers);
+  const auto parsed = nythera::cli::parseArgs(command, pointers);
   if (!parsed) {
     return std::unexpected(parsed.error() + "\n");
   }
   if (parsed->helpRequested) {
-    return std::unexpected(noctalia::cli::renderHelp(command, "noctalia msg " + std::string(command.name)));
+    return std::unexpected(nythera::cli::renderHelp(command, "nythera msg " + std::string(command.name)));
   }
 
   for (const ScreenshotBoolFlag& flag : kScreenshotBoolFlags) {
@@ -886,9 +886,9 @@ ScreenshotService::OutputOptions ScreenshotService::outputOptionsFromConfig(cons
 }
 
 void ScreenshotService::registerIpc(IpcService& ipc, const ConfigService& configService) {
-  ipc.bind(noctalia::cli::msg::screenshotRegion, [this, &ipc, &configService](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::screenshotRegion, [this, &ipc, &configService](const std::string& args) -> std::string {
     auto request = parseScreenshotIpcRequest(
-        noctalia::cli::msg::screenshotRegion, args, outputOptionsFromConfig(configService.config()), callerCwdOf(ipc)
+        nythera::cli::msg::screenshotRegion, args, outputOptionsFromConfig(configService.config()), callerCwdOf(ipc)
     );
     if (!request) {
       return request.error();
@@ -908,9 +908,9 @@ void ScreenshotService::registerIpc(IpcService& ipc, const ConfigService& config
   });
 
   ipc.bind(
-      noctalia::cli::msg::screenshotFullscreen, [this, &ipc, &configService](const std::string& args) -> std::string {
+      nythera::cli::msg::screenshotFullscreen, [this, &ipc, &configService](const std::string& args) -> std::string {
         auto request = parseScreenshotIpcRequest(
-            noctalia::cli::msg::screenshotFullscreen, args, outputOptionsFromConfig(configService.config()),
+            nythera::cli::msg::screenshotFullscreen, args, outputOptionsFromConfig(configService.config()),
             callerCwdOf(ipc)
         );
         if (!request) {
@@ -956,9 +956,9 @@ void ScreenshotService::registerIpc(IpcService& ipc, const ConfigService& config
   );
 
   ipc.bind(
-      noctalia::cli::msg::screenshotAnnotate, [this, &ipc, &configService](const std::string& args) -> std::string {
+      nythera::cli::msg::screenshotAnnotate, [this, &ipc, &configService](const std::string& args) -> std::string {
         auto request = parseScreenshotIpcRequest(
-            noctalia::cli::msg::screenshotAnnotate, args, outputOptionsFromConfig(configService.config()),
+            nythera::cli::msg::screenshotAnnotate, args, outputOptionsFromConfig(configService.config()),
             callerCwdOf(ipc)
         );
         if (!request) {
@@ -979,9 +979,9 @@ void ScreenshotService::registerIpc(IpcService& ipc, const ConfigService& config
       }
   );
 
-  ipc.bind(noctalia::cli::msg::screenshotWindow, [this, &ipc, &configService](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::screenshotWindow, [this, &ipc, &configService](const std::string& args) -> std::string {
     auto request = parseScreenshotIpcRequest(
-        noctalia::cli::msg::screenshotWindow, args, outputOptionsFromConfig(configService.config()), callerCwdOf(ipc)
+        nythera::cli::msg::screenshotWindow, args, outputOptionsFromConfig(configService.config()), callerCwdOf(ipc)
     );
     if (!request) {
       return request.error();
@@ -1009,9 +1009,9 @@ void ScreenshotService::registerIpc(IpcService& ipc, const ConfigService& config
 
   // The live annotator draws over running apps, so it opens without screencopy;
   // only its Freeze action needs capture support. With a path it edits that image instead.
-  ipc.bind(noctalia::cli::msg::annotate, [this, &ipc, &configService](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::annotate, [this, &ipc, &configService](const std::string& args) -> std::string {
     auto request = parseScreenshotIpcRequest(
-        noctalia::cli::msg::annotate, args, outputOptionsFromConfig(configService.config()), callerCwdOf(ipc)
+        nythera::cli::msg::annotate, args, outputOptionsFromConfig(configService.config()), callerCwdOf(ipc)
     );
     if (!request) {
       return request.error();
@@ -2259,11 +2259,11 @@ ScreenshotService::makeScreenshotPath(const OutputOptions& options, const std::s
 }
 
 void ScreenshotService::notifySaved(const std::filesystem::path& path) {
-  m_notifications.addInternal("Noctalia", "Screenshot saved", path.string());
+  m_notifications.addInternal("Nythera", "Screenshot saved", path.string());
 }
 
 void ScreenshotService::notifyError(const std::string& message) {
-  m_notifications.addInternal("Noctalia", "Screenshot failed", message, Urgency::Critical);
+  m_notifications.addInternal("Nythera", "Screenshot failed", message, Urgency::Critical);
 }
 
 void ScreenshotService::setSoundPlayer(SoundPlayer* soundPlayer) { m_soundPlayer = soundPlayer; }

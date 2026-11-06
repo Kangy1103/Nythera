@@ -31,7 +31,7 @@
 #include <sstream>
 #include <string>
 
-using namespace noctalia::config::schema;
+using namespace nythera::config::schema;
 
 namespace {
 
@@ -149,7 +149,7 @@ location = "https://example.invalid/bad"
   }
 
   void checkPluginIdValidation() {
-    const std::string valid[] = {"noctalia/screen_recorder", "me/hello", "Team/repo_2", "a/b.c-d"};
+    const std::string valid[] = {"nythera/screen_recorder", "me/hello", "Team/repo_2", "a/b.c-d"};
     for (const auto& id : valid) {
       if (!scripting::isValidPluginId(id)) {
         fail("plugins: rejected valid plugin id " + id);
@@ -174,7 +174,7 @@ location = "https://example.invalid/bad"
     // shapes that must not slip through are the near-misses: no colon, extra colons,
     // and an empty or malformed entry segment.
     const std::string validEntries[] = {
-        "noctalia/screen_recorder:widget", "me/hello:a", "Team/repo_2:entry-1", "a/b.c-d:e.f"
+        "nythera/screen_recorder:widget", "me/hello:a", "Team/repo_2:entry-1", "a/b.c-d:e.f"
     };
     for (const auto& id : validEntries) {
       if (!scripting::isValidPluginEntryId(id)) {
@@ -518,7 +518,7 @@ location = "https://example.invalid/bad"
          "user",
          {"personal"},
          CalendarCredentialSource::File,
-         "/run/agenix/noctalia-caldav"},
+         "/run/agenix/nythera-caldav"},
     };
     // Explicit chords so write→read round-trips (empty would emit defaults instead).
     c.keybinds.validate = {*parseKeyChordSpec("Return")};
@@ -563,7 +563,7 @@ location = "https://example.invalid/bad"
     c.shell.clipboardHistoryMaxEntries = 80;
     c.shell.clipboardAutoPaste = ClipboardAutoPasteMode::CtrlV;
     c.storage.keySource = StorageKeySource::File;
-    c.storage.keyFile = "/run/agenix/noctalia-storage-key";
+    c.storage.keyFile = "/run/agenix/nythera-storage-key";
     c.shell.avatarPath = "/home/u/face.png";
     c.shell.settingsWindowTranslucent = true;
     c.shell.animation.speed = 1.5F;
@@ -673,7 +673,7 @@ location = "https://example.invalid/bad"
          .name = "official",
          .location = "https://github.com/noctalia-dev/official-plugins"},
     };
-    c.plugins.enabled = {"noctalia/notes"};
+    c.plugins.enabled = {"nythera/notes"};
     c.plugins.autoUpdate = PluginAutoUpdateMode::None; // non-default (default is All) so the round-trip exercises it
 
     c.bars = {makeProbeBar()};
@@ -977,7 +977,7 @@ provider = "custom"
 server_url = "https://dav.example.com/"
 username = "user"
 credential_source = "file"
-password_file = "/run/agenix/noctalia-caldav"
+password_file = "/run/agenix/nythera-caldav"
 )");
     if (valid.hasErrors()) {
       fail("calendar: valid file credential source was rejected");
@@ -1000,7 +1000,7 @@ type = "caldav"
 provider = "icloud"
 username = "user"
 credential_source = "secret-service"
-password_file = "/run/agenix/noctalia-caldav"
+password_file = "/run/agenix/nythera-caldav"
 )");
     if (!conflictingFile.hasErrors()) {
       fail("calendar: secret-service credential source accepted password_file");
@@ -1059,7 +1059,7 @@ credential_source = "automatic"
 
     const Diagnostics valid = parse(R"(
 key_source = "file"
-key_file = "/run/agenix/noctalia-storage-key"
+key_file = "/run/agenix/nythera-storage-key"
 )");
     if (valid.hasErrors()) {
       fail("storage: valid file key source was rejected");
@@ -1074,7 +1074,7 @@ key_source = "file"
 
     const Diagnostics conflictingFile = parse(R"(
 key_source = "secret-service"
-key_file = "/run/agenix/noctalia-storage-key"
+key_file = "/run/agenix/nythera-storage-key"
 )");
     if (!conflictingFile.hasErrors()) {
       fail("storage: secret-service key source accepted key_file");
@@ -1082,7 +1082,7 @@ key_file = "/run/agenix/noctalia-storage-key"
 
     const Diagnostics relativeFile = parse(R"(
 key_source = "file"
-key_file = "noctalia-storage-key"
+key_file = "nythera-storage-key"
 )");
     if (!relativeFile.hasErrors()) {
       fail("storage: file key source accepted a relative key_file");
@@ -1550,10 +1550,10 @@ wrap_width = 6
     monitor.transparencyMode = BarTransparencyMode::Custom;
     bar.monitorOverrides = {monitor};
     if (ConfigService::resolveForOutput(bar, output).backgroundOpacity != 0.37F) fail("monitor Custom did not override inherited Glass");
-    noctalia::config::schema::Diagnostics diag;
-    const auto table = noctalia::config::schema::writeTable(monitor, noctalia::config::schema::barMonitorOverrideSchema());
+    nythera::config::schema::Diagnostics diag;
+    const auto table = nythera::config::schema::writeTable(monitor, nythera::config::schema::barMonitorOverrideSchema());
     BarMonitorOverride restored;
-    noctalia::config::schema::readInto(table, restored, noctalia::config::schema::barMonitorOverrideSchema(), "bar.default.monitor.DP-1", diag);
+    nythera::config::schema::readInto(table, restored, nythera::config::schema::barMonitorOverrideSchema(), "bar.default.monitor.DP-1", diag);
     if (restored.transparencyMode != BarTransparencyMode::Custom) fail("monitor transparency round-trip lost explicit Custom");
     Config settingsConfig;
     settingsConfig.bars = {bar};

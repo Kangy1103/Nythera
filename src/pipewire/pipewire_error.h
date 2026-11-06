@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace noctalia::pipewire {
+namespace nythera::pipewire {
 
   enum class ErrorDisposition : std::uint8_t {
     Reconnect,
@@ -12,4 +12,4 @@ namespace noctalia::pipewire {
 
   [[nodiscard]] ErrorDisposition classifyError(std::uint32_t objectId, int result) noexcept;
 
-} // namespace noctalia::pipewire
+} // namespace nythera::pipewire

@@ -26,7 +26,7 @@ namespace {
     std::filesystem::path path;
 
     TempDirectory() {
-      std::string pattern = (std::filesystem::temp_directory_path() / "noctalia-uri-consumers-XXXXXX").string();
+      std::string pattern = (std::filesystem::temp_directory_path() / "nythera-uri-consumers-XXXXXX").string();
       const char* created = mkdtemp(pattern.data());
       TEST_CHECK(created != nullptr);
       path = created;

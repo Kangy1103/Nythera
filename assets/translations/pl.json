@@ -692,9 +692,9 @@
       "dbus-disabled": "Powiadomienia DBus wyłączone",
       "desktop-widgets-editor": "Edytor widżetów",
       "desktop-widgets-editor-enabled": "Edytor widżetów pulpitu jest włączony. Przejdź na pusty obszar roboczy, aby otwarte okna nie zasłaniały edytora.",
-      "greeter-sync": "Powitanie Noctalia",
+      "greeter-sync": "Powitanie Nythera",
       "greeter-sync-success": "Wygląd zsynchronizowany. Zmiany będą obowiązywać na następnym ekranie logowania.",
-      "keybind-app": "Noctalia",
+      "keybind-app": "Nythera",
       "keybind-invalid-modifier": "Ten skrót przyjmuje jeden klawisz bez modyfikatorów.",
       "keybind-invalid-printable": "Klawishe drukowalne (litery, cyfry, symbole) wymagają modyfikatora, takiego jak Ctrl lub Alt.",
       "keybind-invalid-super": "Klawisz Super/Windows nie może być używany w skrótach shella.",
@@ -956,7 +956,7 @@
       },
       "reset-page": "Nie udało się resetować niektórych ustawień.",
       "support-report": "Nie udało się zapisać raportu wsparcia.",
-      "sync-greeter": "Nie udało się zsynchronizować wyglądu z Noctalia Greeter.",
+      "sync-greeter": "Nie udało się zsynchronizować wyglądu z Nythera Greeter.",
       "widget": {
         "rename": "Nie udało się zmienić nazwy nazwanego widżetu."
       },
@@ -1243,7 +1243,7 @@
         "kind-label": "Rodzaj",
         "location-label": "Lokalizacja",
         "location-placeholder-git": "https://github.com/me/noctalia-plugins",
-        "location-placeholder-path": "~/dev/noctalia-plugins",
+        "location-placeholder-path": "~/dev/nythera-plugins",
         "name-label": "ID Źródła",
         "name-placeholder": "moje-wtyczki",
         "remove": "Usuń źródło",
@@ -1283,7 +1283,7 @@
           "label": "Zaokrąglenie narożników"
         },
         "custom-palette": {
-          "description": "Wybierz paletę z ~/.config/noctalia/palettes/",
+          "description": "Wybierz paletę z ~/.config/nythera/palettes/",
           "label": "Niestandardowa paleta",
           "search-placeholder": "Szukaj niestandardowych palet…"
         },
@@ -1642,7 +1642,7 @@
             "label": "Przy wyłączaniu"
           },
           "started": {
-            "description": "Polecenie do uruchomienia po uruchomieniu Noctalia",
+            "description": "Polecenie do uruchomienia po uruchomieniu Nythera",
             "label": "Przy starcie"
           },
           "theme-mode-changed": {
@@ -1650,7 +1650,7 @@
             "label": "Przy zmianie motywu"
           },
           "wallpaper-changed": {
-            "description": "Polecenie do uruchomienia gdy zmienia się tapeta; dostarcza NOCTALIA_WALLPAPER_PATH oraz NOCTALIA_WALLPAPER_CONNECTOR",
+            "description": "Polecenie do uruchomienia gdy zmienia się tapeta; dostarcza NYTHERA_WALLPAPER_PATH oraz NYTHERA_WALLPAPER_CONNECTOR",
             "label": "Przy zmianie tapety"
           },
           "wifi-disabled": {
@@ -2106,7 +2106,7 @@
           "label": "Format daty"
         },
         "launch-apps-as-systemd-services": {
-          "description": "Uruchamia aplikacje w oddzielnych usługach systemd, aby nie udostępniały cgroup Noctalia",
+          "description": "Uruchamia aplikacje w oddzielnych usługach systemd, aby nie udostępniały cgroup Nythera",
           "label": "Uruchamiaj aplikacje jako usługi systemd"
         },
         "niri-overview-type-to-launch": {
@@ -2237,8 +2237,8 @@
         },
         "sync-greeter": {
           "button": "Synchronizuj teraz",
-          "description": "Skopiuj bieżącą tapetę i kolory do Noctalia Greeter (wymaga zatwierdzenia administratora)",
-          "label": "Noctalia Greeter"
+          "description": "Skopiuj bieżącą tapetę i kolory do Nythera Greeter (wymaga zatwierdzenia administratora)",
+          "label": "Nythera Greeter"
         },
         "telemetry": {
           "description": "Wysyła małe anonimowe pingowanie startowe z wersją, systemem operacyjnym, compositorem, rozdzielczościami monitorów, pamięcią RAM i skalą interfejsu",
@@ -2806,7 +2806,7 @@
     "window": {
       "export-config": "Eksportuj konfigurację…",
       "export-config-saved": "Konfiguracja wyeksportowana.",
-      "native-title": "Ustawienia Noctalia",
+      "native-title": "Ustawienia Nythera",
       "no-results": "Nie znaleziono ustawień",
       "no-results-hint": "Spróbuj innej nazwy ustawienia lub klucza konfiguracji.",
       "reset-page": "Resetuj stronę",
@@ -2827,7 +2827,7 @@
     "no-wallpaper-selected": "Nie wybrano tapety",
     "select-wallpaper": "Wybierz tapetę",
     "subtitle": "Kilka szybkich wyborów, aby zacząć.",
-    "title": "Witaj w Noctalia",
+    "title": "Witaj w Nythera",
     "wallpaper": "Tapeta",
     "wallpaper-scheme": "Schemat tapety"
   },

@@ -8,7 +8,7 @@
 class WaylandConnection;
 struct ext_idle_notification_v1;
 
-// Idle notifications requested by plugin scripts through noctalia.idle.watch(). Each watch owns one
+// Idle notifications requested by plugin scripts through nythera.idle.watch(). Each watch owns one
 // ext_idle_notification_v1 and reports idled/resumed transitions through its delivery callback.
 // Main thread only: watches arrive as script side effects and are released when their Luau host dies.
 class PluginIdleWatches {

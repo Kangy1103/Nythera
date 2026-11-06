@@ -1,10 +1,10 @@
 #include "shell/bar/widgets/weather_widget_definition.h"
 
-const noctalia::bar::WidgetDefinition<WeatherWidget::Options>& weatherWidgetDefinition() {
-  using noctalia::bar::field;
+const nythera::bar::WidgetDefinition<WeatherWidget::Options>& weatherWidgetDefinition() {
+  using nythera::bar::field;
   using Options = WeatherWidget::Options;
 
-  static const noctalia::bar::WidgetDefinition<Options> definition{
+  static const nythera::bar::WidgetDefinition<Options> definition{
       .type = "weather",
       .fields = {
           field<&Options::maxWidth>({

@@ -1,25 +1,25 @@
 ---
 title: Mango
-description: Configure Mango effects and keybinds for Noctalia.
+description: Configure Mango effects and keybinds for Nythera.
 sidebar:
   order: 7
 ---
 
-Configure Mango for Noctalia surfaces and use Mango binds to launch Noctalia IPC commands directly from the compositor.
+Configure Mango for Nythera surfaces and use Mango binds to launch Nythera IPC commands directly from the compositor.
 
 The examples below use Mango's `.conf` format, which is supported in Mango 0.18.2. Mango also supports `~/.config/mango/config.toml`; when both files exist, `config.conf` takes precedence. For TOML, place settings and `exec_once` under `[global]`, and keybinds under `[bind.default]`. See Mango's [TOML conversion guide](https://github.com/mangowm/mango/blob/main/docs/configuration/toml.md) for the corresponding syntax.
 
-## Autostart Noctalia
+## Autostart Nythera
 
 Add to your `~/.config/mango/config.conf`:
 
 ```bash
-exec_once=noctalia
+exec_once=nythera
 ```
 
 ## Blur and shadows
 
-The configuration below uses Mango's shadows instead of Noctalia's. It disables compositor blur behind bars and panels with `blur_layer=0`, while keeping blur enabled for application windows.
+The configuration below uses Mango's shadows instead of Nythera's. It disables compositor blur behind bars and panels with `blur_layer=0`, while keeping blur enabled for application windows.
 
 Add this to `~/.config/mango/config.conf`:
 
@@ -47,7 +47,7 @@ shadows_color=0x000000ff
 
 Mango uses `blur_layer` for layer-surface blur and `layer_shadows` for layer-surface shadows. Use those exact names; both also require their global toggles, `blur=1` and `shadows=1`.
 
-Then disable Noctalia's rendered drop shadows in your Noctalia TOML config:
+Then disable Nythera's rendered drop shadows in your Nythera TOML config:
 
 ```toml
 [bar.default]
@@ -69,14 +69,14 @@ Add these binds to your `~/.config/mango/config.conf`:
 
 ```bash
 # Core binds
-bind=SUPER,space,spawn,noctalia msg panel-toggle launcher
-bind=SUPER,s,spawn,noctalia msg panel-toggle control-center
-bind=SUPER,comma,spawn,noctalia msg settings-toggle
+bind=SUPER,space,spawn,nythera msg panel-toggle launcher
+bind=SUPER,s,spawn,nythera msg panel-toggle control-center
+bind=SUPER,comma,spawn,nythera msg settings-toggle
 
 # Media keys
-bind=NONE,XF86AudioRaiseVolume,spawn,noctalia msg volume-up
-bind=NONE,XF86AudioLowerVolume,spawn,noctalia msg volume-down
-bind=NONE,XF86AudioMute,spawn,noctalia msg volume-mute
-bind=NONE,XF86MonBrightnessUp,spawn,noctalia msg brightness-up
-bind=NONE,XF86MonBrightnessDown,spawn,noctalia msg brightness-down
+bind=NONE,XF86AudioRaiseVolume,spawn,nythera msg volume-up
+bind=NONE,XF86AudioLowerVolume,spawn,nythera msg volume-down
+bind=NONE,XF86AudioMute,spawn,nythera msg volume-mute
+bind=NONE,XF86MonBrightnessUp,spawn,nythera msg brightness-up
+bind=NONE,XF86MonBrightnessDown,spawn,nythera msg brightness-down
 ```

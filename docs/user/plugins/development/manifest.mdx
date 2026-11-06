@@ -27,7 +27,7 @@ dependencies = ["slurp"] # optional, external tools/packages users must install
 
 `id`, `name`, `version`, and `plugin_api` are required - a manifest without any of them is rejected. `version` must use exactly `MAJOR.MINOR.PATCH`, with non-negative decimal components and no leading zeros (except `0` itself). Prerelease and build suffixes are not accepted.
 
-`plugin_api` is a positive integer and gates enable, the catalog badge, and update safety. API levels are cumulative: leave the value unchanged until the plugin adopts a capability introduced by a newer level. Noctalia currently supports plugin APIs <PluginApiRange />; see [Plugin API Versions](/noctalia/plugins/development/plugin-api/) for the capability introduced by each level.
+`plugin_api` is a positive integer and gates enable, the catalog badge, and update safety. API levels are cumulative: leave the value unchanged until the plugin adopts a capability introduced by a newer level. Nythera currently supports plugin APIs <PluginApiRange />; see [Plugin API Versions](/nythera/plugins/development/plugin-api/) for the capability introduced by each level.
 
 `license` defaults to `MIT` when omitted. `deprecated = true` marks the plugin as deprecated in plugin listings; it is a soft status marker, not a compatibility gate.
 
@@ -67,7 +67,7 @@ entry = "ticker.luau"
 
 ### Widget gesture defaults
 
-A `[[widget]]` entry can declare what its bar widget does on click and scroll, in a `[widget.actions]` table <PluginApiBadge feature="widget-gesture-actions" />. These are defaults: they show up in the settings editor as the widget's own, and the user overrides any of them per instance with `[widget.<name>.actions]`. See [Widget Actions](/noctalia/bar/actions/) for the gesture keys and the action grammar.
+A `[[widget]]` entry can declare what its bar widget does on click and scroll, in a `[widget.actions]` table <PluginApiBadge feature="widget-gesture-actions" />. These are defaults: they show up in the settings editor as the widget's own, and the user overrides any of them per instance with `[widget.<name>.actions]`. See [Widget Actions](/nythera/bar/actions/) for the gesture keys and the action grammar.
 
 ```toml
 [[widget]]
@@ -98,7 +98,7 @@ This removes only the whole-widget tint; the widget still receives clicks and sc
 
 ### Layer entries
 
-A `[[layer]]` entry <PluginApiBadge feature="layer-entry" /> declares a plugin-owned layer-shell surface. A manifest with a `[[layer]]` entry and a lower `plugin_api` is rejected with `layer entry '<id>' requires plugin_api >= 36`. See [Layer surfaces](/noctalia/plugins/development/entries/#layer-surfaces) for how layers behave at runtime.
+A `[[layer]]` entry <PluginApiBadge feature="layer-entry" /> declares a plugin-owned layer-shell surface. A manifest with a `[[layer]]` entry and a lower `plugin_api` is rejected with `layer entry '<id>' requires plugin_api >= 36`. See [Layer surfaces](/nythera/plugins/development/entries/#layer-surfaces) for how layers behave at runtime.
 
 ```toml
 [[layer]]
@@ -124,19 +124,19 @@ keyboard = "exclusive"
 
 Invalid values fail with `layer entry '<id>': <message>`, for example `layer must be "background", "bottom", "top", or "overlay"` or `exclusive_zone must be "auto" or an integer >= -1`.
 
-The surface namespace is fixed to `noctalia-plugin:<author>/<plugin>:<entry>`, so compositor layer rules can match it; it is not configurable. Values changed at runtime with [`noctalia.layer.configure`](/noctalia/plugins/development/runtime-api/#layers) persist until the plugin reloads (a settings change or update), then return to the manifest values.
+The surface namespace is fixed to `nythera-plugin:<author>/<plugin>:<entry>`, so compositor layer rules can match it; it is not configurable. Values changed at runtime with [`nythera.layer.configure`](/nythera/plugins/development/runtime-api/#layers) persist until the plugin reloads (a settings change or update), then return to the manifest values.
 
 Layers do not support entry-level settings (`[[layer.setting]]`); use plugin-level `[[setting]]` instead.
 
 ## Settings schema
 
-A setting becomes a typed control in the settings GUI and is read back via `noctalia.getConfig(key)`. Only declared keys resolve - reading an undeclared key logs a loud warning and returns `nil` (no silent fallbacks).
+A setting becomes a typed control in the settings GUI and is read back via `nythera.getConfig(key)`. Only declared keys resolve - reading an undeclared key logs a loud warning and returns `nil` (no silent fallbacks).
 
 Settings come in two scopes:
 
 - **Plugin-level** - a `[[setting]]` block at the **manifest root**. One shared set for the whole plugin, edited under **Settings → Plugins** (the gear on the plugin's row), and seeded into **every** entry - widget, shortcut, panel, and service. Use this for configuration the service or panel needs.
 - **Widget entry settings** - a `[[<entry>.setting]]` block under a `[[widget]]`. These are edited with the bar widget's own settings. Use this for widget presentation tweaks; they are not a second enabled plugin instance.
-- **Panel entry settings** - a `[[panel.setting]]` block under a `[[panel]]`. These also appear in **Settings → Plugins** (the gear on the plugin row) and are read with `noctalia.getConfig(key)` in the panel script.
+- **Panel entry settings** - a `[[panel.setting]]` block under a `[[panel]]`. These also appear in **Settings → Plugins** (the gear on the plugin row) and are read with `nythera.getConfig(key)` in the panel script.
 
 When both declare the same key, the widget entry value wins for that widget. Both scopes use the same field schema:
 
@@ -161,7 +161,7 @@ entry = "widget.luau"
   default = "Hello"
 ```
 
-The manifest only declares an entry's settings schema. Named widget instances, their configured values, and bar placement belong in the user's Noctalia configuration. See [Plugin widgets](/noctalia/bar/widgets/#plugin-widgets) for that configuration.
+The manifest only declares an entry's settings schema. Named widget instances, their configured values, and bar placement belong in the user's Nythera configuration. See [Plugin widgets](/nythera/bar/widgets/#plugin-widgets) for that configuration.
 
 | Field             | Notes                                                                                                        |
 | ----------------- | ------------------------------------------------------------------------------------------------------------ |
@@ -179,9 +179,9 @@ The manifest only declares an entry's settings schema. Named widget instances, t
 
 `file` and `folder` store strings but render as a text input with a browse button in each settings editor. Use `extensions` to filter a `file` picker; users can still enter a path directly.
 
-Set `secret = true` <PluginApiBadge feature="secret-setting" /> on a `string`, `string_list`, or `string_map` setting that holds an API key, token, or password. `noctalia config export --credentials omit` then leaves the value out of the exported config and `--credentials blank` empties it, so users can publish their config without the credential. Any other type with `secret = true` fails the manifest.
+Set `secret = true` <PluginApiBadge feature="secret-setting" /> on a `string`, `string_list`, or `string_map` setting that holds an API key, token, or password. `nythera config export --credentials omit` then leaves the value out of the exported config and `--credentials blank` empties it, so users can publish their config without the credential. Any other type with `secret = true` fails the manifest.
 
-`string_map` requires <PluginApiBadge feature="string-map-setting" />. It stores string keys associated with string values and is returned from `noctalia.getConfig()` as an associative Luau table. Its default is a TOML table:
+`string_map` requires <PluginApiBadge feature="string-map-setting" />. It stores string keys associated with string values and is returned from `nythera.getConfig()` as an associative Luau table. Its default is a TOML table:
 
 ```toml
 plugin_api = 6

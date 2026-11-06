@@ -1,6 +1,6 @@
 ---
 title: Labwc
-description: Configure Labwc for the best experience with Noctalia.
+description: Configure Labwc for the best experience with Nythera.
 sidebar:
   order: 8
 ---
@@ -28,12 +28,12 @@ Recommended compositor settings:
   </windowSwitcher>
 ```
 
-## Autostart noctalia
+## Autostart nythera
 
 Add the following to the Labwc autostart file `~/.config/labwc/autostart`
 
 ```
-noctalia
+nythera
 ```
 
 ## IPC Keybinds
@@ -46,24 +46,24 @@ Add these binds to your `rc.xml`
     <default />
 
     <!-- Core keys -->
-    <keybind key="W-space"><action name="Execute"><command>noctalia msg panel-toggle launcher</command></action></keybind>
-    <keybind key="W-s"><action name="Execute"><command>noctalia msg panel-toggle control-center</command></action></keybind>
-    <keybind key="W-,"><action name="Execute"><command>noctalia msg settings-toggle</command></action></keybind>
+    <keybind key="W-space"><action name="Execute"><command>nythera msg panel-toggle launcher</command></action></keybind>
+    <keybind key="W-s"><action name="Execute"><command>nythera msg panel-toggle control-center</command></action></keybind>
+    <keybind key="W-,"><action name="Execute"><command>nythera msg settings-toggle</command></action></keybind>
 
     <!-- Media keys -->
-    <keybind key="XF86AudioRaiseVolume"><action name="Execute"><command>noctalia msg volume-up</command></action></keybind>
-    <keybind key="XF86AudioLowerVolume"><action name="Execute"><command>noctalia msg volume-down</command></action></keybind>
-    <keybind key="XF86AudioMute"><action name="Execute"><command>noctalia msg volume-mute</command></action></keybind>
-    <keybind key="XF86MonBrightnessUp"><action name="Execute"><command>noctalia msg brightness-up</command></action></keybind>
-    <keybind key="XF86MonBrightnessDown"><action name="Execute"><command>noctalia msg brightness-down</command></action></keybind>
+    <keybind key="XF86AudioRaiseVolume"><action name="Execute"><command>nythera msg volume-up</command></action></keybind>
+    <keybind key="XF86AudioLowerVolume"><action name="Execute"><command>nythera msg volume-down</command></action></keybind>
+    <keybind key="XF86AudioMute"><action name="Execute"><command>nythera msg volume-mute</command></action></keybind>
+    <keybind key="XF86MonBrightnessUp"><action name="Execute"><command>nythera msg brightness-up</command></action></keybind>
+    <keybind key="XF86MonBrightnessDown"><action name="Execute"><command>nythera msg brightness-down</command></action></keybind>
   </keyboard>
 ```
 
 ## Window minimisation
 
-Noctalia tracks labwc's minimise state in the [taskbar](/noctalia/bar/widgets/taskbar/), [dock](/noctalia/dock/), window switcher, and launcher window results. Clicking a focused single-window taskbar or dock icon minimises it; clicking a minimised window restores and focuses it. Multi-window icons continue cycling. Right-click for per-window **Minimise** / **Restore** actions.
+Nythera tracks labwc's minimise state in the [taskbar](/nythera/bar/widgets/taskbar/), [dock](/nythera/dock/), window switcher, and launcher window results. Clicking a focused single-window taskbar or dock icon minimises it; clicking a minimised window restores and focuses it. Multi-window icons continue cycling. Right-click for per-window **Minimise** / **Restore** actions.
 
-Minimise support requires labwc's foreign-toplevel window tracking to be available. Per-window workspace membership remains unavailable, so the taskbar stays flat; use the [workspaces widget](/noctalia/bar/widgets/workspaces/) for workspace switching.
+Minimise support requires labwc's foreign-toplevel window tracking to be available. Per-window workspace membership remains unavailable, so the taskbar stays flat; use the [workspaces widget](/nythera/bar/widgets/workspaces/) for workspace switching.
 
 ## DPMS mode
 

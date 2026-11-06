@@ -138,7 +138,7 @@ bool PluginLayer::initialize(const scripting::PluginLayerConfig& config) {
   const std::uint32_t width = requestedExtent(config.width, stretchesWidth(config), 0.0F);
   const std::uint32_t height = requestedExtent(config.height, stretchesHeight(config), 0.0F);
   auto surfaceConfig = LayerSurfaceConfig{
-      .nameSpace = "noctalia-plugin:" + m_entryId,
+      .nameSpace = "nythera-plugin:" + m_entryId,
       .layer = toLayerShellLayer(config.layer),
       .anchor = config.anchors,
       .width = width,
@@ -412,7 +412,7 @@ void PluginLayer::reloadScript() {
   auto name = m_sourcePath.filename().string();
   if (source.empty() || m_runtime == nullptr) {
     kLog.warn("hot reload: failed to reload '{}'", name);
-    notify::error("Noctalia", i18n::tr("bar.widgets.scripted.reload-failed"), name);
+    notify::error("Nythera", i18n::tr("bar.widgets.scripted.reload-failed"), name);
     return;
   }
   // Tick opt-ins and interval reset to defaults; the reloaded script re-declares them.
@@ -423,7 +423,7 @@ void PluginLayer::reloadScript() {
   m_runtime->reload(m_sourcePath.string(), std::move(source), makeScriptSnapshot());
   startUpdateTimer();
   kLog.info("hot reload: reloaded '{}'", name);
-  notify::info("Noctalia", i18n::tr("bar.widgets.scripted.reloaded"), name);
+  notify::info("Nythera", i18n::tr("bar.widgets.scripted.reloaded"), name);
 }
 
 void PluginLayer::startUpdateTimer() {

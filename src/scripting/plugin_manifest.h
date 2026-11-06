@@ -62,7 +62,7 @@ namespace scripting {
     std::vector<ManifestSelectOption> options;
     std::vector<std::string> extensions;
     bool advanced = false;
-    // The value is a credential (API key, token, password): `noctalia config export --credentials`
+    // The value is a credential (API key, token, password): `nythera config export --credentials`
     // omits or blanks it. Only valid on string, string_list, and string_map settings.
     bool secret = false;
     std::optional<ManifestVisibility> visibleWhen;
@@ -155,7 +155,7 @@ namespace scripting {
     // the script is called back with the same text declared here.
     std::vector<std::string> panelCaptureKeys;
 
-    // Surface defaults of a [[layer]] entry (plugin_api >= 36); noctalia.layer.configure() changes
+    // Surface defaults of a [[layer]] entry (plugin_api >= 36); nythera.layer.configure() changes
     // them at runtime. `layerVisible` shows the layer as soon as its plugin loads.
     PluginLayerConfig layerConfig;
     bool layerVisible = false;

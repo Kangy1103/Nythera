@@ -319,7 +319,7 @@ struct ShellSessionConfig {
   // Optional overrides for built-in session power commands. Empty = auto-detect at runtime.
   struct ShellSessionPowerConfig {
     // Shell strings run with `/bin/sh -lc` (shell=True).
-    // When unset, Noctalia tries a prioritized backend list (systemd/logind/privileged helpers).
+    // When unset, Nythera tries a prioritized backend list (systemd/logind/privileged helpers).
     std::optional<std::string> suspend;
     std::optional<std::string> reboot;
     std::optional<std::string> shutdown;
@@ -1447,7 +1447,7 @@ struct ShellConfig {
   /// stays pasteable. Independent of history retention: this keeps the live clipboard, not the stored history.
   bool clipboardKeepFromClosedApps = true;
   /// Maximum unpinned clipboard history entries retained (pinned entries are exempt).
-  int clipboardHistoryMaxEntries = static_cast<int>(noctalia::config::kClipboardHistoryDefaultEntries);
+  int clipboardHistoryMaxEntries = static_cast<int>(nythera::config::kClipboardHistoryDefaultEntries);
   /// When true, clearing clipboard history or deleting unpinned entries from the panel asks for confirmation first.
   bool clipboardConfirmClearHistory = true;
   /// Disables per-app tracking and Control Center usage UI.
@@ -1557,55 +1557,55 @@ struct SystemConfig {
     float networkPollSeconds = 3.0F;
     float diskPollSeconds = 10.0F;
     double cpuUsageActivityThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::CpuUsage).activityDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::CpuUsage).activityDefault;
     double cpuUsageCriticalThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::CpuUsage).criticalDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::CpuUsage).criticalDefault;
     double cpuTempActivityThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::CpuTemp).activityDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::CpuTemp).activityDefault;
     double cpuTempCriticalThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::CpuTemp).criticalDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::CpuTemp).criticalDefault;
     double cpuFreqActivityThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::CpuFreq).activityDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::CpuFreq).activityDefault;
     double cpuFreqCriticalThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::CpuFreq).criticalDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::CpuFreq).criticalDefault;
     double gpuTempActivityThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::GpuTemp).activityDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::GpuTemp).activityDefault;
     double gpuTempCriticalThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::GpuTemp).criticalDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::GpuTemp).criticalDefault;
     double gpuUsageActivityThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::GpuUsage).activityDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::GpuUsage).activityDefault;
     double gpuUsageCriticalThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::GpuUsage).criticalDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::GpuUsage).criticalDefault;
     double gpuVramActivityThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::GpuVram).activityDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::GpuVram).activityDefault;
     double gpuVramCriticalThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::GpuVram).criticalDefault;
-    double ramPctActivityThreshold = noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::RamPct).activityDefault;
-    double ramPctCriticalThreshold = noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::RamPct).criticalDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::GpuVram).criticalDefault;
+    double ramPctActivityThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::RamPct).activityDefault;
+    double ramPctCriticalThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::RamPct).criticalDefault;
     double swapPctActivityThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::SwapPct).activityDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::SwapPct).activityDefault;
     double swapPctCriticalThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::SwapPct).criticalDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::SwapPct).criticalDefault;
     double diskUsedPctActivityThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::DiskUsedPct).activityDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::DiskUsedPct).activityDefault;
     double diskUsedPctCriticalThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::DiskUsedPct).criticalDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::DiskUsedPct).criticalDefault;
     double diskUsedActivityThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::DiskUsed).activityDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::DiskUsed).activityDefault;
     double diskUsedCriticalThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::DiskUsed).criticalDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::DiskUsed).criticalDefault;
     double diskFreePctActivityThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::DiskFreePct).activityDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::DiskFreePct).activityDefault;
     double diskFreePctCriticalThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::DiskFreePct).criticalDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::DiskFreePct).criticalDefault;
     double diskFreeActivityThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::DiskFree).activityDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::DiskFree).activityDefault;
     double diskFreeCriticalThreshold =
-        noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::DiskFree).criticalDefault;
-    double netRxActivityThreshold = noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::NetRx).activityDefault;
-    double netRxCriticalThreshold = noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::NetRx).criticalDefault;
-    double netTxActivityThreshold = noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::NetTx).activityDefault;
-    double netTxCriticalThreshold = noctalia::sysmon::thresholdProfile(noctalia::sysmon::Stat::NetTx).criticalDefault;
+        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::DiskFree).criticalDefault;
+    double netRxActivityThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::NetRx).activityDefault;
+    double netRxCriticalThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::NetRx).criticalDefault;
+    double netTxActivityThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::NetTx).activityDefault;
+    double netTxCriticalThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::NetTx).criticalDefault;
 
     bool operator==(const MonitorConfig&) const = default;
   };
@@ -1818,7 +1818,7 @@ constexpr EnumOption<ThemeMode> kThemeModes[] = {
     {ThemeMode::Auto, "auto", "common.states.auto"},
 };
 
-// Noctalia's own light/dark mode. `follow` tracks [theme].mode, which always drives apps
+// Nythera's own light/dark mode. `follow` tracks [theme].mode, which always drives apps
 // (templates and the GTK color scheme); the other values pin the shell independently.
 enum class ShellThemeMode : std::uint8_t {
   Follow = 0,
@@ -1914,7 +1914,7 @@ struct ThemeConfig {
   };
 
   PaletteSource source = PaletteSource::Builtin;
-  std::string builtinPalette = "Noctalia";
+  std::string builtinPalette = "Nythera";
   std::string communityPalette = "Oxocarbon";
   std::string customPalette;
   std::string wallpaperScheme = "m3-content";
@@ -1927,7 +1927,7 @@ struct ThemeConfig {
   bool operator==(const ThemeConfig&) const = default;
 };
 
-// The theme mode Noctalia's own surfaces run in, still expressed as a ThemeMode so `auto`
+// The theme mode Nythera's own surfaces run in, still expressed as a ThemeMode so `auto`
 // keeps resolving against the day/night schedule.
 [[nodiscard]] constexpr ThemeMode shellThemeMode(const ThemeConfig& theme) noexcept {
   switch (theme.shellMode) {

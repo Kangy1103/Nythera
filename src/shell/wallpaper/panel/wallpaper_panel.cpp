@@ -403,7 +403,7 @@ private:
 
 WallpaperPanel::WallpaperPanel(
     WaylandConnection* wayland, ConfigService* config, ThumbnailService* thumbnails, WallpaperScanner* scanner,
-    noctalia::theme::ThemeService* themeService
+    nythera::theme::ThemeService* themeService
 )
     : m_wayland(wayland), m_config(config), m_thumbnails(thumbnails), m_scanner(scanner), m_themeService(themeService) {
   if (m_config != nullptr) {
@@ -652,10 +652,10 @@ void WallpaperPanel::create() {
   };
   addPaletteSource(PaletteSource::Builtin, "settings.options.theme.source.built-in");
   addPaletteSource(PaletteSource::Wallpaper, "settings.options.theme.source.wallpaper");
-  if (!noctalia::theme::availableCommunityPalettes().empty()) {
+  if (!nythera::theme::availableCommunityPalettes().empty()) {
     addPaletteSource(PaletteSource::Community, "settings.options.theme.source.community");
   }
-  if (!noctalia::theme::availableCustomPalettes().empty()) {
+  if (!nythera::theme::availableCustomPalettes().empty()) {
     addPaletteSource(PaletteSource::Custom, "settings.options.theme.source.custom");
   }
 
@@ -1283,7 +1283,7 @@ void WallpaperPanel::rebuildPalettePicker(const WallpaperFavorite* theme) {
     const PaletteSource source = theme->paletteSource.value_or(PaletteSource::Builtin);
     switch (source) {
     case PaletteSource::Builtin:
-      for (const auto& builtin : noctalia::theme::builtinPalettes()) {
+      for (const auto& builtin : nythera::theme::builtinPalettes()) {
         m_paletteValues.emplace_back(builtin.name);
         m_paletteLabels.emplace_back(builtin.name);
         m_palettePreviews.push_back(builtinPaletteSwatchPreview(builtin, previewMode));
@@ -1298,7 +1298,7 @@ void WallpaperPanel::rebuildPalettePicker(const WallpaperFavorite* theme) {
       selectedValue = theme->wallpaperScheme;
       break;
     case PaletteSource::Community:
-      for (const auto& community : noctalia::theme::availableCommunityPalettes()) {
+      for (const auto& community : nythera::theme::availableCommunityPalettes()) {
         m_paletteValues.push_back(community.name);
         m_paletteLabels.push_back(community.name);
         m_palettePreviews.push_back(availablePaletteSwatchPreview(community, previewMode));
@@ -1306,7 +1306,7 @@ void WallpaperPanel::rebuildPalettePicker(const WallpaperFavorite* theme) {
       selectedValue = theme->communityPalette;
       break;
     case PaletteSource::Custom:
-      for (const auto& custom : noctalia::theme::availableCustomPalettes()) {
+      for (const auto& custom : nythera::theme::availableCustomPalettes()) {
         m_paletteValues.push_back(custom.name);
         m_paletteLabels.push_back(custom.name);
         m_palettePreviews.push_back(availablePaletteSwatchPreview(custom, previewMode));

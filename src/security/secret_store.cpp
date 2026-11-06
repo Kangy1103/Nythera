@@ -535,9 +535,53 @@ namespace security {
     std::unique_ptr<SecretStoreBackend> makeLibsecretBackend() { return std::make_unique<LibsecretBackend>(); }
   } // namespace
 
+  bool migrateLegacySecrets(const std::vector<SecretId>& ids, const std::function<void(const std::string&)>& log) {
+    SecretSchema legacy = schema();
+    legacy.name = "dev.noctalia.Secret"; // Explicit legacy import contract, not a runtime identity.
+    for (const auto& id : ids) {
+      auto attributes = secretStoreAttributes(id);
+      auto target = makeAttributes(attributes);
+      GError* error = nullptr;
+      SecretValuePtr present(
+          secret_password_lookupv_binary_sync(&schema(), target.get(), nullptr, &error), &secret_value_unref
+      );
+      if (error) {
+        log("Cannot inspect destination keyring; original secrets unchanged");
+        g_error_free(error);
+        return false;
+      }
+      if (present)
+        continue;
+      attributes.application = "noctalia";
+      auto oldAttributes = makeAttributes(attributes);
+      SecretValuePtr value(
+          secret_password_lookupv_binary_sync(&legacy, oldAttributes.get(), nullptr, &error), &secret_value_unref
+      );
+      if (error) {
+        log("Cannot read legacy keyring; original secrets unchanged");
+        g_error_free(error);
+        return false;
+      }
+      if (!value)
+        continue;
+      const gboolean stored = secret_password_storev_binary_sync(
+          &schema(), target.get(), SECRET_COLLECTION_DEFAULT, "Nythera migrated credential", value.get(), nullptr,
+          &error
+      );
+      if (!stored || error) {
+        log("Cannot copy legacy credential; original unchanged");
+        if (error)
+          g_error_free(error);
+        return false;
+      }
+      log("Copied a legacy credential into Nythera keyring attributes");
+    }
+    return true;
+  }
+
   SecretStoreAttributes secretStoreAttributes(const SecretId& id) {
     return {
-        .application = "noctalia",
+        .application = "nythera",
         .scope = id.scope,
         .owner = id.owner,
         .name = id.name,

@@ -8,7 +8,7 @@ sidebar:
 
 import PluginApiBadge from '../../../../../components/PluginApiBadge.astro';
 
-A script defines **global functions** that Noctalia calls, and drives the UI through the API namespaces. Which globals apply depends on the entry kind:
+A script defines **global functions** that Nythera calls, and drives the UI through the API namespaces. Which globals apply depends on the entry kind:
 
 | Function                               | Widget | Shortcut | Launcher | Desktop | Panel | Layer | Service | When                                                                                                                                |
 | -------------------------------------- | :----: | :------: | :------: | :-----: | :---: | :---: | :-----: | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -20,13 +20,13 @@ A script defines **global functions** that Noctalia calls, and drives the UI thr
 | `onActivate(id)`                       |        |          |     ✓    |         |       |       |         | a launcher result was selected                                                                                                      |
 | `onEnable()`                           |        |          |          |         |       |       |    ✓    | the plugin was explicitly enabled successfully (see below)                                                                          |
 | `onOpen(context)` / `onClose()`        |        |          |          |         |   ✓   |       |         | the panel is opened / closed                                                                                                        |
-| `onKey(chord, pressed)`                |        |          |          |         |   ✓   |       |         | a `capture_keys` chord while the panel is focused ([details](/noctalia/plugins/development/declarative-ui/#handling-keys-directly)) |
+| `onKey(chord, pressed)`                |        |          |          |         |   ✓   |       |         | a `capture_keys` chord while the panel is focused ([details](/nythera/plugins/development/declarative-ui/#handling-keys-directly)) |
 | `onFrameTick(deltaMs)`                 |        |          |          |    ✓    |   ✓   |   ✓   |         | every frame, after `desktopWidget.setNeedsFrameTick(true)` / `panel.setNeedsFrameTick(true)` / `layer.setNeedsFrameTick(true)`      |
-| `onIpc(event, payload)`                |    ✓   |     ✓    |     ✓    |    ✓    |   ✓   |   ✓   |    ✓    | `noctalia msg plugin …`                                                                                                             |
-| `onConfigChanged()`                    |    ✓   |     ✓    |     ✓    |    ✓    |   ✓   |   ✓   |    ✓    | a plugin setting or a `noctalia.getSetting` value changed (see below)                                                               |
+| `onIpc(event, payload)`                |    ✓   |     ✓    |     ✓    |    ✓    |   ✓   |   ✓   |    ✓    | `nythera msg plugin …`                                                                                                             |
+| `onConfigChanged()`                    |    ✓   |     ✓    |     ✓    |    ✓    |   ✓   |   ✓   |    ✓    | a plugin setting or a `nythera.getSetting` value changed (see below)                                                               |
 | `onExit(signal, reason)`               |    ✓   |     ✓    |     ✓    |    ✓    |   ✓   |   ✓   |    ✓    | the entry runtime is about to be destroyed (see below)                                                                              |
 
-The top level of the script runs once at load - set up state and register `noctalia.state.watch` handlers there.
+The top level of the script runs once at load - set up state and register `nythera.state.watch` handlers there.
 
 ### Modules
 
@@ -56,7 +56,7 @@ return M
 
 There are no package search paths, implicit extensions, `init.luau` alternatives, or path containment checks. `../` can leave the plugin directory, just like the rest of the trusted-plugin filesystem API.
 
-A module must return exactly one non-`nil` value. It runs in the entry's VM, but gets its own global environment: `noctalia.*`, `ui.*`, and the other sandboxed globals are visible, while globals assigned by the module stay private to that module. Inside a module, `_G` is the module environment, not the entry's `_G`.
+A module must return exactly one non-`nil` value. It runs in the entry's VM, but gets its own global environment: `nythera.*`, `ui.*`, and the other sandboxed globals are visible, while globals assigned by the module stay private to that module. Inside a module, `_G` is the module environment, not the entry's `_G`.
 
 Each entry keeps its own module cache. Requiring the same canonical path returns the cached value without re-running the module; symlinks resolve to the same cache identity. A different widget, panel, or service entry gets a separate module instance. Circular imports fail with the full import chain.
 
@@ -66,7 +66,7 @@ Editing a successfully loaded module hot-reloads the owning entry, including a m
 
 On a bar widget, what a click or scroll does is user configuration. A binding in `[widget.<name>.actions]` takes precedence over your script, so a user who binds `right` stops `onRightClick` from firing for that instance. Gestures nobody has bound still reach your callbacks.
 
-You can declare your own defaults in the manifest - see [widget gesture defaults](/noctalia/plugins/development/manifest/#widget-gesture-defaults) - and [Widget Actions](/noctalia/bar/actions/) for the full gesture and action vocabulary.
+You can declare your own defaults in the manifest - see [widget gesture defaults](/nythera/plugins/development/manifest/#widget-gesture-defaults) - and [Widget Actions](/nythera/bar/actions/) for the full gesture and action vocabulary.
 
 `onMiddleClick` is the exception worth planning for: every widget gets a built-in `middle` binding that opens its settings, so the callback does not fire unless a `middle = "none"` binding frees the button, either in your manifest or in the user's config.
 
@@ -105,28 +105,28 @@ Scroll events the widget does not define `onScroll` for are left for the bar und
 
 ### Cleaning up when an entry exits
 
-Define `onExit(signal, reason)` to release resources owned by an entry before its Luau runtime is destroyed. It runs when Noctalia exits normally, when a plugin or entry is disabled or removed, and before a runtime is restarted or reloaded. The first argument remains the process signal: `2` for graceful `SIGINT`, `15` for `SIGTERM`, and `0` for every other teardown. The optional second argument requires <PluginApiBadge feature="service-lifecycle" /> and describes why the runtime is exiting:
+Define `onExit(signal, reason)` to release resources owned by an entry before its Luau runtime is destroyed. It runs when Nythera exits normally, when a plugin or entry is disabled or removed, and before a runtime is restarted or reloaded. The first argument remains the process signal: `2` for graceful `SIGINT`, `15` for `SIGTERM`, and `0` for every other teardown. The optional second argument requires <PluginApiBadge feature="service-lifecycle" /> and describes why the runtime is exiting:
 
 | Reason        | Meaning                                                                                   |
 | ------------- | ----------------------------------------------------------------------------------------- |
 | `"disable"`   | The enabled plugin is being explicitly disabled.                                          |
 | `"uninstall"` | The enabled plugin is being explicitly uninstalled.                                       |
 | `"reload"`    | The entry is being reloaded, restarted, or otherwise replaced without a process shutdown. |
-| `"shutdown"`  | Noctalia is shutting down after `SIGINT` or `SIGTERM`.                                    |
+| `"shutdown"`  | Nythera is shutting down after `SIGINT` or `SIGTERM`.                                    |
 
 Existing handlers that accept only `signal` remain compatible; Luau ignores the additional argument:
 
 ```lua
 function onExit(_signal, reason)
   if reason == "disable" then
-    noctalia.runAsync("systemctl --user stop my-plugin.service")
+    nythera.runAsync("systemctl --user stop my-plugin.service")
   elseif reason == "uninstall" then
-    noctalia.runAsync("systemctl --user disable --now my-plugin.service")
+    nythera.runAsync("systemctl --user disable --now my-plugin.service")
   end
 end
 ```
 
-Keep cleanup short: `onExit` has the normal callback time budget. It cannot run after `SIGKILL`, a process crash, or another abrupt termination that prevents Noctalia from shutting down gracefully. If cleanup must continue after the entry VM is destroyed, call `noctalia.runAsync(command)` without a result callback; the detached command outlives the runtime. An uninstall command must use an installed helper or otherwise avoid plugin-directory files, which may be removed as soon as the hook returns. A detached command cannot report its eventual result back to the destroyed runtime, so make cleanup idempotent and expose a way for the user to retry it.
+Keep cleanup short: `onExit` has the normal callback time budget. It cannot run after `SIGKILL`, a process crash, or another abrupt termination that prevents Nythera from shutting down gracefully. If cleanup must continue after the entry VM is destroyed, call `nythera.runAsync(command)` without a result callback; the detached command outlives the runtime. An uninstall command must use an installed helper or otherwise avoid plugin-directory files, which may be removed as soon as the hook returns. A detached command cannot report its eventual result back to the destroyed runtime, so make cleanup idempotent and expose a way for the user to retry it.
 
 ### Reacting to plugin lifecycle changes in a service
 
@@ -134,19 +134,19 @@ Every entry can use the extended `onExit(signal, reason)`, while service entries
 
 ```lua
 function onEnable()
-  noctalia.runAsync("systemctl --user start my-plugin.service")
+  nythera.runAsync("systemctl --user start my-plugin.service")
 end
 
 function onExit(_signal, reason)
   if reason == "disable" then
-    noctalia.runAsync("systemctl --user stop my-plugin.service")
+    nythera.runAsync("systemctl --user stop my-plugin.service")
   elseif reason == "uninstall" then
-    noctalia.runAsync("systemctl --user disable --now my-plugin.service")
+    nythera.runAsync("systemctl --user disable --now my-plugin.service")
   end
 end
 ```
 
-`onEnable()` describes an explicit plugin-manager action, not every service start. It does not run during ordinary Noctalia startup, a source update, a script reload, or a settings-driven service restart. Use top-level initialization for normal service startup.
+`onEnable()` describes an explicit plugin-manager action, not every service start. It does not run during ordinary Nythera startup, a source update, a script reload, or a settings-driven service restart. Use top-level initialization for normal service startup.
 
 Lifecycle hooks can only run while an entry runtime exists. Removing a plugin that was already disabled cannot invoke `onExit(0, "uninstall")` because none of its entries are loaded. Cleanup that must also cover that sequence should therefore be idempotent and available through the plugin's normal controls.
 
@@ -154,16 +154,16 @@ Lifecycle hooks can only run while an entry runtime exists. Removing a plugin th
 
 When a user edits a plugin setting, the change reaches each entry differently:
 
-- **Widgets, desktop widgets, panels** are rebuilt, so their next `noctalia.getConfig(...)` reads the new value automatically.
-- **Services** are long-lived. If a service defines **`onConfigChanged()`**, the host updates its settings in place and calls that function , `noctalia.getConfig(...)` returns the new values, and the service keeps all its in-memory state (timers, caches, connections). If a service does **not** define `onConfigChanged()`, the host instead **restarts the service runtime** (the top-level chunk re-runs with the new settings).
+- **Widgets, desktop widgets, panels** are rebuilt, so their next `nythera.getConfig(...)` reads the new value automatically.
+- **Services** are long-lived. If a service defines **`onConfigChanged()`**, the host updates its settings in place and calls that function , `nythera.getConfig(...)` returns the new values, and the service keeps all its in-memory state (timers, caches, connections). If a service does **not** define `onConfigChanged()`, the host instead **restarts the service runtime** (the top-level chunk re-runs with the new settings).
 
-Either way, `noctalia.state` is **process-lifetime** and survives a service restart, so any cache you store there must be keyed by the config it depends on , otherwise a service will keep serving data fetched for the old settings. For example, store the location alongside cached results and re-fetch when it differs:
+Either way, `nythera.state` is **process-lifetime** and survives a service restart, so any cache you store there must be keyed by the config it depends on , otherwise a service will keep serving data fetched for the old settings. For example, store the location alongside cached results and re-fetch when it differs:
 
 ```lua
 function onConfigChanged()
-  local loc = noctalia.getConfig("city") .. "|" .. noctalia.getConfig("country")
-  if loc ~= noctalia.state.get("location") then
-    noctalia.state.set("location", loc)
+  local loc = nythera.getConfig("city") .. "|" .. nythera.getConfig("country")
+  if loc ~= nythera.state.get("location") then
+    nythera.state.set("location", loc)
     refetch()   -- location changed; invalidate and reload
   end
 end
@@ -171,16 +171,16 @@ end
 
 ### Reacting to shell setting changes
 
-An entry that reads shell config with [`noctalia.getSetting(path)`](/noctalia/plugins/development/runtime-api/) is notified when any value it read changes; edits to config it never read leave it alone. Every entry type reacts the same way:
+An entry that reads shell config with [`nythera.getSetting(path)`](/nythera/plugins/development/runtime-api/) is notified when any value it read changes; edits to config it never read leave it alone. Every entry type reacts the same way:
 
-- If the entry defines **`onConfigChanged()`**, the host calls it in place, and `noctalia.getSetting(...)` returns the new value from then on.
+- If the entry defines **`onConfigChanged()`**, the host calls it in place, and `nythera.getSetting(...)` returns the new value from then on.
 - Otherwise the host **reloads the entry's script**: the top-level chunk re-runs and reads the new value.
 
 The set of watched paths is rebuilt on each load from the `getSetting` calls the script actually makes, including calls inside callbacks.
 
 ### Layer surfaces
 
-A `[[layer]]` entry <PluginApiBadge feature="layer-entry" /> is a plugin-owned layer-shell surface (a full-screen overlay, a custom bar, a screensaver). Its manifest keys are listed under [Layer entries](/noctalia/plugins/development/manifest/#layer-entries). A layer is lazy: nothing exists until it is shown, either with `visible = true` in the manifest or with [`noctalia.layer.show(id)`](/noctalia/plugins/development/runtime-api/#layers) from any entry of the same plugin.
+A `[[layer]]` entry <PluginApiBadge feature="layer-entry" /> is a plugin-owned layer-shell surface (a full-screen overlay, a custom bar, a screensaver). Its manifest keys are listed under [Layer entries](/nythera/plugins/development/manifest/#layer-entries). A layer is lazy: nothing exists until it is shown, either with `visible = true` in the manifest or with [`nythera.layer.show(id)`](/nythera/plugins/development/runtime-api/#layers) from any entry of the same plugin.
 
 - **One runtime per output**: while shown, the layer gets one surface and one runtime for each target output. Hiding destroys both, so runtime state does not survive a hide. Outputs that appear later are covered automatically when `output` is `"all"` or matches their connector.
 - **Input**: pointer and keyboard input drive `ui.*` controls like in a panel. Keys reach the layer only while it holds keyboard focus. With `keyboard = "on_demand"` the compositor decides when that is: some focus the layer when it appears, others only on click, and clicking another window takes focus back. With `keyboard = "exclusive"` the layer takes every key while shown, so keys typed to dismiss it do not reach the app underneath.
@@ -219,8 +219,8 @@ keyboard = "exclusive"
 ```lua
 -- service.luau
 --!nonstrict
-noctalia.idle.watch(noctalia.getConfig("timeout"), function(idle)
-  if idle then noctalia.layer.show("screen") else noctalia.layer.hide("screen") end
+nythera.idle.watch(nythera.getConfig("timeout"), function(idle)
+  if idle then nythera.layer.show("screen") else nythera.layer.hide("screen") end
 end)
 ```
 
@@ -230,11 +230,11 @@ end)
 layer.render(ui.column({ fill = "#000000", flexGrow = 1 }, {}))
 ```
 
-Desktop widgets, panels, and layers use declarative `ui.*` trees. See [Declarative UI](/noctalia/plugins/development/declarative-ui/) for their rendering APIs and controls.
+Desktop widgets, panels, and layers use declarative `ui.*` trees. See [Declarative UI](/nythera/plugins/development/declarative-ui/) for their rendering APIs and controls.
 
 ## `barWidget.*` - widget presentation
 
-A bar widget can patch the built-in glyph/text row with the imperative methods below, or describe composite content as a `ui.*` tree with `barWidget.render(tree)`. Calls update persistent presentation state until replaced by another call. After `render()` activates a tree, `setText`, `setGlyph`, `setImage`, `setFont`, `setColor`, and `setGlyphColor` have no visible effect. See [Declarative UI](/noctalia/plugins/development/declarative-ui/#barwidgetrender--declarative-bar-widget-ui) for the declarative API and its bar-specific constraints.
+A bar widget can patch the built-in glyph/text row with the imperative methods below, or describe composite content as a `ui.*` tree with `barWidget.render(tree)`. Calls update persistent presentation state until replaced by another call. After `render()` activates a tree, `setText`, `setGlyph`, `setImage`, `setFont`, `setColor`, and `setGlyphColor` have no visible effect. See [Declarative UI](/nythera/plugins/development/declarative-ui/#barwidgetrender--declarative-bar-widget-ui) for the declarative API and its bar-specific constraints.
 
 ### Reference
 
@@ -245,15 +245,15 @@ A bar widget can patch the built-in glyph/text row with the imperative methods b
 | `barWidget.setImage(path [, watch [, width [, height]]])` | nothing         | Shows an image and hides the glyph. Relative paths resolve from the plugin directory; `~` expands to the home directory. `watch` reloads the image when the source changes. Supplying only `width` uses a square image; omit dimensions to use the image's natural size. |
 | `barWidget.setTooltip(content)`                           | nothing         | Sets a plain-text tooltip, one key/value row, or an array of rows. Pass `nil` or empty content to clear it.                                                                                                                                                              |
 | `barWidget.clearTooltip()`                                | nothing         | Clears the current tooltip. Equivalent to `setTooltip(nil)`.                                                                                                                                                                                                             |
-| `barWidget.setFont(family [, baseline])`                  | nothing         | Sets the text font family and optional baseline mode. Load custom fonts first with [`noctalia.loadFont(path)`](/noctalia/plugins/development/runtime-api/#filesystem).                                                                                                   |
+| `barWidget.setFont(family [, baseline])`                  | nothing         | Sets the text font family and optional baseline mode. Load custom fonts first with [`nythera.loadFont(path)`](/nythera/plugins/development/runtime-api/#filesystem).                                                                                                   |
 | `barWidget.setColor(color [, mode])`                      | nothing         | Sets the text color to a palette role or `#RRGGBB` value. See [Colors](#colors).                                                                                                                                                                                         |
 | `barWidget.setGlyphColor(color [, mode])`                 | nothing         | Sets the glyph color to a palette role or `#RRGGBB` value. See [Colors](#colors).                                                                                                                                                                                        |
 | `barWidget.setVisible(visible)`                           | nothing         | Shows or hides the entire widget capsule.                                                                                                                                                                                                                                |
 | `barWidget.isVertical()`                                  | bool            | Returns `true` when this widget's hosting bar is vertical, otherwise `false`. Use it to choose a column for a side bar and a row for a horizontal bar.                                                                                                                   |
 | `barWidget.outputName()`                                  | string or `nil` | Returns the connector name of the monitor this widget instance's bar is on, or `nil` when unknown.                                                                                                                                                                       |
-| `barWidget.render(tree)`                                  | nothing         | Replaces the built-in glyph/text row with a declarative `ui.*` tree. See [Declarative UI](/noctalia/plugins/development/declarative-ui/#barwidgetrender--declarative-bar-widget-ui).                                                                                     |
+| `barWidget.render(tree)`                                  | nothing         | Replaces the built-in glyph/text row with a declarative `ui.*` tree. See [Declarative UI](/nythera/plugins/development/declarative-ui/#barwidgetrender--declarative-bar-widget-ui).                                                                                     |
 
-`outputName()` is local to each widget placement, so a widget on two bars can scope content per monitor. In contrast, `noctalia.focusedOutputName()` returns the same globally focused output everywhere. Cross-reference [`noctalia.outputs()`](/noctalia/plugins/development/runtime-api/#outputs-wallpaper-and-panels) by name when you need geometry.
+`outputName()` is local to each widget placement, so a widget on two bars can scope content per monitor. In contrast, `nythera.focusedOutputName()` returns the same globally focused output everywhere. Cross-reference [`nythera.outputs()`](/nythera/plugins/development/runtime-api/#outputs-wallpaper-and-panels) by name when you need geometry.
 
 ### Tooltips
 
@@ -270,7 +270,7 @@ barWidget.setTooltip({
 
 ### Colors
 
-Pass a [palette color role](/noctalia/theming/palette/) or a fixed `#RRGGBB` value to `setColor` and `setGlyphColor`. With the default mode, `"on_surface"` keeps the widget's configured `color` or `icon_color`; pass `"script"` as the second argument to use `"on_surface"` literally.
+Pass a [palette color role](/nythera/theming/palette/) or a fixed `#RRGGBB` value to `setColor` and `setGlyphColor`. With the default mode, `"on_surface"` keeps the widget's configured `color` or `icon_color`; pass `"script"` as the second argument to use `"on_surface"` literally.
 
 ```lua
 barWidget.setColor("primary")
@@ -280,7 +280,7 @@ barWidget.setColor("on_surface", "script")
 
 ### Custom fonts
 
-Register a font file with [`noctalia.loadFont(path)`](/noctalia/plugins/development/runtime-api/#filesystem), then pass the returned family name to `setFont`. The font becomes usable anywhere text is drawn: `setFont` and a `ui.*` label's `fontFamily` prop. It stays available across every surface once loaded.
+Register a font file with [`nythera.loadFont(path)`](/nythera/plugins/development/runtime-api/#filesystem), then pass the returned family name to `setFont`. The font becomes usable anywhere text is drawn: `setFont` and a `ui.*` label's `fontFamily` prop. It stays available across every surface once loaded.
 
 `setFont(family, baseline?)` takes a font family name and an optional baseline mode:
 
@@ -292,7 +292,7 @@ Register a font file with [`noctalia.loadFont(path)`](/noctalia/plugins/developm
 | `"pictographic"`     | Art/icon fonts anchored at the ink top (keeps pose art steady, e.g. bongocat). |
 
 ```lua
-local font = noctalia.loadFont("fonts/bongocat.otf")
+local font = nythera.loadFont("fonts/bongocat.otf")
 if font then
   barWidget.setFont(font, "pictographic")
 end
@@ -303,7 +303,7 @@ end
 `setLabel(text)` · `setIcon(on [, off])` · `setActive(bool)` · `setEnabled(bool)`
 
 ```lua
-local on = noctalia.state.get("toggled") == true
+local on = nythera.state.get("toggled") == true
 
 local function render()
   shortcut.setLabel(on and "On" or "Off")
@@ -314,7 +314,7 @@ render()
 
 function onClick()
   on = not on
-  noctalia.state.set("toggled", on)
+  nythera.state.set("toggled", on)
   render()
 end
 ```
@@ -332,7 +332,7 @@ Manifest fields on a `[[launcher_provider]]` entry: `prefix` (the trigger word -
 - `glyph` (a Tabler/Nerd-Font name) or `icon` (a themed icon name) is the row's leading visual. `badge` is a short string (e.g. an emoji or `=`) drawn *in place of* the icon - setting it hides `glyph`/`icon`. Use the `subtitle` for secondary text.
 - `setQuery(query)` replaces the open launcher's raw input text. Call it from `onActivate` to treat a result as a drill-in step: the launcher rewrites the input and **stays open** instead of closing, then re-runs `onQuery` with the new text. A result-level `query` field does the same declaratively - when that result is selected the launcher replaces the input with it and stays open, no `onActivate` needed. Either way, include your prefix to stay routed to the same provider, e.g. `"/tr french "`. (An `onActivate` that does *not* call `setQuery` closes the launcher as usual.)
 
-Use `noctalia.fuzzyScore(pattern, text)` to rank local lists with Noctalia's native fuzzy matcher. It returns a numeric score, or `nil` when `pattern` does not match `text`.
+Use `nythera.fuzzyScore(pattern, text)` to rank local lists with Nythera's native fuzzy matcher. It returns a numeric score, or `nil` when `pattern` does not match `text`.
 
 Queries run off the UI thread, so a result can arrive after `onQuery` returns - publish a placeholder synchronously, then call `setResults` again from an async callback (HTTP, subprocess) when the real answer lands.
 
@@ -351,12 +351,12 @@ function onQuery(text)
     return
   end
   launcher.setResults(text, { { id = "loading", title = "Translating…", glyph = "loader" } })
-  noctalia.http({ url = endpoint(text) }, function(res)
+  nythera.http({ url = endpoint(text) }, function(res)
     launcher.setResults(text, { { id = res.body, title = res.body, glyph = "language" } })
   end)
 end
 
 function onActivate(id)
-  noctalia.copyToClipboard(id, "text/plain")
+  nythera.copyToClipboard(id, "text/plain")
 end
 ```

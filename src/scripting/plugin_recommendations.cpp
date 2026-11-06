@@ -115,6 +115,7 @@ namespace scripting {
         || encodeToken(bytes.bytes()) != secret) {
       return std::nullopt;
     }
+    // External api.noctalia.dev voter-token contract; changing it creates a different voter identity.
     constexpr char prefix[] = "noctalia-recommend-v1\0";
     std::string message(prefix, sizeof(prefix) - 1);
     message += key;

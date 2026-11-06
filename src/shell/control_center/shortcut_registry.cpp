@@ -160,7 +160,7 @@ namespace {
 
   class DarkModeShortcut final : public Shortcut {
   public:
-    explicit DarkModeShortcut(noctalia::theme::ThemeService* svc) : m_svc(svc) {}
+    explicit DarkModeShortcut(nythera::theme::ThemeService* svc) : m_svc(svc) {}
     std::string_view id() const override { return "dark_mode"; }
     std::string defaultLabel() const override { return i18n::tr("control-center.shortcuts.dark-mode.dark"); }
     std::string displayLabel() const override {
@@ -188,7 +188,7 @@ namespace {
     }
 
   private:
-    noctalia::theme::ThemeService* m_svc;
+    nythera::theme::ThemeService* m_svc;
   };
 
   class IdleInhibitorShortcut final : public Shortcut {

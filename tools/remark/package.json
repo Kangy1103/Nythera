@@ -1,5 +1,5 @@
 {
-  "name": "noctalia-docs-format",
+  "name": "nythera-docs-format",
   "private": true,
   "type": "module",
   "description": "Markdown and MDX formatter for docs; parses with the same remark stack as the docs site.",

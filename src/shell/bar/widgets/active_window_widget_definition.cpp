@@ -1,10 +1,10 @@
 #include "shell/bar/widgets/active_window_widget_definition.h"
 
-const noctalia::bar::WidgetDefinition<ActiveWindowWidget::Options>& activeWindowWidgetDefinition() {
-  using noctalia::bar::field;
+const nythera::bar::WidgetDefinition<ActiveWindowWidget::Options>& activeWindowWidgetDefinition() {
+  using nythera::bar::field;
   using Options = ActiveWindowWidget::Options;
 
-  static const noctalia::bar::WidgetDefinition<Options> definition{
+  static const nythera::bar::WidgetDefinition<Options> definition{
       .type = "active_window",
       .fields = {
           field<&Options::minWidth>({

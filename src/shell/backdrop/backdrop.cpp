@@ -240,7 +240,7 @@ void Backdrop::createInstance(const WaylandOutput& output) {
   inst->connectorName = output.connectorName;
 
   auto surfaceConfig = LayerSurfaceConfig{
-      .nameSpace = "noctalia-backdrop",
+      .nameSpace = "nythera-backdrop",
       .layer = LayerShellLayer::Background,
       .anchor = LayerShellAnchor::Top | LayerShellAnchor::Bottom | LayerShellAnchor::Left | LayerShellAnchor::Right,
       .width = 0,

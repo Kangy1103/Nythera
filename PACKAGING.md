@@ -8,20 +8,20 @@ No official Nythera packages or stable release policy are established yet. See [
 
 ## Current technical identity
 
-The executable, desktop entries, installation paths, environment variables, completion names and IPC identifiers below are inherited from Noctalia **until the application rebranding is implemented and tested**. Package maintainers should inspect the actual build output rather than assuming these have already been renamed.
+The executable, desktop entries, installation paths, environment variables, completions and application-owned IPC identifiers use Nythera. Upstream-hosted services remain external dependencies; see [REBRAND.md](REBRAND.md) for migration and integration details.
 
 ### Existing upstream identifiers (pending rename)
 
 |                 |                                                                                                                |
 | --------------- | -------------------------------------------------------------------------------------------------------------- |
-| Name            | `noctalia`                                                                                                     |
+| Name            | `nythera`                                                                                                     |
 | Homepage        | <https://github.com/Kangy1103/noctalia>                                                                     |
 | Docs            | <https://docs.noctalia.dev>                                                                                    |
 | License         | MIT ([LICENSE](LICENSE)); also see vendored licenses under `third_party/` for SPDX completeness                |
 | Version         | [`VERSION`](VERSION), read by Meson `project(... version: files('VERSION'))`                                   |
-| Binary          | `noctalia`                                                                                                     |
-| Desktop entries | `dev.noctalia.Noctalia.desktop`; `dev.noctalia.Noctalia.Annotator.desktop` (hidden, image "Open With" handler) |
-| Icon            | `noctalia` (`share/icons/hicolor/scalable/apps/noctalia.svg`)                                                  |
+| Binary          | `nythera`                                                                                                     |
+| Desktop entries | `dev.nythera.Nythera.desktop`; `dev.nythera.Nythera.Annotator.desktop` (hidden, image "Open With" handler) |
+| Icon            | `nythera` (`share/icons/hicolor/scalable/apps/nythera.svg`)                                                  |
 
 
 ## Architectures / libc
@@ -58,16 +58,16 @@ No special linker is required. The default linker from the compiler driver is fi
 - `jemalloc`: recommended on glibc; Meson feature option `-Djemalloc=auto|enabled|disabled`. Only used on glibc builds.
 - `system_libraries`: `-Dsystem_libraries=true` links system copies of the vendored libraries instead of building `third_party/`. See [Vendored](#vendored-no-system-package) for the expected layout.
 
-Prefix/datadir are baked into the binary via `NOCTALIA_INSTALL_PREFIX` / `NOCTALIA_INSTALL_DATADIR`. Install with the same prefix you configured.
+Prefix/datadir are baked into the binary via `NYTHERA_INSTALL_PREFIX` / `NYTHERA_INSTALL_DATADIR`. Install with the same prefix you configured.
 
 ### Installed layout
 
 ```text
-<prefix>/bin/noctalia
-<prefix>/share/noctalia/assets/...
-<prefix>/share/applications/dev.noctalia.Noctalia.desktop
-<prefix>/share/applications/dev.noctalia.Noctalia.Annotator.desktop
-<prefix>/share/icons/hicolor/scalable/apps/noctalia.svg
+<prefix>/bin/nythera
+<prefix>/share/nythera/assets/...
+<prefix>/share/applications/dev.nythera.Nythera.desktop
+<prefix>/share/applications/dev.nythera.Nythera.Annotator.desktop
+<prefix>/share/icons/hicolor/scalable/apps/nythera.svg
 ```
 
 The shipped `assets/` tree is **required at runtime**. Shipping only the binary breaks fonts, translations, templates, glyphs, and sounds.
@@ -78,26 +78,26 @@ Besides the prefix layout above, portable bundle layouts are supported:
 
 ```text
 bundle/
-  noctalia
+  nythera
   assets/
 ```
 
 ```text
 bundle/
-  bin/noctalia
-  share/noctalia/assets/
+  bin/nythera
+  share/nythera/assets/
 ```
 
 The current implementation resolves the asset root in this order:
 
-1. `NOCTALIA_ASSETS_DIR` (a warning is logged if it is set but invalid)
+1. `NYTHERA_ASSETS_DIR` (a warning is logged if it is set but invalid)
 2. `assets/` next to the executable
 3. `assets/` one level above the executable (this is how a `build-debug/` binary finds the source tree's `assets/`)
-4. `../<datadir>/noctalia/assets` relative to the executable, when the configured Meson `datadir` is relative
-5. `../share/noctalia/assets` relative to the executable
-6. the compiled install path from Meson (`<prefix>/<datadir>/noctalia/assets`)
+4. `../<datadir>/nythera/assets` relative to the executable, when the configured Meson `datadir` is relative
+5. `../share/nythera/assets` relative to the executable
+6. the compiled install path from Meson (`<prefix>/<datadir>/nythera/assets`)
 
-A candidate is only accepted if it contains `emoji.json`, `fonts/noctalia-tabler.ttf`, `templates/builtin.toml`, and `translations/en.json`. If none qualifies, The current implementation logs a warning and uses the compiled install path.
+A candidate is only accepted if it contains `emoji.json`, `fonts/nythera-tabler.ttf`, `templates/builtin.toml`, and `translations/en.json`. If none qualifies, The current implementation logs a warning and uses the compiled install path.
 
 Not shipped (don’t look for them in the install): AppStream / metainfo XML, man pages, systemd units.
 
@@ -106,9 +106,9 @@ Not shipped (don’t look for them in the install): AppStream / metainfo XML, ma
 Static completion files are not shipped. Generate them from the freshly built binary and install them in the distribution's completion directories:
 
 ```text
-./build-<mode>/noctalia completions bash  → share/bash-completion/completions/noctalia
-./build-<mode>/noctalia completions zsh   → share/zsh/site-functions/_noctalia
-./build-<mode>/noctalia completions fish  → share/fish/vendor_completions.d/noctalia.fish
+./build-<mode>/nythera completions bash  → share/bash-completion/completions/nythera
+./build-<mode>/nythera completions zsh   → share/zsh/site-functions/_nythera
+./build-<mode>/nythera completions fish  → share/fish/vendor_completions.d/nythera.fish
 ```
 
 This is intentionally a packaging step rather than a Meson install rule: executing the target binary during installation would break cross-compilation.
@@ -134,7 +134,7 @@ With `-Dsystem_libraries=true`, Meson uses system copies of all four instead; th
 
 | Library                  | Libraries                                                                             | Headers                          |
 | ------------------------ | ------------------------------------------------------------------------------------- | -------------------------------- |
-| Wuffs                    | none (single-file release, compiled into Noctalia)                                    | `wuffs-v0.4.c`                   |
+| Wuffs                    | none (single-file release, compiled into Nythera)                                    | `wuffs-v0.4.c`                   |
 | fzy                      | `libfzy` (built from `src/match.c`)                                                   | `fzy/match.h`                    |
 | Material Color Utilities | `libmaterial-color-utilities` (C++ implementation)                                    | `cpp/...` (upstream layout)      |
 | Luau                     | `libLuau.Compiler`, `libLuau.Bytecode`, `libLuau.Ast`, `libLuau.VM`, `libLuau.Common` | `lua.h`, `lualib.h`, `luacode.h` |
@@ -158,7 +158,7 @@ Vendored versions: Wuffs 0.4.0-alpha.9, Luau 0.742 (0.724 also builds), fzy 1.1,
 
 ## Startup and IPC
 
-No systemd user unit is shipped. Typical startup is compositor autostart or the desktop entry (`noctalia --daemon`). Control a running instance with `noctalia msg ...` (Unix socket under `XDG_RUNTIME_DIR`).
+No systemd user unit is shipped. Typical startup is compositor autostart or the desktop entry (`nythera --daemon`). Control a running instance with `nythera msg ...` (Unix socket under `XDG_RUNTIME_DIR`).
 
 Keep the `.desktop` daemon Exec unless you intentionally package a different session integration. Prefer the canonical description above for `Comment=` / AppStream summary as well.
 
@@ -175,12 +175,12 @@ Do not run it alongside another notification daemon or StatusNotifier host (mako
 
 | Kind   | Default                                                                              |
 | ------ | ------------------------------------------------------------------------------------ |
-| Config | `$XDG_CONFIG_HOME/noctalia` (`~/.config/noctalia`), e.g. `config.toml`               |
-| State  | `$XDG_STATE_HOME/noctalia` (`~/.local/state/noctalia`), e.g. `settings.toml`, caches |
-| Data   | `$XDG_DATA_HOME/noctalia` (`~/.local/share/noctalia`)                                |
-| Logs   | `$XDG_CACHE_HOME/noctalia` (`~/.cache/noctalia`)                                     |
+| Config | `$XDG_CONFIG_HOME/nythera` (`~/.config/nythera`), e.g. `config.toml`               |
+| State  | `$XDG_STATE_HOME/nythera` (`~/.local/state/nythera`), e.g. `settings.toml`, caches |
+| Data   | `$XDG_DATA_HOME/nythera` (`~/.local/share/nythera`)                                |
+| Logs   | `$XDG_CACHE_HOME/nythera` (`~/.cache/nythera`)                                     |
 
-Override bases with `NOCTALIA_CONFIG_HOME`, `NOCTALIA_STATE_HOME`, `NOCTALIA_DATA_HOME` (each still appends `/noctalia`).
+Override bases with `NYTHERA_CONFIG_HOME`, `NYTHERA_STATE_HOME`, `NYTHERA_DATA_HOME` (each still appends `/nythera`).
 
 
 ## Project scope

@@ -16,7 +16,7 @@
 namespace {
 
   std::filesystem::path sentinelPath(const char* name) {
-    return std::filesystem::temp_directory_path() / (std::string("noctalia_hook_runner_") + name);
+    return std::filesystem::temp_directory_path() / (std::string("nythera_hook_runner_") + name);
   }
 
   std::string readSentinel(const std::filesystem::path& path) {
@@ -44,7 +44,7 @@ namespace {
     std::filesystem::remove(sentinel);
 
     {
-      noctalia::theme::HookRunner runner(2);
+      nythera::theme::HookRunner runner(2);
       for (int i = 0; i < 4; ++i) {
         runner.enqueue("printf x >> " + sentinel.string(), /*generation=*/1);
       }
@@ -58,7 +58,7 @@ namespace {
   }
 
   void test_reports_failed_hook_stderr_before_idle() {
-    noctalia::theme::HookRunner runner(1);
+    nythera::theme::HookRunner runner(1);
     std::string diagnostic;
     std::size_t pendingDuringCallback = 0;
     runner.enqueue("sleep 0.1", /*generation=*/1);
@@ -73,7 +73,7 @@ namespace {
   }
 
   void test_reports_exit_code_without_stderr() {
-    noctalia::theme::HookRunner runner;
+    nythera::theme::HookRunner runner;
     std::string diagnostic;
     runner.enqueue("exit 9", /*generation=*/1, [&](std::string error) { diagnostic = std::move(error); });
     runner.waitIdle();
@@ -82,7 +82,7 @@ namespace {
   }
 
   void test_success_does_not_report_stderr_as_failure() {
-    noctalia::theme::HookRunner runner;
+    nythera::theme::HookRunner runner;
     bool reportedFailure = false;
     runner.enqueue("printf 'hook completed\\n' >&2", /*generation=*/1, [&](std::string) { reportedFailure = true; });
     runner.waitIdle();
@@ -95,7 +95,7 @@ namespace {
     std::filesystem::remove(sentinel);
 
     {
-      noctalia::theme::HookRunner runner(2);
+      nythera::theme::HookRunner runner(2);
       runner.invalidateBefore(2);
       // Generation 1 is already superseded: the hook must never run.
       runner.enqueue("printf stale > " + sentinel.string(), /*generation=*/1);
@@ -115,7 +115,7 @@ namespace {
     {
       // A single slot occupied by a long hook keeps the rest of the batch queued, so
       // invalidateBefore() has to discard them.
-      noctalia::theme::HookRunner runner(1);
+      nythera::theme::HookRunner runner(1);
       runner.enqueue("sleep 0.2", /*generation=*/1);
       runner.enqueue("printf stale > " + sentinel.string(), /*generation=*/1);
       runner.invalidateBefore(2);
@@ -133,7 +133,7 @@ namespace {
     std::filesystem::remove(queued);
 
     {
-      noctalia::theme::HookRunner runner(1);
+      nythera::theme::HookRunner runner(1);
       runner.enqueue("sleep 0.2; printf ran > " + running.string(), /*generation=*/1);
       runner.enqueue("printf ran > " + queued.string(), /*generation=*/1);
       runner.requestShutdown();
@@ -154,7 +154,7 @@ namespace {
     std::filesystem::remove(pidFile);
 
     auto cancel = std::make_shared<std::atomic<bool>>(false);
-    auto runner = std::make_unique<noctalia::theme::HookRunner>(1, cancel);
+    auto runner = std::make_unique<nythera::theme::HookRunner>(1, cancel);
     bool reportedFailure = false;
     // Ignores SIGTERM, so only the SIGKILL escalation can end it.
     runner->enqueue(

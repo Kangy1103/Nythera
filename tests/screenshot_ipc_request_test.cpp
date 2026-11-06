@@ -9,7 +9,7 @@
 namespace {
 
   using Options = ScreenshotService::OutputOptions;
-  namespace msg = noctalia::cli::msg;
+  namespace msg = nythera::cli::msg;
 
   Options baseOptions() {
     Options options;
@@ -20,14 +20,14 @@ namespace {
   }
 
   auto parse(
-      const noctalia::cli::Command& command, std::string_view args,
+      const nythera::cli::Command& command, std::string_view args,
       std::optional<std::string_view> callerCwd = std::nullopt
   ) {
     return parseScreenshotIpcRequest(command, args, baseOptions(), callerCwd);
   }
 
   void checkNoArgsKeepsConfig() {
-    for (const noctalia::cli::Command* command :
+    for (const nythera::cli::Command* command :
          {&msg::screenshotRegion, &msg::screenshotFullscreen, &msg::screenshotWindow, &msg::screenshotAnnotate,
           &msg::annotate}) {
       const auto request = parse(*command, "");

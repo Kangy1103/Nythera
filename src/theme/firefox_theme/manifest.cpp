@@ -3,12 +3,12 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
-namespace noctalia::theme::firefox_theme::manifest {
+namespace nythera::theme::firefox_theme::manifest {
   namespace {
 
-    constexpr std::string_view kLegacyDescription = "Noctalia Pywalfox native messaging host";
+    constexpr std::string_view kLegacyDescription = "Nythera Pywalfox native messaging host";
 
-    [[nodiscard]] bool isNoctaliaDescription(std::string_view description) {
+    [[nodiscard]] bool isNytheraDescription(std::string_view description) {
       return description == kDescription || description == kLegacyDescription;
     }
 
@@ -35,8 +35,8 @@ namespace noctalia::theme::firefox_theme::manifest {
       }
       if (const auto description = root.find("description"); description != root.end()
           && description->is_string()
-          && isNoctaliaDescription(description->get_ref<const std::string&>())) {
-        result.ownership = Ownership::Noctalia;
+          && isNytheraDescription(description->get_ref<const std::string&>())) {
+        result.ownership = Ownership::Nythera;
       }
       return result;
     } catch (...) {
@@ -48,7 +48,7 @@ namespace noctalia::theme::firefox_theme::manifest {
   install(const std::filesystem::path& manifestPath, const std::filesystem::path& hostExecutable, std::string* error) {
     if (hostExecutable.empty() || !std::filesystem::is_regular_file(hostExecutable)) {
       if (error != nullptr) {
-        *error = "noctalia executable not found";
+        *error = "nythera executable not found";
       }
       return false;
     }
@@ -84,4 +84,4 @@ namespace noctalia::theme::firefox_theme::manifest {
     return true;
   }
 
-} // namespace noctalia::theme::firefox_theme::manifest
+} // namespace nythera::theme::firefox_theme::manifest

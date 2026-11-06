@@ -518,7 +518,7 @@ namespace settings {
         }
         SelectSetting selectSetting{std::move(options), valueAsString(value)};
         selectSetting.segmented = spec.segmented;
-        if (spec.schema.type == noctalia::config::schema::WidgetSettingType::Bool) {
+        if (spec.schema.type == nythera::config::schema::WidgetSettingType::Bool) {
           selectSetting.valueType = SelectValueType::Boolean;
         }
         if (const auto* defaultString = std::get_if<std::string>(&spec.schema.defaultValue)) {

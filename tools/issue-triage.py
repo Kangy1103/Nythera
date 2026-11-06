@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Issue backlog triage helper for noctalia-dev/noctalia. Requires an authenticated `gh`.
+Issue backlog triage helper for Kangy1103/noctalia (Nythera). Requires an authenticated `gh`.
 
   candidates --out DIR
       Read-only. Fetches open issues and writes one TSV of candidates per list into DIR:
@@ -44,7 +44,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-REPO = "noctalia-dev/noctalia"
+REPO = "Kangy1103/noctalia"
 ROOT = Path(__file__).resolve().parents[1]
 
 VOTE_GUARD = 3
@@ -65,8 +65,8 @@ REPLY_RETEST = AUTOMATED_NOTE + (
 )
 REPLY_NEEDS_INFO = AUTOMATED_NOTE + (
     "Hi, and thanks for the report! We are missing a few details to be able to act on it. Could you "
-    "tell us which Noctalia version you run (the latest release is {latest}), your compositor, the "
-    "steps to reproduce, and the logs from the terminal where Noctalia was started? If we do not "
+    "tell us which Nythera version you run (the latest release is {latest}), your compositor, the "
+    "steps to reproduce, and the logs from the terminal where Nythera was started? If we do not "
     "hear back within 14 days, this issue will be closed automatically. You can reopen it or comment "
     "at any time."
 )
@@ -80,7 +80,7 @@ REPLY_FIXED_UNRELEASED = AUTOMATED_NOTE + (
 )
 REPLY_OUT_OF_SCOPE = AUTOMATED_NOTE + (
     "Thanks for the suggestion! We went through our open requests against [SCOPE.md](" + SCOPE_URL + ") "
-    "and this one falls outside what Noctalia core takes on: {reason}. We are closing it to keep this "
+    "and this one falls outside what Nythera core takes on: {reason}. We are closing it to keep this "
     "tracker for bugs and accepted work. That is not a verdict on the idea, and you are welcome to "
     "talk it through with us on [Discord](https://discord.noctalia.dev)."
 )
@@ -108,7 +108,7 @@ CLOSE_ACTIONS = {"fixed", "out-of-scope", "plugin", "duplicate"}
 ACTIONS = {"retest", "needs-info", "fixed", "out-of-scope", "plugin", "duplicate", "keep"}
 
 TITLE_PREFIX = re.compile(r"^\s*\[(?:bug|feature)\]\s*:?\s*", re.IGNORECASE)
-VERSION_FIELD = re.compile(r"###\s*Noctalia version\s*\r?\n+([^\n\r]+)", re.IGNORECASE)
+VERSION_FIELD = re.compile(r"###\s*Nythera version\s*\r?\n+([^\n\r]+)", re.IGNORECASE)
 VERSION_NUMBER = re.compile(r"(\d+)\.(\d+)(?:\.(\d+))?")
 FIX_REFERENCE = re.compile(r"(?i)\b(?:fix(?:e[sd])?|close[sd]?|resolve[sd]?)\s*:?\s*#(\d+)")
 STOPWORDS = {

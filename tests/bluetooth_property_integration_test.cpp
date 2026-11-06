@@ -84,7 +84,7 @@ int main() {
     wait([&] { return service.state().powered == powered; });
   };
   emitPowered(false);
-  TEST_CHECK(lastOrigin == BluetoothStateChangeOrigin::Noctalia);
+  TEST_CHECK(lastOrigin == BluetoothStateChangeOrigin::Nythera);
   emitPowered(true);
   TEST_CHECK(lastOrigin == BluetoothStateChangeOrigin::External);
 
@@ -97,7 +97,7 @@ int main() {
   replies.release();
   wait([&] { return writes == 6; });
   emitPowered(false);
-  TEST_CHECK(lastOrigin == BluetoothStateChangeOrigin::Noctalia);
+  TEST_CHECK(lastOrigin == BluetoothStateChangeOrigin::Nythera);
   emitPowered(true);
 
   // A failed local request must not mislabel the next external power change.

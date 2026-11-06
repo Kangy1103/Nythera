@@ -26,7 +26,7 @@ struct PointerEvent;
 struct WaylandOutput;
 struct wl_surface;
 
-namespace noctalia::theme {
+namespace nythera::theme {
   class ThemeService;
 }
 
@@ -42,7 +42,7 @@ public:
 
   bool initialize(
       WaylandConnection& wayland, ConfigService* config, RenderContext* renderContext, SharedTextureCache* textureCache,
-      noctalia::theme::ThemeService* themeService = nullptr
+      nythera::theme::ThemeService* themeService = nullptr
   );
   void onOutputChange();
   // Mark an output as driven by an external wallpaper source (e.g. an mpvpaper plugin):
@@ -141,7 +141,7 @@ private:
   ConfigService* m_config = nullptr;
   RenderContext* m_renderContext = nullptr;
   SharedTextureCache* m_textureCache = nullptr;
-  noctalia::theme::ThemeService* m_themeService = nullptr;
+  nythera::theme::ThemeService* m_themeService = nullptr;
   bool m_wallpaperEnabled = false;
   WallpaperConfig m_lastWallpaperConfig{};
   std::int64_t m_lastAutomationSecondStamp = -1;

@@ -2,14 +2,14 @@
 
 set -eu
 
-noctalia_bin=$1
+nythera_bin=$1
 
 fail() {
   printf '%s\n' "config_validate_cli_test: FAIL: $*" >&2
   exit 1
 }
 
-if valid_output=$("$noctalia_bin" config validate tests/config_validate/generated-config 2>&1); then
+if valid_output=$("$nythera_bin" config validate tests/config_validate/generated-config 2>&1); then
   :
 else
   status=$?
@@ -23,7 +23,7 @@ case "$valid_output" in
   *"WARN"*) fail "generated single-file config reported a warning" ;;
 esac
 
-warn_output=$("$noctalia_bin" config validate tests/config_validate/warn-only.toml 2>&1) \
+warn_output=$("$nythera_bin" config validate tests/config_validate/warn-only.toml 2>&1) \
   || fail "warning-only config should validate"
 # Every diagnostic is prefixed with the file:line:column it came from.
 case "$warn_output" in
@@ -52,7 +52,7 @@ case "$warn_output" in
 esac
 
 # A value of the wrong type keeps the default but must be reported, not silently ignored.
-types_output=$("$noctalia_bin" config validate tests/config_validate/wrong-types.toml 2>&1) \
+types_output=$("$nythera_bin" config validate tests/config_validate/wrong-types.toml 2>&1) \
   || fail "wrong-type config should validate with warnings"
 for expected in \
   "wrong-types.toml:2:14: theme.shell_mode: expected one of follow, dark, light, auto, found an integer" \
@@ -68,14 +68,14 @@ for expected in \
   esac
 done
 
-syntax_output=$("$noctalia_bin" config validate tests/config_validate/syntax-error.toml 2>&1) \
+syntax_output=$("$nythera_bin" config validate tests/config_validate/syntax-error.toml 2>&1) \
   && fail "syntax-error config should fail"
 case "$syntax_output" in
   *"ERROR tests/config_validate/syntax-error.toml:2:25: syntax: "*) ;;
   *) fail "syntax-error config did not report the source position" ;;
 esac
 
-timezone_output=$("$noctalia_bin" config validate tests/config_validate/invalid-timezone.toml 2>&1) \
+timezone_output=$("$nythera_bin" config validate tests/config_validate/invalid-timezone.toml 2>&1) \
   && fail "invalid timezone config should fail"
 case "$timezone_output" in
   *'ERROR tests/config_validate/invalid-timezone.toml:3:12: widget.world-clock.timezone: unknown timezone "Europe/Berln"'*) ;;
@@ -89,10 +89,10 @@ export_dir=$(mktemp -d)
 trap 'rm -rf "$export_dir"' EXIT
 mkdir -p "$export_dir/config" "$export_dir/state"
 XDG_CONFIG_HOME="$export_dir/config" XDG_STATE_HOME="$export_dir/state" \
-  "$noctalia_bin" config export full > "$export_dir/full.toml" \
+  "$nythera_bin" config export full > "$export_dir/full.toml" \
   || fail "config export full failed"
 
-if export_output=$("$noctalia_bin" config validate "$export_dir/full.toml" 2>&1); then
+if export_output=$("$nythera_bin" config validate "$export_dir/full.toml" 2>&1); then
   :
 else
   status=$?

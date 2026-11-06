@@ -22,10 +22,10 @@ jobs:
   intake:
     runs-on: ubuntu-latest
     steps:
-      # Short-lived token from the Noctalia Automation GitHub App (org variable
+      # Short-lived token from the Nythera Automation GitHub App (org variable
       # AUTOMATION_APP_CLIENT_ID, org secret AUTOMATION_APP_PRIVATE_KEY), limited to
       # this repository and to what intake needs.
-      - name: Create Noctalia Automation token
+      - name: Create Nythera Automation token
         id: app-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
@@ -85,7 +85,7 @@ jobs:
               if (!match) throw new Error(`Missing project field/option: ${name}/${label}`);
               return { fieldId: field.id, value: { singleSelectOptionId: match.id } };
             }
-            const component = option('Component', 'Noctalia');
+            const component = option('Component', 'Nythera');
             const kindValue = option('Kind', kind);
             const inbox = option('Status', 'Inbox');
             const membershipQuery = `query($id:ID!,$cursor:String) {
@@ -116,7 +116,7 @@ jobs:
             };
             let current = item ? await fieldRead(item.id) : null;
             const values = new Map((current?.fieldValues.nodes || []).filter(value => value.field).map(value => [value.field.name, value.name]));
-            for (const [name, desired] of [['Component','Noctalia'],['Kind',kind]]) {
+            for (const [name, desired] of [['Component','Nythera'],['Kind',kind]]) {
               if (values.has(name) && values.get(name) !== desired) throw new Error(`Conflicting ${name} on ${item.id}`);
             }
             const added = !item;
@@ -140,6 +140,6 @@ jobs:
             }
             const verified = await fieldRead(item.id);
             const actual = new Map(verified.fieldValues.nodes.filter(value => value.field).map(value => [value.field.name, value.name]));
-            if (verified.content.id !== sourceId || actual.get('Component') !== 'Noctalia' || actual.get('Kind') !== kind) throw new Error(`Native item verification failed for ${number}`);
+            if (verified.content.id !== sourceId || actual.get('Component') !== 'Nythera' || actual.get('Kind') !== kind) throw new Error(`Native item verification failed for ${number}`);
             if ((added || !values.has('Status')) && actual.get('Status') !== 'Inbox') throw new Error(`Inbox verification failed for ${number}`);
             core.info(`${added ? 'Added' : 'Verified'} ${kind} ${number}: ${item.id}`);

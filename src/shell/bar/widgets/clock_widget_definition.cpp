@@ -1,10 +1,10 @@
 #include "shell/bar/widgets/clock_widget_definition.h"
 
-const noctalia::bar::WidgetDefinition<ClockWidget::Options>& clockWidgetDefinition() {
-  using noctalia::bar::field;
+const nythera::bar::WidgetDefinition<ClockWidget::Options>& clockWidgetDefinition() {
+  using nythera::bar::field;
   using Options = ClockWidget::Options;
 
-  static const noctalia::bar::WidgetDefinition<Options> definition{
+  static const nythera::bar::WidgetDefinition<Options> definition{
       .type = "clock",
       .fields = {
           field<&Options::format>({

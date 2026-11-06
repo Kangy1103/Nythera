@@ -12,12 +12,12 @@
 
 namespace {
 
-  using noctalia::theme::parsePaletteFile;
+  using nythera::theme::parsePaletteFile;
 
   class TempDir {
   public:
     TempDir() {
-      std::string pattern = (std::filesystem::temp_directory_path() / "noctalia-fixed-palette-json-XXXXXX").string();
+      std::string pattern = (std::filesystem::temp_directory_path() / "nythera-fixed-palette-json-XXXXXX").string();
       std::array<char, 4096> buffer{};
       TEST_CHECK(pattern.size() < buffer.size());
       std::ranges::copy(pattern, buffer.begin());
@@ -90,7 +90,7 @@ namespace {
     };
   }
 
-  void checkSharedColors(const noctalia::theme::FixedPaletteMode& mode) {
+  void checkSharedColors(const nythera::theme::FixedPaletteMode& mode) {
     TEST_CHECK(mode.palette.primary == hex("#010101"));
     TEST_CHECK(mode.palette.onPrimary == hex("#020202"));
     TEST_CHECK(mode.palette.onSurfaceVariant == hex("#0b0b0b"));

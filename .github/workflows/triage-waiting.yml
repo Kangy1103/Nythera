@@ -38,8 +38,8 @@ jobs:
               }
             }
 
-      # Same Noctalia Automation GitHub App as project-intake.yml.
-      - name: Create Noctalia Automation token
+      # Same Nythera Automation GitHub App as project-intake.yml.
+      - name: Create Nythera Automation token
         id: app-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
@@ -103,7 +103,7 @@ jobs:
                 addProjectV2ItemById(input:{projectId:$project,contentId:$content}) { item { id } }
               }`, { project: projectId, content: issue.node_id });
               item = { id: added.addProjectV2ItemById.item.id, status: null };
-              updates.push(option('Component', 'Noctalia'), option('Kind', 'Issue'));
+              updates.push(option('Component', 'Nythera'), option('Kind', 'Issue'));
             } else if (target === 'Reviewing' && item.status?.name !== 'Waiting') {
               return;
             }

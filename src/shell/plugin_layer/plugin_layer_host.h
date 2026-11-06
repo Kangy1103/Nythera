@@ -20,10 +20,10 @@ namespace scripting {
   class ScriptApiContext;
 } // namespace scripting
 
-// Hosts plugin `[[layer]]` entries. A layer is lazy: nothing runs until noctalia.layer.show()
+// Hosts plugin `[[layer]]` entries. A layer is lazy: nothing runs until nythera.layer.show()
 // (or `visible = true` in the manifest) asks for it, which creates one PluginLayer per matching
 // output; hide destroys them. Surface properties start from the manifest and follow
-// noctalia.layer.configure() until the plugin reloads.
+// nythera.layer.configure() until the plugin reloads.
 class PluginLayerHost {
 public:
   struct Definition {

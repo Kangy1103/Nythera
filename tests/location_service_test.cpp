@@ -34,19 +34,19 @@ namespace {
 
 int main() {
   const auto root =
-      std::filesystem::temp_directory_path() / ("noctalia-location-service-test-" + std::to_string(::getpid()));
+      std::filesystem::temp_directory_path() / ("nythera-location-service-test-" + std::to_string(::getpid()));
   const auto configHome = root / "config";
   const auto stateHome = root / "state";
   const auto cacheHome = root / "cache";
-  const auto configDir = configHome / "noctalia";
+  const auto configDir = configHome / "nythera";
   const auto configPath = configDir / "config.toml";
 
   std::filesystem::remove_all(root);
   std::filesystem::create_directories(configDir);
   std::filesystem::create_directories(stateHome);
   std::filesystem::create_directories(cacheHome);
-  ::setenv("NOCTALIA_CONFIG_HOME", configHome.c_str(), 1);
-  ::setenv("NOCTALIA_STATE_HOME", stateHome.c_str(), 1);
+  ::setenv("NYTHERA_CONFIG_HOME", configHome.c_str(), 1);
+  ::setenv("NYTHERA_STATE_HOME", stateHome.c_str(), 1);
   ::setenv("XDG_CACHE_HOME", cacheHome.c_str(), 1);
 
   writeConfig(configPath, "auto_locate = false\naddress = \"\"\nlatitude = 52.52\nlongitude = 13.405\n");

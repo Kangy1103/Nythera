@@ -1,5 +1,5 @@
 name: Feature Request
-description: Suggest an improvement, new feature, or enhancement for Noctalia
+description: Suggest an improvement, new feature, or enhancement for Nythera
 title: "[FEATURE] "
 labels: ["feature"]
 
@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Noctalia core keeps a narrow scope. Read [SCOPE.md](https://github.com/noctalia-dev/noctalia/blob/main/SCOPE.md) before opening a request. Ideas and questions are faster on [Discord](https://discord.noctalia.dev). Requests that belong in a plugin or fall outside scope are closed with a pointer, which is not a verdict on the idea.
+        Nythera core keeps a narrow scope. Read [SCOPE.md](https://github.com/noctalia-dev/noctalia/blob/main/SCOPE.md) before opening a request. Ideas and questions are faster on [Discord](https://discord.noctalia.dev). Requests that belong in a plugin or fall outside scope are closed with a pointer, which is not a verdict on the idea.
 
   - type: checkboxes
     id: submission-checklist

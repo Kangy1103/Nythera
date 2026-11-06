@@ -159,7 +159,7 @@ namespace {
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-    noctalia::test::failCheck("timed out waiting for D-Bus state");
+    nythera::test::failCheck("timed out waiting for D-Bus state");
   }
 
   // Lets any stray follow-up calls (re-arms, retries) reach the fake before asserting on counts.

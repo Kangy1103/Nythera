@@ -1,4 +1,4 @@
-project('noctalia', ['c', 'cpp'],
+project('nythera', ['c', 'cpp'],
   version: files('VERSION'),
   meson_version: '>=1.1',
   default_options: [
@@ -113,7 +113,7 @@ if is_glibc
   jemalloc_dep = dependency('jemalloc', required: jemalloc_option)
   if jemalloc_dep.found()
     jemalloc_deps += [jemalloc_dep]
-    jemalloc_cpp_args += ['-DNOCTALIA_USE_JEMALLOC=1']
+    jemalloc_cpp_args += ['-DNYTHERA_USE_JEMALLOC=1']
   endif
 endif
 
@@ -450,7 +450,7 @@ _protocol_sources += _wlr_ls_c
 _protocol_headers += _wlr_ls_h
 
 # ── Main sources ──────────────────────────────────────────────────────────────
-_noctalia_sources = files(
+_nythera_sources = files(
   'src/app/application.cpp',
   'src/app/application_events.cpp',
   'src/app/application_ipc.cpp',
@@ -1074,14 +1074,14 @@ _noctalia_sources = files(
 )
 
 if sanitize
-  _noctalia_sources += files('src/core/lsan_suppressions.cpp')
+  _nythera_sources += files('src/core/lsan_suppressions.cpp')
 endif
 
 git_program = find_program('git', required: false)
 if git_program.found()
   _git_revision_h = vcs_tag(
     input: 'src/core/git_revision.h.in',
-    output: 'noctalia_git_revision.h',
+    output: 'nythera_git_revision.h',
     command: [git_program, 'describe', '--tags', '--always', '--dirty=-dirty', '--abbrev=12'],
     fallback: 'unknown',
   )
@@ -1090,7 +1090,7 @@ else
   _git_revision_config.set('VCS_TAG', 'unknown')
   _git_revision_h = configure_file(
     input: 'src/core/git_revision.h.in',
-    output: 'noctalia_git_revision.h',
+    output: 'nythera_git_revision.h',
     configuration: _git_revision_config,
   )
 endif
@@ -1103,7 +1103,7 @@ endif
 alias_target('generated-headers', _generated_headers)
 
 # ── Include directories ────────────────────────────────────────────────────────
-_noctalia_inc = [
+_nythera_inc = [
   include_directories('src'),
   # '.' adds both the source root and the corresponding build-dir root, so
   # generated protocol headers (written to the build root) are found by #include.
@@ -1111,7 +1111,7 @@ _noctalia_inc = [
 ] + _wuffs_inc
 
 # ── Application library and executable ────────────────────────────────────────
-_noctalia_system_dependencies = [
+_nythera_system_dependencies = [
   sdbus_cpp_dep,
   wayland_client_dep,
   egl_dep,
@@ -1151,70 +1151,91 @@ _noctalia_system_dependencies = [
   sndfile_dep,
 ] + jemalloc_deps + (dl_dep.found() ? [dl_dep] : [])
 
-_noctalia_dependencies = _noctalia_system_dependencies + [
+_nythera_dependencies = _nythera_system_dependencies + [
   fzy_dep,
   mcu_dep,
   luau_dep,
 ]
 
-_noctalia_test_dependencies = _noctalia_system_dependencies + [
+_nythera_test_dependencies = _nythera_system_dependencies + [
   _fzy_selective_dep,
   _mcu_selective_dep,
   _luau_selective_dep,
 ]
 
-_noctalia_compile_definitions = [
-  '-DNOCTALIA_INSTALL_PREFIX="' + get_option('prefix') + '"',
-  '-DNOCTALIA_INSTALL_DATADIR="' + get_option('datadir') + '"',
-  '-DNOCTALIA_VERSION="' + meson.project_version() + '"',
+_nythera_compile_definitions = [
+  '-DNYTHERA_INSTALL_PREFIX="' + get_option('prefix') + '"',
+  '-DNYTHERA_INSTALL_DATADIR="' + get_option('datadir') + '"',
+  '-DNYTHERA_VERSION="' + meson.project_version() + '"',
 ] + jemalloc_cpp_args
 
-_noctalia_cpp_args = [
+_nythera_cpp_args = [
   '-Wall', '-Wextra', '-Wno-missing-field-initializers', '-Wpedantic', '-Wconversion', '-Wshadow',
-] + _noctalia_compile_definitions
+] + _nythera_compile_definitions
 
 # Production sources and generated protocols compile once. The shell links the
 # archive whole; tests link it normally so only the objects they exercise enter
 # each test executable.
-noctalia_core_lib = static_library('noctalia_core',
-  sources: _noctalia_sources + _protocol_sources + _protocol_headers + [_git_revision_h],
-  dependencies: _noctalia_dependencies,
-  include_directories: _noctalia_inc,
-  cpp_args: _noctalia_cpp_args,
+nythera_core_lib = static_library('nythera_core',
+  sources: _nythera_sources + _protocol_sources + _protocol_headers + [_git_revision_h],
+  dependencies: _nythera_dependencies,
+  include_directories: _nythera_inc,
+  cpp_args: _nythera_cpp_args,
 )
 
-noctalia_core_dep = declare_dependency(
-  link_with: noctalia_core_lib,
-  dependencies: _noctalia_test_dependencies,
-  include_directories: _noctalia_inc,
-  compile_args: _noctalia_compile_definitions,
+nythera_core_dep = declare_dependency(
+  link_with: nythera_core_lib,
+  dependencies: _nythera_test_dependencies,
+  include_directories: _nythera_inc,
+  compile_args: _nythera_compile_definitions,
   sources: _protocol_headers,
 )
 
-noctalia_exe = executable('noctalia',
+nythera_exe = executable('nythera',
   sources: files('src/main.cpp') + _protocol_headers,
-  dependencies: _noctalia_dependencies,
-  include_directories: _noctalia_inc,
-  cpp_args: _noctalia_cpp_args,
-  objects: noctalia_core_lib.extract_all_objects(recursive: false),
+  dependencies: _nythera_dependencies,
+  include_directories: _nythera_inc,
+  cpp_args: _nythera_cpp_args,
+  objects: nythera_core_lib.extract_all_objects(recursive: false),
   install: true,
 )
 
 install_subdir('assets',
-  install_dir: get_option('datadir') / 'noctalia',
-  exclude_files: ['dev.noctalia.Noctalia.desktop', 'dev.noctalia.Noctalia.Annotator.desktop'],
+  install_dir: get_option('datadir') / 'nythera',
+  exclude_files: ['dev.nythera.Nythera.desktop', 'dev.nythera.Nythera.Annotator.desktop'],
 )
 
 install_data(
-  'assets/dev.noctalia.Noctalia.desktop',
-  'assets/dev.noctalia.Noctalia.Annotator.desktop',
+  'assets/dev.nythera.Nythera.desktop',
+  'assets/dev.nythera.Nythera.Annotator.desktop',
   install_dir: get_option('datadir') / 'applications',
 )
 
 install_data(
-  'assets/noctalia.svg',
+  'assets/nythera.svg',
   install_dir: get_option('datadir') / 'icons' / 'hicolor' / 'scalable' / 'apps',
 )
+
+# Completions are generated by the same CLI schema used at runtime.
+if meson.can_run_host_binaries()
+  foreach completion : [
+    ['bash', 'nythera.bash', 'bash-completion/completions'],
+    ['fish', 'nythera.fish', 'fish/vendor_completions.d'],
+    ['zsh', '_nythera', 'zsh/site-functions'],
+  ]
+    shell_name = completion[0]
+    completion_file = completion[1]
+    completion_dir = completion[2]
+    custom_target('nythera-completions-' + shell_name,
+      output: completion_file,
+      command: [nythera_exe, 'completions', shell_name],
+      capture: true,
+      build_by_default: true,
+      install: true,
+      install_dir: get_option('datadir') / completion_dir,
+    )
+  endforeach
+endif
 
 if build_tests
   wayland_server_dep = dependency('wayland-server')
@@ -1316,6 +1337,7 @@ if build_tests
     'keyboard_layout_label',
     'labwc_occupancy',
     'lane_selection_token',
+    'legacy_profile_migration',
     'launcher_category_state',
     'location_service',
     'lockscreen_session_actions',
@@ -1379,6 +1401,7 @@ if build_tests
     'upower_charge_limit',
     'upower_device_catalog',
     'uri',
+    'upstream_plugin_source',
     'v4l2_camera',
     'vdir_reader',
     'virtual_grid_view_gesture',
@@ -1403,7 +1426,7 @@ if build_tests
     endif
     test_exe = executable(test_name + '_test',
       sources: files('tests' / (test_name + '_test.cpp')),
-      dependencies: noctalia_core_dep,
+      dependencies: nythera_core_dep,
       override_options: ['b_ndebug=false'],
     )
     test_args = []
@@ -1428,55 +1451,55 @@ if build_tests
 
   screencopy_connection_isolation_exe = executable('screencopy_connection_isolation_test',
     sources: files('tests/screencopy_connection_isolation_test.cpp') + [_wlr_screencopy_test_server_h],
-    dependencies: [noctalia_core_dep, wayland_server_dep],
+    dependencies: [nythera_core_dep, wayland_server_dep],
     override_options: ['b_ndebug=false'],
   )
   test('screencopy_connection_isolation', screencopy_connection_isolation_exe)
 
   idle_manager_exe = executable('idle_manager_test',
     sources: files('tests/idle_manager_test.cpp') + [_idle_test_server_h],
-    dependencies: [noctalia_core_dep, wayland_server_dep],
+    dependencies: [nythera_core_dep, wayland_server_dep],
     override_options: ['b_ndebug=false'],
   )
   test('idle_manager', idle_manager_exe)
 
   brightness_service_exe = executable('brightness_service_test',
     sources: files('tests/brightness_service_test.cpp'),
-    dependencies: [noctalia_core_dep, wayland_server_dep],
+    dependencies: [nythera_core_dep, wayland_server_dep],
     override_options: ['b_ndebug=false'],
   )
   test('brightness_service', brightness_service_exe, timeout: 60)
 
   upower_integration_exe = executable('upower_charge_limit_integration_test',
     sources: files('tests/upower_charge_limit_integration_test.cpp'),
-    dependencies: noctalia_core_dep,
+    dependencies: nythera_core_dep,
     override_options: ['b_ndebug=false'],
   )
   secret_collection_probe_integration_exe = executable('secret_collection_probe_integration_test',
     sources: files('tests/secret_collection_probe_integration_test.cpp'),
-    dependencies: noctalia_core_dep,
+    dependencies: nythera_core_dep,
     override_options: ['b_ndebug=false'],
   )
   tray_registration_integration_exe = executable('tray_registration_integration_test',
     sources: files('tests/tray_registration_integration_test.cpp'),
-    dependencies: noctalia_core_dep,
+    dependencies: nythera_core_dep,
     override_options: ['b_ndebug=false'],
   )
   tray_signal_sender_integration_exe = executable('tray_signal_sender_integration_test',
     sources: files('tests/tray_signal_sender_integration_test.cpp'),
-    dependencies: noctalia_core_dep,
+    dependencies: nythera_core_dep,
     override_options: ['b_ndebug=false'],
   )
   fingerprint_integration_exe = executable('fingerprint_authenticator_integration_test',
     sources: files('tests/fingerprint_authenticator_integration_test.cpp'),
-    dependencies: noctalia_core_dep,
+    dependencies: nythera_core_dep,
     override_options: ['b_ndebug=false'],
   )
   dbus_run_session = find_program('dbus-run-session', required: false)
   if dbus_run_session.found()
     url_open_test_exe = executable('url_open_test',
       sources: files('tests/url_open_test.cpp'),
-      dependencies: noctalia_core_dep,
+      dependencies: nythera_core_dep,
       override_options: ['b_ndebug=false'],
     )
     test('url_open', dbus_run_session, args: ['--', url_open_test_exe])
@@ -1523,7 +1546,7 @@ if build_tests
 
   bluetooth_property_integration_exe = executable('bluetooth_property_integration_test',
     sources: files('tests/bluetooth_property_integration_test.cpp'),
-    dependencies: noctalia_core_dep,
+    dependencies: nythera_core_dep,
     override_options: ['b_ndebug=false'],
   )
   if dbus_run_session.found()
@@ -1540,7 +1563,7 @@ if build_tests
 
   bluetooth_connect_pass_integration_exe = executable('bluetooth_connect_pass_integration_test',
     sources: files('tests/bluetooth_connect_pass_integration_test.cpp'),
-    dependencies: noctalia_core_dep,
+    dependencies: nythera_core_dep,
     override_options: ['b_ndebug=false'],
   )
   if dbus_run_session.found()
@@ -1558,7 +1581,7 @@ if build_tests
 
   notification_reply_integration_exe = executable('notification_reply_integration_test',
     sources: files('tests/notification_reply_integration_test.cpp'),
-    dependencies: noctalia_core_dep,
+    dependencies: nythera_core_dep,
     override_options: ['b_ndebug=false'],
   )
   if dbus_run_session.found()
@@ -1570,15 +1593,15 @@ if build_tests
   endif
 
   config_validate_env = environment()
-  config_validate_env.set('NOCTALIA_CONFIG_HOME', meson.current_source_dir() / 'tests/config_validate/config-home')
-  config_validate_env.set('NOCTALIA_STATE_HOME', meson.current_source_dir() / 'tests/config_validate/state-home')
-  config_validate_env.set('NOCTALIA_DATA_HOME', meson.current_source_dir() / 'tests/config_validate/data-home')
+  config_validate_env.set('NYTHERA_CONFIG_HOME', meson.current_source_dir() / 'tests/config_validate/config-home')
+  config_validate_env.set('NYTHERA_STATE_HOME', meson.current_source_dir() / 'tests/config_validate/state-home')
+  config_validate_env.set('NYTHERA_DATA_HOME', meson.current_source_dir() / 'tests/config_validate/data-home')
 
   sh_program = find_program('sh')
   test('config_validate_cli',
     sh_program,
-    args: ['tests/config_validate_cli_test.sh', noctalia_exe.full_path()],
-    depends: noctalia_exe,
+    args: ['tests/config_validate_cli_test.sh', nythera_exe.full_path()],
+    depends: nythera_exe,
     workdir: meson.current_source_dir(),
     env: config_validate_env,
   )

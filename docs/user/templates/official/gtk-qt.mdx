@@ -11,7 +11,7 @@ This guide covers theming applications built with GTK, Qt, and KDE Plasma toolki
 
 ## GTK 3/4 Applications
 
-GTK applications include most GNOME apps and many Linux applications. Noctalia can automatically theme them using the `adw-gtk3` theme.
+GTK applications include most GNOME apps and many Linux applications. Nythera can automatically theme them using the `adw-gtk3` theme.
 
 ### Setup
 
@@ -28,7 +28,7 @@ GTK applications include most GNOME apps and many Linux applications. Noctalia c
    - **Using nwg-look (recommended):**
 
      :::tip[GTK4 Theming]
-     In nwg-look, make sure to **uncheck the GTK4 option**. Leaving GTK4 checked can prevent GTK4 applications from using Noctalia's color scheme.
+     In nwg-look, make sure to **uncheck the GTK4 option**. Leaving GTK4 checked can prevent GTK4 applications from using Nythera's color scheme.
 
      If you previously applied a custom GTK4 theme, you may need to hit **"Clear"** (found in the **Preference** tab) in nwg-look before reapplying and regenerating the color scheme. This ensures the new colors are accepted by GTK4 apps.
      :::
@@ -43,18 +43,18 @@ GTK applications include most GNOME apps and many Linux applications. Noctalia c
   gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3'
   ```
 
-3. **Enable GTK theming in Noctalia:**
+3. **Enable GTK theming in Nythera:**
 
 - Open **Settings → Templates**
 - Toggle on **GTK 3** and/or **GTK 4**
 
-Enabling those built-in templates writes `noctalia.css` and runs the shipped [`apply.sh`](https://github.com/noctalia-dev/noctalia/blob/main/assets/templates/gtk/apply.sh) `post_hook` (`bash '…/gtk/apply.sh' dark|light`). That script imports `noctalia.css` into `gtk.css` and selects `adw-gtk3` / `adw-gtk3-dark`. A theme mode change re-applies the templates, so the same full hook runs again; you do not need a separate hook for that path.
+Enabling those built-in templates writes `nythera.css` and runs the shipped [`apply.sh`](https://github.com/noctalia-dev/noctalia/blob/main/assets/templates/gtk/apply.sh) `post_hook` (`bash '…/gtk/apply.sh' dark|light`). That script imports `nythera.css` into `gtk.css` and selects `adw-gtk3` / `adw-gtk3-dark`. A theme mode change re-applies the templates, so the same full hook runs again; you do not need a separate hook for that path.
 
-The GNOME `org.gnome.desktop.interface.color-scheme` preference, which browsers and other apps read through the desktop portal, is not part of the GTK templates. Noctalia syncs it on its own, with or without these templates; see [`sync_color_scheme`](/noctalia/theming/#sync_color_scheme) to turn that off.
+The GNOME `org.gnome.desktop.interface.color-scheme` preference, which browsers and other apps read through the desktop portal, is not part of the GTK templates. Nythera syncs it on its own, with or without these templates; see [`sync_color_scheme`](/nythera/theming/#sync_color_scheme) to turn that off.
 
 ### App extensions
 
-Some community templates (for example Thunar) are **GTK extensions**: app-scoped CSS layered on top of the GTK theme. They load through the built-in GTK template, so they only take effect while **GTK 3** (or **GTK 4**, depending on the extension) is enabled here. Noctalia keeps them in `noctalia-extensions/` next to `gtk.css` and never adds anything else to `gtk.css`. Restart the app after enabling or disabling one.
+Some community templates (for example Thunar) are **GTK extensions**: app-scoped CSS layered on top of the GTK theme. They load through the built-in GTK template, so they only take effect while **GTK 3** (or **GTK 4**, depending on the extension) is enabled here. Nythera keeps them in `nythera-extensions/` next to `gtk.css` and never adds anything else to `gtk.css`. Restart the app after enabling or disabling one.
 
 ### Troubleshooting
 
@@ -126,7 +126,7 @@ setenv QT_QPA_PLATFORMTHEME qt6ct
 export QT_QPA_PLATFORMTHEME=qt6ct
 ```
 
-3. **Enable the KColorScheme (or QT theme) in Noctalia:**
+3. **Enable the KColorScheme (or QT theme) in Nythera:**
 
 - Open **Settings → Templates**
 - Toggle on **KColorScheme** (or **Qt**)
@@ -135,7 +135,7 @@ export QT_QPA_PLATFORMTHEME=qt6ct
 
 - Run `qt6ct` from terminal
 - In the **Appearance** tab, there will be a dropdown for **"Color scheme:"**
-- In the dropdown select `noctalia (KColorScheme)` if using a KColorScheme for KDE app compatibility, or `noctalia` for a normal QT theme without the need for KDE app compatibility.
+- In the dropdown select `nythera (KColorScheme)` if using a KColorScheme for KDE app compatibility, or `nythera` for a normal QT theme without the need for KDE app compatibility.
 - Click **Apply** and **OK**
 
 :::tip[KDE File Picker]
@@ -153,11 +153,11 @@ If you use the KDE file picker, go to the **Settings** tab in `qt6ct` and set **
 
 ## KDE Plasma (KColorScheme)
 
-If you're using KDE Plasma, Noctalia can apply colors through the native KColorScheme system.
+If you're using KDE Plasma, Nythera can apply colors through the native KColorScheme system.
 
 ### Setup
 
-1. **Enable KColorScheme in Noctalia:**
+1. **Enable KColorScheme in Nythera:**
 
 - Open **Settings → Templates**
 - Toggle on **KColorScheme**
@@ -165,10 +165,10 @@ If you're using KDE Plasma, Noctalia can apply colors through the native KColorS
 2. **Apply in KDE System Settings:**
 
 - Open **System Settings → Appearance → Colors**
-- Select the `noctalia` color scheme
-- The scheme will update automatically when you change colors in Noctalia
+- Select the `nythera` color scheme
+- The scheme will update automatically when you change colors in Nythera
 
 ### Troubleshooting
 
 - **Scheme not appearing:** Restart KDE Plasma or log out and back in
-- **Colors not updating:** Ensure KColorScheme toggle is enabled in Noctalia settings
+- **Colors not updating:** Ensure KColorScheme toggle is enabled in Nythera settings

@@ -19,7 +19,7 @@ class ClipboardService;
 // exec is set, copies the selection to the clipboard.
 //
 // The listing command runs on a worker thread (never the main loop, which would
-// deadlock IPC/DBus commands like `notify-send` or `noctalia msg`). Its stdout is
+// deadlock IPC/DBus commands like `notify-send` or `nythera msg`). Its stdout is
 // parsed even on non-zero exit, so error messages still show up in the launcher.
 class DmenuProvider : public LauncherProvider {
 public:

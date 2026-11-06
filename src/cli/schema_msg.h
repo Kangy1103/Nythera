@@ -6,10 +6,10 @@
 #include <array>
 #include <string_view>
 
-namespace noctalia::cli {
+namespace nythera::cli {
 
   inline constexpr std::array<std::string_view, 10> kBuiltinPaletteNames{
-      "Ayu", "Catppuccin", "Dracula", "Eldritch", "Gruvbox", "Kanagawa", "Noctalia", "Nord", "Rosé Pine", "Tokyo-Night",
+      "Ayu", "Catppuccin", "Dracula", "Eldritch", "Gruvbox", "Kanagawa", "Nythera", "Nord", "Rosé Pine", "Tokyo-Night",
   };
 
   inline constexpr std::array kMsgColorSchemeSetBuiltinPositionals{
@@ -537,7 +537,7 @@ namespace noctalia::cli {
         false
     };
     inline constexpr Command greeterSync{
-        "greeter-sync", "Sync wallpaper, colors, and monitor layout to Noctalia Greeter", {}, {}, {}, {}, {}, false
+        "greeter-sync", "Sync wallpaper, colors, and monitor layout to Nythera Greeter", {}, {}, {}, {}, {}, false
     };
     inline constexpr Command keyboardBacklightDown{
         "keyboard-backlight-down", "Decrease all keyboard backlights by 5%", {}, {}, {}, {}, {}, false
@@ -661,7 +661,7 @@ namespace noctalia::cli {
         false
     };
     inline constexpr Command notificationShow{"notification-show",
-                                              "Show an internal Noctalia notification",
+                                              "Show an internal Nythera notification",
                                               {},
                                               {},
                                               {},
@@ -769,7 +769,7 @@ namespace noctalia::cli {
     };
     inline constexpr Command settingsOpenPlugin{
         "settings-open-plugin",
-        "Open the settings window at a plugin's settings (e.g. noctalia/notes)",
+        "Open the settings window at a plugin's settings (e.g. nythera/notes)",
         {},
         {},
         {},
@@ -1073,4 +1073,4 @@ namespace noctalia::cli {
     return nullptr;
   }
 
-} // namespace noctalia::cli
+} // namespace nythera::cli

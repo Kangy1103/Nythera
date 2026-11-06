@@ -19,22 +19,22 @@ resolve_config_home() {
 
 config_dir="$(resolve_config_home)/niri"
 config_file="$config_dir/config.kdl"
-output_file="$config_dir/noctalia.kdl"
-include_line='include "noctalia.kdl"'
+output_file="$config_dir/nythera.kdl"
+include_line='include "nythera.kdl"'
 
-has_noctalia_include() {
-    grep -Eq '^[[:space:]]*include([[:space:]].*)?"([^"]*/)?noctalia\.kdl"([[:space:]]|$)' "$config_file"
+has_nythera_include() {
+    grep -Eq '^[[:space:]]*include([[:space:]].*)?"([^"]*/)?nythera\.kdl"([[:space:]]|$)' "$config_file"
 }
 
 apply_include() {
     mkdir -p "$config_dir"
 
     if [ ! -f "$config_file" ]; then
-        printf 'Warning: %s is missing; add the Noctalia theme include to your active niri configuration manually:\ninclude "%s"\n' "$config_file" "$output_file" >&2
+        printf 'Warning: %s is missing; add the Nythera theme include to your active niri configuration manually:\ninclude "%s"\n' "$config_file" "$output_file" >&2
         return 1
     fi
 
-    if has_noctalia_include; then
+    if has_nythera_include; then
         return
     else
         local grep_status=$?

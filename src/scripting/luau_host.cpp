@@ -1,3 +1,4 @@
+#include "scripting/upstream_plugin_source.h"
 #include "scripting/luau_host.h"
 
 #include "compositors/compositor_platform.h"
@@ -58,10 +59,10 @@
 
 namespace {
   Logger kLog{"luau"};
-  constexpr const char* kHostKey = "__noctalia_host";
+  constexpr const char* kHostKey = "__nythera_host";
   // Field on a module environment's metatable holding the module's own directory.
   // Not reachable through the environment table itself, and the metatable is frozen.
-  constexpr const char* kModuleDirKey = "__noctalia_moduledir";
+  constexpr const char* kModuleDirKey = "__nythera_moduledir";
   constexpr auto kDefaultCommandTimeout = std::chrono::milliseconds(5000);
   constexpr auto kMinCommandTimeout = std::chrono::milliseconds(50);
   constexpr auto kMaxCommandTimeout = std::chrono::milliseconds(60000);
@@ -597,7 +598,7 @@ namespace {
     return 1;
   }
 
-  // nowMs() -> wall-clock milliseconds since the Unix epoch. os.time() and noctalia.formatTime()
+  // nowMs() -> wall-clock milliseconds since the Unix epoch. os.time() and nythera.formatTime()
   // are both whole-second, so this is the only way a plugin can see sub-second time, e.g. to phase
   // its own updates onto a second boundary.
   int luau_nowMs(lua_State* L) {
@@ -821,7 +822,7 @@ namespace {
     if (auto* host = hostForState(L)) {
       host->scriptNotifyInfo(title, body);
     } else {
-      notify::info("Noctalia", title, body);
+      notify::info("Nythera", title, body);
     }
     return 0;
   }
@@ -832,7 +833,7 @@ namespace {
     if (auto* host = hostForState(L)) {
       host->scriptNotifyError(title, body);
     } else {
-      notify::error("Noctalia", title, body);
+      notify::error("Nythera", title, body);
     }
     return 0;
   }
@@ -1076,7 +1077,7 @@ namespace {
     return 0;
   }
 
-  // noctalia.osd.show(icon: string, value: string?, opts: { progress: number?, inactive: boolean? }?)
+  // nythera.osd.show(icon: string, value: string?, opts: { progress: number?, inactive: boolean? }?)
   int luau_osd_show(lua_State* L) {
     size_t iconLen = 0;
     const char* icon = luaL_checklstring(L, 1, &iconLen);
@@ -1783,19 +1784,19 @@ namespace {
     return 0;
   }
 
-  const luaL_Reg kNoctaliaStateLib[] = {
+  const luaL_Reg kNytheraStateLib[] = {
       {"set", luau_state_set},
       {"get", luau_state_get},
       {"watch", luau_state_watch},
       {nullptr, nullptr},
   };
 
-  // noctalia.idle.watch(seconds, callback, { ignoreInhibitors = bool }?) -> id
+  // nythera.idle.watch(seconds, callback, { ignoreInhibitors = bool }?) -> id
   int luau_idle_watch(lua_State* L) {
     const double seconds = luaL_checknumber(L, 1);
     luaL_checktype(L, 2, LUA_TFUNCTION);
     if (!std::isfinite(seconds) || seconds <= 0.0 || seconds > kMaxIdleWatchSeconds) {
-      luaL_error(L, "noctalia.idle.watch: seconds must be a positive number");
+      luaL_error(L, "nythera.idle.watch: seconds must be a positive number");
     }
     bool ignoreInhibitors = false;
     if (!lua_isnoneornil(L, 3)) {
@@ -1816,13 +1817,13 @@ namespace {
     const auto timeoutMs = static_cast<std::uint32_t>(std::ceil(seconds * 1000.0));
     if (!host->scriptIdleWatch(timeoutMs, ignoreInhibitors, callbackRef)) {
       lua_unref(L, callbackRef);
-      luaL_error(L, "noctalia.idle.watch: at most %d watches per entry", static_cast<int>(kMaxIdleWatchesPerHost));
+      luaL_error(L, "nythera.idle.watch: at most %d watches per entry", static_cast<int>(kMaxIdleWatchesPerHost));
     }
     lua_pushinteger(L, callbackRef);
     return 1;
   }
 
-  // noctalia.idle.unwatch(id) -> bool (false when the id is not an active watch)
+  // nythera.idle.unwatch(id) -> bool (false when the id is not an active watch)
   int luau_idle_unwatch(lua_State* L) {
     const int watchId = luaL_checkinteger(L, 1);
     auto* host = hostForState(L);
@@ -1830,13 +1831,13 @@ namespace {
     return 1;
   }
 
-  const luaL_Reg kNoctaliaIdleLib[] = {
+  const luaL_Reg kNytheraIdleLib[] = {
       {"watch", luau_idle_watch},
       {"unwatch", luau_idle_unwatch},
       {nullptr, nullptr},
   };
 
-  // noctalia.umbriel.action(request, callback?) -> bool. `request` is the typed action request from Umbriel's IPC
+  // nythera.umbriel.action(request, callback?) -> bool. `request` is the typed action request from Umbriel's IPC
   // reference without `cmd`, for example { action = "workspace-set-layout", layout = "dwindle" }.
   int luau_umbriel_action(lua_State* L) {
     luaL_checktype(L, 1, LUA_TTABLE);
@@ -1875,12 +1876,12 @@ namespace {
     return 1;
   }
 
-  const luaL_Reg kNoctaliaUmbrielLib[] = {
+  const luaL_Reg kNytheraUmbrielLib[] = {
       {"action", luau_umbriel_action},
       {nullptr, nullptr},
   };
 
-  // noctalia.layer.*: show, hide, and configure this plugin's [[layer]] entries.
+  // nythera.layer.*: show, hide, and configure this plugin's [[layer]] entries.
 
   constexpr std::int64_t kMaxLayerExtent = 1 << 16;
 
@@ -1889,14 +1890,14 @@ namespace {
     const char* id = luaL_checklstring(L, 1, &len);
     const std::string_view view(id, len);
     if (view.empty() || view.contains(':') || view.contains('/')) {
-      luaL_error(L, "noctalia.layer.%s: expected the entry id of one of this plugin's [[layer]] entries", fn);
+      luaL_error(L, "nythera.layer.%s: expected the entry id of one of this plugin's [[layer]] entries", fn);
     }
     return std::string(view);
   }
 
   std::int32_t checkLayerInteger(lua_State* L, int index, std::int64_t min, const char* what) {
     if (lua_type(L, index) != LUA_TNUMBER) {
-      luaL_error(L, "noctalia.layer.configure: %s must be an integer", what);
+      luaL_error(L, "nythera.layer.configure: %s must be an integer", what);
     }
     const double value = lua_tonumber(L, index);
     if (!std::isfinite(value)
@@ -1904,7 +1905,7 @@ namespace {
         || value < static_cast<double>(min)
         || value > static_cast<double>(kMaxLayerExtent)) {
       luaL_error(
-          L, "noctalia.layer.configure: %s must be an integer between %d and %d", what, static_cast<int>(min),
+          L, "nythera.layer.configure: %s must be an integer between %d and %d", what, static_cast<int>(min),
           static_cast<int>(kMaxLayerExtent)
       );
     }
@@ -1913,7 +1914,7 @@ namespace {
 
   std::string_view checkLayerString(lua_State* L, int index, const char* what) {
     if (lua_type(L, index) != LUA_TSTRING) {
-      luaL_error(L, "noctalia.layer.configure: %s must be a string", what);
+      luaL_error(L, "nythera.layer.configure: %s must be a string", what);
     }
     size_t len = 0;
     const char* value = lua_tolstring(L, index, &len);
@@ -1926,13 +1927,13 @@ namespace {
     while (lua_next(L, table) != 0) {
       const int value = lua_gettop(L);
       if (lua_type(L, -2) != LUA_TSTRING) {
-        luaL_error(L, "noctalia.layer.configure: property names must be strings");
+        luaL_error(L, "nythera.layer.configure: property names must be strings");
       }
       const std::string_view key = lua_tostring(L, -2);
       if (key == "layer") {
         const auto level = scripting::parsePluginLayerLevel(checkLayerString(L, value, "layer"));
         if (!level.has_value()) {
-          luaL_error(L, R"(noctalia.layer.configure: layer must be "background", "bottom", "top", or "overlay")");
+          luaL_error(L, R"(nythera.layer.configure: layer must be "background", "bottom", "top", or "overlay")");
         }
         patch.layer = level;
       } else if (key == "anchors") {
@@ -1946,7 +1947,7 @@ namespace {
           if (!anchor.has_value() || (anchors & *anchor) != 0) {
             luaL_error(
                 L,
-                R"(noctalia.layer.configure: anchors must list distinct values from "top", "bottom", "left", "right")"
+                R"(nythera.layer.configure: anchors must list distinct values from "top", "bottom", "left", "right")"
             );
           }
           anchors |= *anchor;
@@ -1980,7 +1981,7 @@ namespace {
       } else if (key == "keyboard") {
         const auto keyboard = scripting::parsePluginLayerKeyboard(checkLayerString(L, value, "keyboard"));
         if (!keyboard.has_value()) {
-          luaL_error(L, R"(noctalia.layer.configure: keyboard must be "none", "on_demand", or "exclusive")");
+          luaL_error(L, R"(nythera.layer.configure: keyboard must be "none", "on_demand", or "exclusive")");
         }
         patch.keyboard = keyboard;
       } else if (key == "clickThrough") {
@@ -1989,11 +1990,11 @@ namespace {
       } else if (key == "output") {
         const std::string_view output = checkLayerString(L, value, "output");
         if (output.empty()) {
-          luaL_error(L, "noctalia.layer.configure: output must not be empty");
+          luaL_error(L, "nythera.layer.configure: output must not be empty");
         }
         patch.output = std::string(output);
       } else {
-        luaL_error(L, "noctalia.layer.configure: unknown property '%s'", std::string(key).c_str());
+        luaL_error(L, "nythera.layer.configure: unknown property '%s'", std::string(key).c_str());
       }
       lua_pop(L, 1);
     }
@@ -2026,7 +2027,7 @@ namespace {
     return 0;
   }
 
-  const luaL_Reg kNoctaliaLayerLib[] = {
+  const luaL_Reg kNytheraLayerLib[] = {
       {"show", luau_layer_show},
       {"hide", luau_layer_hide},
       {"configure", luau_layer_configure},
@@ -2062,18 +2063,18 @@ namespace {
     }
   }
 
-  const luaL_Reg kNoctaliaSoundLib[] = {
+  const luaL_Reg kNytheraSoundLib[] = {
       {"load", luau_sound_load},
       {"play", luau_sound_play},
       {nullptr, nullptr},
   };
 
-  const luaL_Reg kNoctaliaOsdLib[] = {
+  const luaL_Reg kNytheraOsdLib[] = {
       {"show", luau_osd_show},
       {nullptr, nullptr},
   };
 
-  const luaL_Reg kNoctaliaJsonLib[] = {
+  const luaL_Reg kNytheraJsonLib[] = {
       {"decode", luau_json_decode},
       {"encode", luau_json_encode},
       {nullptr, nullptr},
@@ -2103,7 +2104,7 @@ namespace {
     return 1;
   }
 
-  const luaL_Reg kNoctaliaStringLib[] = {
+  const luaL_Reg kNytheraStringLib[] = {
       {"trim", luau_string_trim},
       {"urlEncode", luau_string_urlEncode},
       {"urlDecode", luau_string_urlDecode},
@@ -2125,7 +2126,7 @@ namespace {
     return 1;
   }
 
-  const luaL_Reg kNoctaliaBaseLib[] = {
+  const luaL_Reg kNytheraBaseLib[] = {
       {"log", luau_log},
       {"runAsync", luau_runAsync},
       {"runStream", luau_runStream},
@@ -2188,39 +2189,39 @@ namespace {
       {nullptr, nullptr},
   };
 
-  void registerNoctaliaLib(lua_State* L) {
-    luaL_register(L, "noctalia", kNoctaliaBaseLib);
-    // noctalia.state = { set, get, watch }
+  void registerNytheraLib(lua_State* L) {
+    luaL_register(L, "nythera", kNytheraBaseLib);
+    // nythera.state = { set, get, watch }
     lua_createtable(L, 0, 0);
-    luaL_register(L, nullptr, kNoctaliaStateLib);
+    luaL_register(L, nullptr, kNytheraStateLib);
     lua_setfield(L, -2, "state");
-    // noctalia.json = { decode, encode }
+    // nythera.json = { decode, encode }
     lua_createtable(L, 0, 0);
-    luaL_register(L, nullptr, kNoctaliaJsonLib);
+    luaL_register(L, nullptr, kNytheraJsonLib);
     lua_setfield(L, -2, "json");
-    // noctalia.sound = { load, play }
+    // nythera.sound = { load, play }
     lua_createtable(L, 0, 0);
-    luaL_register(L, nullptr, kNoctaliaSoundLib);
+    luaL_register(L, nullptr, kNytheraSoundLib);
     lua_setfield(L, -2, "sound");
-    // noctalia.osd = { show }
+    // nythera.osd = { show }
     lua_createtable(L, 0, 0);
-    luaL_register(L, nullptr, kNoctaliaOsdLib);
+    luaL_register(L, nullptr, kNytheraOsdLib);
     lua_setfield(L, -2, "osd");
-    // noctalia.string = { trim, urlEncode, urlDecode }
+    // nythera.string = { trim, urlEncode, urlDecode }
     lua_createtable(L, 0, 0);
-    luaL_register(L, nullptr, kNoctaliaStringLib);
+    luaL_register(L, nullptr, kNytheraStringLib);
     lua_setfield(L, -2, "string");
-    // noctalia.idle = { watch, unwatch }
+    // nythera.idle = { watch, unwatch }
     lua_createtable(L, 0, 0);
-    luaL_register(L, nullptr, kNoctaliaIdleLib);
+    luaL_register(L, nullptr, kNytheraIdleLib);
     lua_setfield(L, -2, "idle");
-    // noctalia.layer = { show, hide, configure }
+    // nythera.layer = { show, hide, configure }
     lua_createtable(L, 0, 0);
-    luaL_register(L, nullptr, kNoctaliaLayerLib);
+    luaL_register(L, nullptr, kNytheraLayerLib);
     lua_setfield(L, -2, "layer");
-    // noctalia.umbriel = { action }
+    // nythera.umbriel = { action }
     lua_createtable(L, 0, 0);
-    luaL_register(L, nullptr, kNoctaliaUmbrielLib);
+    luaL_register(L, nullptr, kNytheraUmbrielLib);
     lua_setfield(L, -2, "umbriel");
     lua_pop(L, 1);
   }
@@ -2264,7 +2265,7 @@ LuauHost::LuauHost(scripting::ScriptApiContext& api, std::string runtimeName, Co
   lua_callbacks(m_L)->userdata = this;
   lua_callbacks(m_L)->interrupt = budgetInterrupt;
   luaL_openlibs(m_L);
-  registerNoctaliaLib(m_L);
+  registerNytheraLib(m_L);
   lua_pushcfunction(m_L, &LuauHost::luauRequire, "require");
   lua_setglobal(m_L, "require");
   // Freeze main state's stdlib + globals. The thread we create next inherits
@@ -3235,7 +3236,7 @@ void LuauHost::scriptNotifyInfo(std::string title, std::string body) {
     );
     return;
   }
-  notify::info("Noctalia", title, body);
+  notify::info("Nythera", title, body);
 }
 
 void LuauHost::scriptNotifyError(std::string title, std::string body) {
@@ -3245,7 +3246,7 @@ void LuauHost::scriptNotifyError(std::string title, std::string body) {
     );
     return;
   }
-  notify::error("Noctalia", title, body);
+  notify::error("Nythera", title, body);
 }
 
 bool LuauHost::scriptLoadSound(std::string name, std::string path, int callbackRef) {
@@ -3579,7 +3580,7 @@ bool LuauHost::pushRequiredModule(lua_State* L, std::string_view request, std::s
   }
   std::ostringstream sourceStream;
   sourceStream << file.rdbuf();
-  const std::string source = std::move(sourceStream).str();
+  const std::string source = nythera::plugins::importUpstreamSource(std::move(sourceStream).str());
 
   const int initialTop = lua_gettop(L);
   m_moduleStack.emplace_back(moduleKey);
@@ -3701,6 +3702,8 @@ bool LuauHost::pushRequiredModule(lua_State* L, std::string_view request, std::s
 }
 
 bool LuauHost::loadString(std::string_view chunkName, std::string_view source) {
+  const std::string imported = nythera::plugins::importUpstreamSource(source);
+  source = imported;
   size_t bytecodeSize = 0;
   char* bytecode = luau_compile(source.data(), source.size(), nullptr, &bytecodeSize);
   std::string name(chunkName);

@@ -33,21 +33,21 @@ void INetworkService::registerIpc(IpcService& ipc, const WirelessFeedbackCallbac
     return "ok\n";
   };
 
-  ipc.bind(noctalia::cli::msg::wifiEnable, [setWifi](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::wifiEnable, [setWifi](const std::string& args) -> std::string {
     if (auto err = rejectArgs("wifi-enable", args); err.has_value()) {
       return *err;
     }
     return setWifi(true);
   });
 
-  ipc.bind(noctalia::cli::msg::wifiDisable, [setWifi](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::wifiDisable, [setWifi](const std::string& args) -> std::string {
     if (auto err = rejectArgs("wifi-disable", args); err.has_value()) {
       return *err;
     }
     return setWifi(false);
   });
 
-  ipc.bind(noctalia::cli::msg::wifiToggle, [this, setWifi](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::wifiToggle, [this, setWifi](const std::string& args) -> std::string {
     if (auto err = rejectArgs("wifi-toggle", args); err.has_value()) {
       return *err;
     }
@@ -58,7 +58,7 @@ void INetworkService::registerIpc(IpcService& ipc, const WirelessFeedbackCallbac
   });
 
   ipc.bind(
-      noctalia::cli::msg::wifiStatus,
+      nythera::cli::msg::wifiStatus,
       [this](const std::string& args) -> std::string {
         if (auto err = rejectArgs("wifi-status", args); err.has_value()) {
           return *err;
@@ -71,7 +71,7 @@ void INetworkService::registerIpc(IpcService& ipc, const WirelessFeedbackCallbac
       IpcService::HandlerOptions{.actionEditorVisibility = IpcService::ActionEditorVisibility::Hidden}
   );
 
-  ipc.bind(noctalia::cli::msg::networkToggle, [this, setWifi](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::networkToggle, [this, setWifi](const std::string& args) -> std::string {
     if (auto err = rejectArgs("network-toggle", args); err.has_value()) {
       return *err;
     }

@@ -29,7 +29,7 @@ namespace {
   public:
     Companion() {
       std::array<char, 40> directory{};
-      std::strcpy(directory.data(), "/tmp/noctalia-pixel-stream.XXXXXX");
+      std::strcpy(directory.data(), "/tmp/nythera-pixel-stream.XXXXXX");
       TEST_CHECK(::mkdtemp(directory.data()) != nullptr);
       m_directory = directory.data();
       path = m_directory + "/stream.sock";

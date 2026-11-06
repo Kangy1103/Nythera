@@ -2,13 +2,13 @@
 
 #include "shell/bar/widgets/glyph_button_definition.h"
 
-const noctalia::bar::WidgetDefinition<CustomButtonWidget::Options>& customButtonWidgetDefinition() {
-  using noctalia::bar::field;
+const nythera::bar::WidgetDefinition<CustomButtonWidget::Options>& customButtonWidgetDefinition() {
+  using nythera::bar::field;
   using Options = CustomButtonWidget::Options;
 
-  static const noctalia::bar::WidgetDefinition<Options> definition{
+  static const nythera::bar::WidgetDefinition<Options> definition{
       .type = "custom_button",
-      .fields = noctalia::bar::glyphButtonFields<Options>(
+      .fields = nythera::bar::glyphButtonFields<Options>(
           field<&Options::label>({
               .key = "label",
           }),

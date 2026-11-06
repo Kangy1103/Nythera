@@ -18,7 +18,7 @@ namespace settings {
 
     constexpr float kDialogWidth = 560.0F;
 
-    using noctalia::config::CredentialExportMode;
+    using nythera::config::CredentialExportMode;
 
     // Segment order in the credentials control.
     constexpr std::array kCredentialModes{

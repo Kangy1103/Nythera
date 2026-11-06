@@ -404,7 +404,7 @@ void SettingsWindow::openConfigExportDialog() {
   m_configExportDialogModal->open(
       settings::ConfigExportDialogRequest{
           .scale = uiScale(),
-          .callback = [this](settings::ConfigExportMode mode, noctalia::config::CredentialExportMode credentials) {
+          .callback = [this](settings::ConfigExportMode mode, nythera::config::CredentialExportMode credentials) {
             saveConfigExport(mode, credentials);
           },
       }
@@ -1532,7 +1532,7 @@ void SettingsWindow::openCalendarAccountEditor(std::optional<std::string> accoun
             ui::input({
                 .out = &passwordFileInput,
                 .value = draft->passwordFile,
-                .placeholder = "/run/agenix/noctalia-caldav",
+                .placeholder = "/run/agenix/nythera-caldav",
                 .invalid = draft->passwordFileInvalid,
                 .enabled = draft->creating,
                 .onChange = [draft](const std::string& value) {
@@ -2607,7 +2607,7 @@ void SettingsWindow::openCommunityTemplateStore() {
   }
 
   const float scale = uiScale();
-  auto catalog = noctalia::theme::CommunityTemplateService::availableTemplates();
+  auto catalog = nythera::theme::CommunityTemplateService::availableTemplates();
   std::unordered_set<std::string> selectedIds(
       m_config->config().theme.templates.communityIds.begin(), m_config->config().theme.templates.communityIds.end()
   );
@@ -2680,7 +2680,7 @@ void SettingsWindow::saveSupportReport() {
 
   FileDialogOptions options;
   options.mode = FileDialogMode::Save;
-  options.defaultFilename = "noctalia-support-report.toml";
+  options.defaultFilename = "nythera-support-report.toml";
   options.title = i18n::tr("settings.window.support-report-title");
   options.extensions = {".toml"};
 
@@ -2715,7 +2715,7 @@ void SettingsWindow::saveSupportReport() {
 }
 
 void SettingsWindow::saveConfigExport(
-    settings::ConfigExportMode mode, noctalia::config::CredentialExportMode credentials
+    settings::ConfigExportMode mode, nythera::config::CredentialExportMode credentials
 ) {
   if (m_config == nullptr) {
     return;
@@ -2725,7 +2725,7 @@ void SettingsWindow::saveConfigExport(
 
   FileDialogOptions options;
   options.mode = FileDialogMode::Save;
-  options.defaultFilename = fullEffective ? "noctalia-full-config.toml" : "noctalia-config.toml";
+  options.defaultFilename = fullEffective ? "nythera-full-config.toml" : "nythera-config.toml";
   options.title = fullEffective ? i18n::tr("settings.export-config.full-effective-save-title")
                                 : i18n::tr("settings.export-config.merged-user-save-title");
   options.extensions = {".toml"};

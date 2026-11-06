@@ -10,7 +10,7 @@ if [[ "$config_dir" == "$HOME"/* ]]; then
 else
     include_dir="$config_dir"
 fi
-include_line="include=$include_dir/foot/themes/noctalia"
+include_line="include=$include_dir/foot/themes/nythera"
 
 mkdir -p "$(dirname "$config_file")"
 
@@ -41,18 +41,18 @@ find_system_config() {
 
 if [ ! -f "$config_file" ]; then
     if system_config="$(find_system_config)"; then
-        echo "Warning: not creating $config_file because it would hide $system_config; add '$include_line' under [main] in your foot config to apply the Noctalia theme" >&2
+        echo "Warning: not creating $config_file because it would hide $system_config; add '$include_line' under [main] in your foot config to apply the Nythera theme" >&2
         exit 0
     fi
     cat >"$config_file" <<EOF
 [main]
 $include_line
 EOF
-elif ! grep -q 'include.*noctalia' "$config_file"; then
+elif ! grep -q 'include.*nythera' "$config_file"; then
     tmp_file="$(mktemp "${config_file}.tmp.XXXXXX")"
     trap 'rm -f "$tmp_file"' EXIT
 
-    # Drop other theme includes, then ensure the noctalia include is present.
+    # Drop other theme includes, then ensure the nythera include is present.
     sed '/include=.*themes/d' "$config_file" >"$tmp_file"
     if grep -q '^\[main\]' "$tmp_file"; then
         sed -i '/^\[main\]/a '"$include_line" "$tmp_file"

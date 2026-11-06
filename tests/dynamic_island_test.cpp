@@ -119,7 +119,7 @@ int main() {
   assert(DynamicIsland::nativeToolContext(IslandEvent::Notification) == "notifications");
   assert(DynamicIsland::nativeToolContext(IslandEvent::Call) == "notifications");
   BarConfig bar;
-  using namespace noctalia::config::schema;
+  using namespace nythera::config::schema;
   Diagnostics diagnostics;
   readInto(
       toml::parse("surface_mode='dynamic'\ndynamic_visualizer=true\ndynamic_devices=false\ndynamic_media=false\ndynamic_width=900\ndynamic_dwell_ms=50"), bar,
@@ -166,7 +166,7 @@ int main() {
   for (auto edge : {"top", "bottom", "left", "right"}) {
     bar.position = edge;
     const auto surface = DynamicIsland::surfaceConfig(bar, 853, 533);
-    assert(surface.nameSpace.starts_with("noctalia-bar-")); // Matches native bar layer-effect rules.
+    assert(surface.nameSpace.starts_with("nythera-bar-")); // Matches native bar layer-effect rules.
     assert(surface.width <= 853 && surface.height <= 533);
     assert(surface.width * surface.height < 853 * 533 / 2);
     assert(surface.exclusiveZone == (bar.screenWrap ? -1 : bar.thickness));

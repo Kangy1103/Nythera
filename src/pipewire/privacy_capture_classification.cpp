@@ -1,6 +1,6 @@
 #include "pipewire/privacy_capture_classification.h"
 
-namespace noctalia::pipewire {
+namespace nythera::pipewire {
 
   bool isPrivacyAudioCaptureConsumer(const PrivacyAudioConsumerProperties& properties) {
     return properties.mediaClass == "Stream/Input/Audio"
@@ -9,4 +9,4 @@ namespace noctalia::pipewire {
         && !properties.streamCaptureSink;
   }
 
-} // namespace noctalia::pipewire
+} // namespace nythera::pipewire

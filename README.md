@@ -2,11 +2,11 @@
 
 Nythera is my personal fork of [Noctalia](https://github.com/noctalia-dev/noctalia), a native Wayland desktop shell written in C++.
 
-I started this because I wanted something a bit different from the usual desktop bars and panels. Noctalia already provides a solid foundation, so rather than starting from scratch, I decided to build on what was already there and see how far I could take it.
+I started this because I wanted something a bit different from the usual desktop bars and panels. Nythera already provides a solid foundation, so rather than starting from scratch, I decided to build on what was already there and see how far I could take it.
 
 The general idea is a more flexible desktop shell with floating islands, dynamic layouts, screen wrapping and a darker sci-fi/fantasy aesthetic.
 
-I'm not trying to reinvent everything Noctalia does. Most of its existing functionality is exactly what I need. I just want more freedom over how it looks and behaves.
+I'm not trying to reinvent everything Nythera does. Most of its existing functionality is exactly what I need. I just want more freedom over how it looks and behaves.
 
 ### A Note on Development
 
@@ -50,7 +50,7 @@ These are ideas I'm actively exploring, not a promise that everything will make 
 
 ## Existing Features
 
-Since Nythera is based on Noctalia, it retains most of the functionality already available in the original project, including:
+Since Nythera is based on Nythera, it retains most of the functionality already available in the original project, including:
 
 - Multi-monitor bars, widgets, taskbar and workspaces.
 - Application launcher and dock.
@@ -65,15 +65,15 @@ Since Nythera is based on Noctalia, it retains most of the functionality already
 
 I'm developing Nythera primarily on **Umbriel**, since that's what I use.
 
-Noctalia already supports several Wayland compositors, including Niri, Hyprland, Sway, Mango, Labwc and others. Much of that support should carry over, although I haven't tested Nythera extensively outside my own setup.
+Nythera already supports several Wayland compositors, including Niri, Hyprland, Sway, Mango, Labwc and others. Much of that support should carry over, although I haven't tested Nythera extensively outside my own setup.
 
 ## Building & Installation
 
 Nythera is still in development, so I haven't put together a proper installation process yet.
 
-For now, the build process is based on Noctalia's existing setup. See [BUILDING.md](BUILDING.md) for the current instructions.
+For now, the build process is based on Nythera's existing setup. See [BUILDING.md](BUILDING.md) for the current instructions.
 
-Expect things to change, particularly configuration paths, executable names and other bits that still reference Noctalia.
+Expect things to change, particularly configuration paths, executable names and other bits that still reference Nythera.
 
 ## Credits
 

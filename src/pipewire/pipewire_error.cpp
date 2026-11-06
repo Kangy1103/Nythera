@@ -3,7 +3,7 @@
 #include <cerrno>
 #include <pipewire/core.h>
 
-namespace noctalia::pipewire {
+namespace nythera::pipewire {
 
   ErrorDisposition classifyError(std::uint32_t objectId, int result) noexcept {
     if (objectId == PW_ID_CORE && result == -EPIPE) {
@@ -15,4 +15,4 @@ namespace noctalia::pipewire {
     return ErrorDisposition::Report;
   }
 
-} // namespace noctalia::pipewire
+} // namespace nythera::pipewire

@@ -960,22 +960,22 @@
       "calendar-reminder-open": "Abrir",
       "calendar-reminder-untitled": "Evento sem título",
       "calendar-reminder-with-location": "{when}\n{location}",
-      "config-migration-body": "Atualize {path} no arquivo fonte. Noctalia está aplicando está substituição só temporariamente. Execute nocatlia config validade para listar cada mudança necessária.",
+      "config-migration-body": "Atualize {path} no arquivo fonte. Nythera está aplicando está substituição só temporariamente. Execute nocatlia config validade para listar cada mudança necessária.",
       "config-migration-title": "Atualiação de configuração necessária",
       "dbus-disabled": "Notificações DBus desabilitadas",
       "desktop-widgets-editor": "Editor de Widget",
       "desktop-widgets-editor-enabled": "O editor de widgets da área de trabalho está ligado. Mude para um espaço de trabalho vazio para que as janelas abertas não cubram o editor.",
-      "greeter-sync": "Noctalia Greeter",
+      "greeter-sync": "Nythera Greeter",
       "greeter-sync-pending": "Sincronizando aparência para o greeter. Se uma caixa de diálogo de autorização aparecer, aprove-o; autorização sem senha segue políticas do sistema.",
-      "greeter-sync-pending-console": "Sincronizando aparência para o greeter. Se autorização é necessária, aprove a caixa de diálogo do polkit no Noctalia, em um TTY ou em um console.",
+      "greeter-sync-pending-console": "Sincronizando aparência para o greeter. Se autorização é necessária, aprove a caixa de diálogo do polkit no Nythera, em um TTY ou em um console.",
       "greeter-sync-pending-legacy": "Sincronizando através do utilitário legado. Aprovação do administrador é necessária.",
-      "greeter-sync-pending-manual": "Os arquivos estão preparados para a sincronização legada autenticada. Execute o auxiliar de aplicação posicional em um terminal, mantendo o NOCTALIA_GREETER_STATE_DIR caso utilize um caminho personalizado, ou configure o shell.greeter_sync.privilege_command e sincronize novamente.",
-      "greeter-sync-pending-manual-pkexec": "Sincronizando aparência para o greeter. Se autorização de administrador for necessária e não for apresentada uma caixa de diálogo, execute em um terminal: pkexec noctalia-greeter-apply-appearance --sync \"/run/user/$(id -u)/noctalia-greeter-sync\".",
+      "greeter-sync-pending-manual": "Os arquivos estão preparados para a sincronização legada autenticada. Execute o auxiliar de aplicação posicional em um terminal, mantendo o NYTHERA_GREETER_STATE_DIR caso utilize um caminho personalizado, ou configure o shell.greeter_sync.privilege_command e sincronize novamente.",
+      "greeter-sync-pending-manual-pkexec": "Sincronizando aparência para o greeter. Se autorização de administrador for necessária e não for apresentada uma caixa de diálogo, execute em um terminal: pkexec nythera-greeter-apply-appearance --sync \"/run/user/$(id -u)/nythera-greeter-sync\".",
       "greeter-sync-success": "Aparência sincronizada. As alterações serão aplicadas na próxima tela de login.",
       "greeter-sync-timeout": "A sincronização do Greeter ainda está aguardando autorização. Verifique se há uma caixa de diálogo do polkit em um TTY ou console, habilite o agente polkit nas configurações de Segurança ou execute o pkexec manualmente.",
-      "greeter-sync-timeout-manual": "A sincronização legada do Greeter ainda precisa da autorização. Execute o auxiliar de aplicação posicional em um terminal e preserve NOCTALIA_GREETER_STATE_DIR se você utiliza um caminho personalizado.",
-      "greeter-sync-timeout-manual-pkexec": "Sincronização com o greeter continua necessitando autorização. Execute em um terminal: pkexec noctalia-greeter-apply-appearance --sync \"/run/user/$(id -u)/noctalia-greeter-sync\"",
-      "keybind-app": "Noctalia",
+      "greeter-sync-timeout-manual": "A sincronização legada do Greeter ainda precisa da autorização. Execute o auxiliar de aplicação posicional em um terminal e preserve NYTHERA_GREETER_STATE_DIR se você utiliza um caminho personalizado.",
+      "greeter-sync-timeout-manual-pkexec": "Sincronização com o greeter continua necessitando autorização. Execute em um terminal: pkexec nythera-greeter-apply-appearance --sync \"/run/user/$(id -u)/nythera-greeter-sync\"",
+      "keybind-app": "Nythera",
       "keybind-invalid-modifier": "Este atalho aceita uma única tecla sem modificadores.",
       "keybind-invalid-printable": "Teclas imprimíveis (letras, números, símbolos) requerem uma tecla modificadora como Ctrl ou Alt.",
       "keybind-invalid-super": "A tecla Super/Windows não pode ser usada em atalhos de teclado do shell.",
@@ -1056,7 +1056,7 @@
     },
     "enable-failed": {
       "body-error": "{plugin}: {error}",
-      "body-incompatible": "O plugin {plugin} requer a versão {version} da API de plugins; este Noctalia suporta as APIs {oldest}–{current}",
+      "body-incompatible": "O plugin {plugin} requer a versão {version} da API de plugins; este Nythera suporta as APIs {oldest}–{current}",
       "body-timeout": "A instalação do {plugin} demorou muito.",
       "title": "Plugin não habilitado"
     }
@@ -1359,10 +1359,10 @@
       },
       "reset-page": "Falha ao redefinir algumas configurações.",
       "support-report": "Falha em salvar o relatório de suporte.",
-      "sync-greeter": "Não foi possível sincronizar a aparência com o Noctalia Greeter.",
+      "sync-greeter": "Não foi possível sincronizar a aparência com o Nythera Greeter.",
       "sync-greeter-timeout": "A sincronização do Greeter ainda está aguardando a autorização. Verifique se há uma caixa de diálogo do polkit em um TTY ou console, habilite o agente polkit nas configurações de Segurança ou execute o pkexec manualmente.",
-      "sync-greeter-timeout-manual": "A sincronização legada do Greeter ainda precisa da autorização do administrador. Execute o auxiliar de aplicação posicional em um terminal e preserve NOCTALIA_GREETER_STATE_DIR se você utiliza um caminho personalizado.",
-      "sync-greeter-timeout-manual-pkexec": "Sincronização com o greeter continua necessitando autorização. Execute em um terminal: pkexec noctalia-greeter-apply-appearance --sync \"/run/user/$(id -u)/noctalia-greeter-sync\"",
+      "sync-greeter-timeout-manual": "A sincronização legada do Greeter ainda precisa da autorização do administrador. Execute o auxiliar de aplicação posicional em um terminal e preserve NYTHERA_GREETER_STATE_DIR se você utiliza um caminho personalizado.",
+      "sync-greeter-timeout-manual-pkexec": "Sincronização com o greeter continua necessitando autorização. Execute em um terminal: pkexec nythera-greeter-apply-appearance --sync \"/run/user/$(id -u)/nythera-greeter-sync\"",
       "widget": {
         "rename": "Não foi possível renomar o widget nomeado."
       },
@@ -1815,7 +1815,7 @@
         "deprecated": "Obsoleto",
         "empty": "Nenhum plugin habilitado.",
         "held-back": "versão mais antiga",
-        "held-back-hint": "v{version} requer a API de plugins {required}; este Noctalia suporta até {current}. Atualize o Noctalia para obtê-la.",
+        "held-back-hint": "v{version} requer a API de plugins {required}; este Nythera suporta até {current}. Atualize o Nythera para obtê-la.",
         "incompatible-plugin-api": "APi de plugin incoompatível",
         "remove": "Remover plugin",
         "requires": "Requer: {dependencies}",
@@ -1849,7 +1849,7 @@
         "kind-label": "Tipo",
         "location-label": "Localização",
         "location-placeholder-git": "https://github.com/me/noctalia-plugins",
-        "location-placeholder-path": "~/dev/noctalia-plugins",
+        "location-placeholder-path": "~/dev/nythera-plugins",
         "name-label": "ID da Fonte",
         "name-placeholder": "meus-plugins",
         "precedence-hint": "As fontes de nível inferior têm prioridade sobre as de nível superior quando oferecem o mesmo plug-in.",
@@ -1859,15 +1859,15 @@
         "update": "Atualizar fonte"
       },
       "store": {
-        "add": "Adicionar ao Noctalia",
+        "add": "Adicionar ao Nythera",
         "back-to-catalog": "Voltar ao catálogo de plugins",
         "categories": "Categoria",
         "category-all": "Todos",
         "empty": "Não foram encontrados plugins",
         "held-back": "Versão mais antiga",
-        "held-back-hint": "Instala a v{version} para a API de plugins {resolved}. A versão mais recente v{latest} requer a API de plugins {latestRequired}; este Noctalia suporta até {current}.",
+        "held-back-hint": "Instala a v{version} para a API de plugins {resolved}. A versão mais recente v{latest} requer a API de plugins {latestRequired}; este Nythera suporta até {current}.",
         "incompatible": "Incompatível",
-        "incompatible-hint": "Requer a API de plugins {required}; este Noctalia suporta {oldest}–{current}.",
+        "incompatible-hint": "Requer a API de plugins {required}; este Nythera suporta {oldest}–{current}.",
         "installed": "Instalado",
         "loading": "Carregando catálogo...",
         "no-readme": "Nenhuma descrição disponível.",
@@ -1944,7 +1944,7 @@
           "label": "Arredondamento dos Cantos"
         },
         "custom-palette": {
-          "description": "Escolha uma paleta em ~/.config/noctalia/palettes/",
+          "description": "Escolha uma paleta em ~/.config/nythera/palettes/",
           "label": "Paleta Personalizada",
           "search-placeholder": "Busque paletas personalizadas..."
         },
@@ -1993,7 +1993,7 @@
           "label": "Preto Puro"
         },
         "shell-theme-mode": {
-          "description": "Fixar modo Claro ou Escuro do Noctalia; Seguir mantém em sincronia com o Modo do Tema",
+          "description": "Fixar modo Claro ou Escuro do Nythera; Seguir mantém em sincronia com o Modo do Tema",
           "label": "Modo do Tema do Shell"
         },
         "show-close-buttons": {
@@ -2459,7 +2459,7 @@
             "label": "Ao Desligar"
           },
           "started": {
-            "description": "Comando para executar após o Noctalia iniciar",
+            "description": "Comando para executar após o Nythera iniciar",
             "label": "Ao Iniciar"
           },
           "theme-mode-changed": {
@@ -2467,7 +2467,7 @@
             "label": "Ao Mudar o Modo do Tema"
           },
           "wallpaper-changed": {
-            "description": "Comando para executar quando o papel de parede mudar; fornece NOCTALIA_WALLPAPER_PATH e NOCTALIA_WALLPAPER_CONNECTOR",
+            "description": "Comando para executar quando o papel de parede mudar; fornece NYTHERA_WALLPAPER_PATH e NYTHERA_WALLPAPER_CONNECTOR",
             "label": "Ao Mudar o Papel de Parede"
           },
           "wifi-disabled": {
@@ -2886,7 +2886,7 @@
           "label": "Mostrar Botão de Sessão"
         },
         "launcher-show-settings-button": {
-          "description": "Mostrar um atalho nas Configurações Noctalia",
+          "description": "Mostrar um atalho nas Configurações Nythera",
           "label": "Mostrar Botão Configurações"
         },
         "launcher-sort-by-usage": {
@@ -3395,9 +3395,9 @@
           "label": "Rótulos de Layouts de Teclado"
         },
         "launch-apps-as-systemd-services": {
-          "description": "Executa aplicativos em serviços systemd separados para que não compartilhem o cgroup do Noctalia",
+          "description": "Executa aplicativos em serviços systemd separados para que não compartilhem o cgroup do Nythera",
           "label": "Iniciar Apps como Serviços do Systemd",
-          "requires-systemd-session": "Requer que o Noctalia seja executado como um serviço de usuário do systemd (uwsm ou uma unidade de usuário do systemd)"
+          "requires-systemd-session": "Requer que o Nythera seja executado como um serviço de usuário do systemd (uwsm ou uma unidade de usuário do systemd)"
         },
         "launch-apps-custom-command": {
           "description": "Envolve apps iniciados pelo launcher, dock e taskbar; substitui $CMD pelo comando original",
@@ -3680,8 +3680,8 @@
         },
         "sync-greeter": {
           "button": "Sincronizar Agora",
-          "description": "Copiar a aparência atual e arranjo de monitores para o Noctalia Greeter. Aprovação de administrador é necessária a não ser que políticas de sistema autorizem sincronização sem senha para seu usuário.",
-          "label": "Noctalia Greeter"
+          "description": "Copiar a aparência atual e arranjo de monitores para o Nythera Greeter. Aprovação de administrador é necessária a não ser que políticas de sistema autorizem sincronização sem senha para seu usuário.",
+          "label": "Nythera Greeter"
         },
         "telemetry": {
           "description": "Envia um pequeno ping anônimo de inicialização com a versão, o sistema operacional, o compositor, as resoluções do monitor, a RAM e a escala da interface do usuário",
@@ -4058,7 +4058,7 @@
             "label": "Definir perfil do EasyEffects"
           },
           "greeter-sync": {
-            "description": "Sincronizar papel de parede, cores e layout de monitor como Noctalia Greeter",
+            "description": "Sincronizar papel de parede, cores e layout de monitor como Nythera Greeter",
             "label": "Sincronizar aparência do greeter"
           },
           "keyboard-backlight-down": {
@@ -4174,7 +4174,7 @@
             "label": "Invocar a ação mais recente de notificação"
           },
           "notification-show": {
-            "description": "Mostrar uma notificação interna de Noctalia",
+            "description": "Mostrar uma notificação interna de Nythera",
             "label": "Mostrar uma notificação"
           },
           "osd-disable": {
@@ -4250,7 +4250,7 @@
             "label": "Abrir configurações"
           },
           "settings-open-plugin": {
-            "description": "Abrir a janela de configurações na configuração de um plugin (ex.: noctalia/notes)",
+            "description": "Abrir a janela de configurações na configuração de um plugin (ex.: nythera/notes)",
             "label": "Abrir configurações de plugin"
           },
           "settings-open-widget": {
@@ -5149,8 +5149,8 @@
       "export-config": "Exportar Config...",
       "export-config-saved": "Exportação de configuração salva.",
       "filter-overridden": "Sobrescrito",
-      "legacy-config-warning": "Configurações Legadas: {issue}. Edite esta entrada na fonte; Noctalia está aplicando está substituição só temporariamente. Execute nocatlia config validade para listar cada mudança necessária.",
-      "native-title": "Configurações do Noctalia",
+      "legacy-config-warning": "Configurações Legadas: {issue}. Edite esta entrada na fonte; Nythera está aplicando está substituição só temporariamente. Execute nocatlia config validade para listar cada mudança necessária.",
+      "native-title": "Configurações do Nythera",
       "no-results": "Nenhuma configuração encontrada",
       "no-results-hint": "Tente um nome diferente de configuração ou uma tecla de config.",
       "offline-mode-notice": {
@@ -5186,7 +5186,7 @@
     "no-wallpaper-selected": "Nenhum papel de parede selecionado",
     "select-wallpaper": "Selecione papel de parede",
     "subtitle": "Algumas escolhas rápidas para os primeiros passos",
-    "title": "Seja Bem-Vindo ao Noctalia",
+    "title": "Seja Bem-Vindo ao Nythera",
     "wallpaper": "Papel de parede",
     "wallpaper-scheme": "Esquema do Papel de Parede"
   },

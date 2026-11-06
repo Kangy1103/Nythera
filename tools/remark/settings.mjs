@@ -1,4 +1,4 @@
-// Parser plugins match the docs site (../noctalia-docs/astro.config.mjs): MDX, GFM, directives (Starlight asides),
+// Parser plugins match the docs site (../nythera-docs/astro.config.mjs): MDX, GFM, directives (Starlight asides),
 // custom heading ids, and frontmatter. Math (`$...$`, `$$...$$`) is parsed so GitHub-rendered formulas are kept
 // verbatim. Stringify options follow the existing docs style.
 import { remark } from 'remark';

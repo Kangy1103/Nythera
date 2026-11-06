@@ -16,7 +16,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace noctalia::config::schema {
+namespace nythera::config::schema {
 
   namespace {
     template <typename Struct, typename Enum, std::size_t N>
@@ -1556,7 +1556,7 @@ namespace noctalia::config::schema {
     const Schema<ShellConfig::LauncherConfig>& shellLauncherSchema() {
       static const Schema<ShellConfig::LauncherConfig> s = {
           enumField(&ShellConfig::LauncherConfig::layout, "layout", ShellConfig::kLauncherLayouts),
-          field(&ShellConfig::LauncherConfig::width, "width", noctalia::config::schema::kLauncherWidthRange),
+          field(&ShellConfig::LauncherConfig::width, "width", nythera::config::schema::kLauncherWidthRange),
           enumField(
               &ShellConfig::LauncherConfig::searchPosition, "search_position", ShellConfig::kLauncherSearchPositions
           ),
@@ -2828,4 +2828,4 @@ namespace noctalia::config::schema {
     return s;
   }
 
-} // namespace noctalia::config::schema
+} // namespace nythera::config::schema

@@ -2,12 +2,12 @@
 
 #include "shell/bar/widgets/glyph_button_definition.h"
 
-const noctalia::bar::WidgetDefinition<ScreenshotWidget::Options>& screenshotWidgetDefinition() {
+const nythera::bar::WidgetDefinition<ScreenshotWidget::Options>& screenshotWidgetDefinition() {
   using Options = ScreenshotWidget::Options;
 
-  static const noctalia::bar::WidgetDefinition<Options> definition{
+  static const nythera::bar::WidgetDefinition<Options> definition{
       .type = "screenshot",
-      .fields = noctalia::bar::glyphButtonFields<Options>(),
+      .fields = nythera::bar::glyphButtonFields<Options>(),
   };
   return definition;
 }

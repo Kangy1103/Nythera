@@ -8,7 +8,7 @@
 #include <string>
 #include <string_view>
 
-namespace noctalia::bar {
+namespace nythera::bar {
 
   struct TaskbarLayoutFrame {
     float x = 0.0F;
@@ -54,4 +54,4 @@ namespace noctalia::bar {
   taskbarBadgeContentStart(bool vertical, bool corner, float badgeMain, float outlineInset, float gap) {
     return (vertical ? outlineInset + badgeMain : badgeMain * (corner ? 0.8F : 0.6F)) + gap;
   }
-} // namespace noctalia::bar
+} // namespace nythera::bar

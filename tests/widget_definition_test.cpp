@@ -321,9 +321,9 @@ int main() {
           != std::unordered_map<std::string, std::string>{{"Noise Canceling", "microphone"}}) {
     fail("volume", "input device or effects profile glyph map did not resolve");
   }
-  const auto inputGestures = noctalia::bar::gestureDefaultsForType("volume", &inputVolume);
+  const auto inputGestures = nythera::bar::gestureDefaultsForType("volume", &inputVolume);
   const auto inputMute =
-      std::ranges::find(inputGestures, noctalia::bar::Gesture::Right, &noctalia::bar::GestureBinding::gesture);
+      std::ranges::find(inputGestures, nythera::bar::Gesture::Right, &nythera::bar::GestureBinding::gesture);
   if (inputMute == inputGestures.end() || inputMute->action != "mic-mute") {
     fail("volume", "input device did not select microphone gesture defaults");
   }

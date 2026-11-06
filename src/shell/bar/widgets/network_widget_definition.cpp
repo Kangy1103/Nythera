@@ -13,11 +13,11 @@ namespace {
 
 } // namespace
 
-const noctalia::bar::WidgetDefinition<NetworkWidget::Options>& networkWidgetDefinition() {
-  using noctalia::bar::field;
+const nythera::bar::WidgetDefinition<NetworkWidget::Options>& networkWidgetDefinition() {
+  using nythera::bar::field;
   using Options = NetworkWidget::Options;
 
-  static const noctalia::bar::WidgetDefinition<Options> definition{
+  static const nythera::bar::WidgetDefinition<Options> definition{
       .type = "network",
       .fields = {
           field<&Options::vpnStatusMode>({

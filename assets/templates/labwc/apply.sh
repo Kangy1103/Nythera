@@ -2,9 +2,9 @@
 set -euo pipefail
 
 config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/labwc"
-theme_dir="${XDG_DATA_HOME:-$HOME/.local/share}/themes/noctalia/openbox-3"
+theme_dir="${XDG_DATA_HOME:-$HOME/.local/share}/themes/nythera/openbox-3"
 theme_file="$theme_dir/themerc"
-source_theme="$config_dir/noctalia.conf"
+source_theme="$config_dir/nythera.conf"
 rc_file="$config_dir/rc.xml"
 
 mkdir -p "$config_dir" "$theme_dir"
@@ -26,7 +26,7 @@ write_if_changed() {
 }
 
 if [ ! -f "$rc_file" ]; then
-    printf 'Warning: %s is missing; select the installed Noctalia theme in your active Labwc configuration manually by setting this inside <labwc_config>:\n<theme>\n  <name>noctalia</name>\n</theme>\n' "$rc_file" >&2
+    printf 'Warning: %s is missing; select the installed Nythera theme in your active Labwc configuration manually by setting this inside <labwc_config>:\n<theme>\n  <name>nythera</name>\n</theme>\n' "$rc_file" >&2
     exit 1
 fi
 
@@ -47,10 +47,10 @@ if grep -q '<theme>' "$rc_file"; then
         sed '/<theme>/,/<\/theme>/ {
             /<font[[:space:]>].*<\/font>/b
             /<font[[:space:]>]/,/<\/font>/b
-            s|<name>.*</name>|<name>noctalia</name>|
+            s|<name>.*</name>|<name>nythera</name>|
         }' "$rc_file" >"$tmp_file"
     else
-        sed '/<theme>/a\    <name>noctalia</name>' "$rc_file" >"$tmp_file"
+        sed '/<theme>/a\    <name>nythera</name>' "$rc_file" >"$tmp_file"
     fi
 else
     if ! grep -qE '<labwc_config([[:space:]>])' "$rc_file"; then
@@ -58,7 +58,7 @@ else
         exit 1
     fi
 
-    sed '/<labwc_config[[:space:]>]/a\  <theme>\n    <name>noctalia</name>\n  </theme>' "$rc_file" >"$tmp_file"
+    sed '/<labwc_config[[:space:]>]/a\  <theme>\n    <name>nythera</name>\n  </theme>' "$rc_file" >"$tmp_file"
 fi
 
 trap - EXIT

@@ -34,7 +34,7 @@
 #include <utility>
 #include <vector>
 
-namespace noctalia::config {
+namespace nythera::config {
   namespace {
 
     std::string formatBound(double value) {
@@ -335,11 +335,11 @@ namespace noctalia::config {
             if (!gestureActions) {
               continue;
             }
-            if (!noctalia::bar::parseGestureKey(mapKey.str()).has_value()) {
+            if (!nythera::bar::parseGestureKey(mapKey.str()).has_value()) {
               reportError(entryPath, "unknown gesture");
               continue;
             }
-            if (auto action = noctalia::bar::parseWidgetAction(*value); !action.has_value()) {
+            if (auto action = nythera::bar::parseWidgetAction(*value); !action.has_value()) {
               reportError(entryPath, action.error());
             }
           }
@@ -905,4 +905,4 @@ namespace noctalia::config {
     return diag;
   }
 
-} // namespace noctalia::config
+} // namespace nythera::config

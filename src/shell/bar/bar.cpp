@@ -362,16 +362,16 @@ namespace {
   }
 
   bool dispatchBarDeadZoneGesture(
-      BarInstance& instance, noctalia::bar::Gesture gesture, float sx, float sy, CompositorPlatform* platform,
-      const noctalia::bar::WidgetActionDispatcher& dispatcher
+      BarInstance& instance, nythera::bar::Gesture gesture, float sx, float sy, CompositorPlatform* platform,
+      const nythera::bar::WidgetActionDispatcher& dispatcher
   ) {
     const auto* action = instance.deadZoneBindings.find(gesture);
     if (action == nullptr) {
       return false;
     }
 
-    if (action->kind == noctalia::bar::WidgetAction::Kind::Ipc && noctalia::bar::isAnchoredPanelVerb(action->verb)) {
-      const auto args = noctalia::bar::parsePanelVerbArgs(action->args);
+    if (action->kind == nythera::bar::WidgetAction::Kind::Ipc && nythera::bar::isAnchoredPanelVerb(action->verb)) {
+      const auto args = nythera::bar::parsePanelVerbArgs(action->args);
       if (args.panelId.empty()) {
         kLog.error(
             "bar.{}.dead_zone.actions.{}: \"{}\" needs a panel id", instance.barConfig.name, gestureConfigKey(gesture),
@@ -393,12 +393,12 @@ namespace {
 
   bool handleBarDeadZoneButton(
       BarInstance& instance, float sx, float sy, std::uint32_t button, CompositorPlatform* platform,
-      const noctalia::bar::WidgetActionDispatcher& dispatcher
+      const nythera::bar::WidgetActionDispatcher& dispatcher
   ) {
     if (!isBarDeadZone(instance, sx, sy)) {
       return false;
     }
-    const auto gesture = noctalia::bar::gestureForButton(button);
+    const auto gesture = nythera::bar::gestureForButton(button);
     if (!gesture.has_value()) {
       return false;
     }
@@ -407,7 +407,7 @@ namespace {
 
   bool handleBarDeadZoneAxis(
       BarInstance& instance, float sx, float sy, const PointerEvent& event, CompositorPlatform* platform,
-      const noctalia::bar::WidgetActionDispatcher& dispatcher
+      const nythera::bar::WidgetActionDispatcher& dispatcher
   ) {
     if (!isBarDeadZone(instance, sx, sy)) {
       return false;
@@ -416,7 +416,7 @@ namespace {
     // Routed through a scene-less InputArea for detent accumulation. Cycle actions fire once per
     // gesture; other actions fire for every step, matching a widget's `scroll_repeat = "auto"`.
     instance.deadZoneAxisSink.setOnAxisHandler([&](const InputArea::PointerData& data) {
-      const auto gesture = noctalia::bar::gestureForScroll(data.axis, data.scrollSteps());
+      const auto gesture = nythera::bar::gestureForScroll(data.axis, data.scrollSteps());
       if (!gesture.has_value()) {
         return false;
       }
@@ -1783,7 +1783,7 @@ void Bar::onSecondTick() {
 }
 
 void Bar::reload() {
-  noctalia::profiling::ScopedTimer t(kLog, "bar: reload (all instances)");
+  nythera::profiling::ScopedTimer t(kLog, "bar: reload (all instances)");
   kLog.info("reloading config");
   const auto previousBars = m_lastBars;
   const auto previousShadow = m_lastShadow;
@@ -2694,7 +2694,7 @@ void Bar::createInstance(const WaylandOutput& output, std::size_t barIndex, cons
   );
 
   auto surfaceConfig = LayerSurfaceConfig{
-      .nameSpace = "noctalia-bar-" + barConfig.name,
+      .nameSpace = "nythera-bar-" + barConfig.name,
       .layer = layerShellLayerFromConfig(barConfig.layer),
       .anchor = anchor,
       .width = surfaceSpec.surfaceWidth,
@@ -2781,8 +2781,8 @@ void Bar::destroyInstance(std::uint32_t outputName) {
 
 void Bar::populateWidgets(BarInstance& instance) {
   instance.deadZoneBindings.resolve(
-      noctalia::bar::WidgetActionBindings::Inputs{
-          .widgetDefaults = noctalia::bar::deadZoneGestureDefaults(),
+      nythera::bar::WidgetActionBindings::Inputs{
+          .widgetDefaults = nythera::bar::deadZoneGestureDefaults(),
           .widgetActions = &instance.barConfig.deadZone.actions,
           .widgetContext = "bar." + instance.barConfig.name + ".dead_zone",
           .widgetName = instance.barConfig.name,
@@ -2791,7 +2791,7 @@ void Bar::populateWidgets(BarInstance& instance) {
   );
   {
     std::string summary;
-    for (const auto gesture : noctalia::bar::allGestures()) {
+    for (const auto gesture : nythera::bar::allGestures()) {
       const auto* action = instance.deadZoneBindings.find(gesture);
       if (action == nullptr) {
         continue;
@@ -3337,7 +3337,7 @@ void Bar::updateAccordionExpansion(BarInstance& instance, InputArea* hoveredArea
 }
 
 void Bar::rebuildInstanceContents(BarInstance& instance, const BarConfig& newConfig) {
-  noctalia::profiling::ScopedTimer t(kLog, std::format("bar: rebuild contents [{}]", newConfig.name));
+  nythera::profiling::ScopedTimer t(kLog, std::format("bar: rebuild contents [{}]", newConfig.name));
 
   const bool restartHideDelay =
       instance.autoHideDelayTimer.active() && instance.barConfig.autoHideDelayMs != newConfig.autoHideDelayMs;
@@ -4294,7 +4294,7 @@ namespace {
       std::string_view command, std::string_view args, std::optional<std::string>& barName,
       std::optional<std::string>& monitorSelector
   ) {
-    const auto parts = noctalia::ipc::splitWords(args);
+    const auto parts = nythera::ipc::splitWords(args);
     if (parts.size() > 2) {
       return "error: usage: " + std::string(command) + " [bar-name] [monitor-selector]\n";
     }
@@ -4414,7 +4414,7 @@ std::string Bar::setBarAutoHideIpc(std::string_view args) {
     return "error: config service not initialized\n";
   }
 
-  const auto parts = noctalia::ipc::splitWords(args);
+  const auto parts = nythera::ipc::splitWords(args);
   if (parts.empty() || parts.size() > 3) {
     return "error: usage: bar-auto-hide-set <on|off|smart|true|false|1|0> [bar-name] [monitor-selector]\n";
   }
@@ -4530,7 +4530,7 @@ std::string Bar::setBarAutoHideIpc(std::string_view args) {
 }
 
 std::string Bar::setBarLayerIpc(std::string_view args) {
-  const auto parts = noctalia::ipc::splitWords(args);
+  const auto parts = nythera::ipc::splitWords(args);
   if (parts.empty() || parts.size() > 3) {
     return "error: usage: bar-layer-set <top|overlay> [bar-name] [monitor-selector]\n";
   }
@@ -4598,8 +4598,8 @@ void Bar::registerIpc(IpcService& ipc) {
   // Widget gesture actions dispatch through the same registry.
   m_actionDispatcher.setIpcService(&ipc);
 
-  ipc.bindCycle(noctalia::cli::msg::taskbarCycle, [this, &ipc](const std::string& args) -> std::string {
-    const auto parts = noctalia::ipc::splitWords(args);
+  ipc.bindCycle(nythera::cli::msg::taskbarCycle, [this, &ipc](const std::string& args) -> std::string {
+    const auto parts = nythera::ipc::splitWords(args);
     if (parts.size() != 1 || (parts[0] != "next" && parts[0] != "prev")) {
       return "error: taskbar-cycle requires <next|prev>\n";
     }
@@ -4617,31 +4617,31 @@ void Bar::registerIpc(IpcService& ipc) {
     return "ok\n";
   });
 
-  ipc.bind(noctalia::cli::msg::islandActivity, [this](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::islandActivity, [this](const std::string& args) -> std::string {
     std::istringstream input(args); std::string command, value, extra; input >> command >> value;
     if (input >> extra) return "error: expected action and optional value\n";
     for (const auto& instance : m_instances) if (instance->dynamicIsland && instance->output == m_platform->preferredInteractiveOutput())
       return instance->dynamicIsland->activityCommand(command,value) ? "ok\n" : "error: invalid action/value or event disabled\n";
     return "error: no Dynamic Island on focused output\n";
   });
-  ipc.bind(noctalia::cli::msg::barIslandToggle, [this](const std::string& args) { return toggleDynamicIslandIpc(args); });
-  ipc.bind(noctalia::cli::msg::barShow, [this](const std::string& args) -> std::string { return showBarIpc(args); });
+  ipc.bind(nythera::cli::msg::barIslandToggle, [this](const std::string& args) { return toggleDynamicIslandIpc(args); });
+  ipc.bind(nythera::cli::msg::barShow, [this](const std::string& args) -> std::string { return showBarIpc(args); });
 
-  ipc.bind(noctalia::cli::msg::barHide, [this](const std::string& args) -> std::string { return hideBarIpc(args); });
+  ipc.bind(nythera::cli::msg::barHide, [this](const std::string& args) -> std::string { return hideBarIpc(args); });
 
-  ipc.bind(noctalia::cli::msg::barToggle, [this](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::barToggle, [this](const std::string& args) -> std::string {
     return toggleBarIpc(args);
   });
 
-  ipc.bind(noctalia::cli::msg::barReserveToggle, [this](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::barReserveToggle, [this](const std::string& args) -> std::string {
     return toggleBarReserveSpaceIpc(args);
   });
 
-  ipc.bind(noctalia::cli::msg::barAutoHideSet, [this](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::barAutoHideSet, [this](const std::string& args) -> std::string {
     return setBarAutoHideIpc(args);
   });
 
-  ipc.bind(noctalia::cli::msg::barLayerSet, [this](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::barLayerSet, [this](const std::string& args) -> std::string {
     return setBarLayerIpc(args);
   });
 }

@@ -22,8 +22,8 @@
 
 namespace {
 
-  using noctalia::theme::GeneratedPalette;
-  using noctalia::theme::TemplateApplyService;
+  using nythera::theme::GeneratedPalette;
+  using nythera::theme::TemplateApplyService;
 
   GeneratedPalette paletteWith(std::uint32_t surface) {
     GeneratedPalette palette;
@@ -100,7 +100,7 @@ namespace {
     );
     writeFile(root / "input.tmpl", "generated theme\n");
     writeFile(
-        root / "config" / "noctalia" / "config.toml",
+        root / "config" / "nythera" / "config.toml",
         "[theme.templates.user.warning]\n"
         "enabled = true\n"
         "input_path = \""
@@ -210,14 +210,14 @@ namespace {
 
 int main() {
   const std::filesystem::path root =
-      std::filesystem::temp_directory_path() / ("noctalia-template-notify-" + std::to_string(::getpid()));
+      std::filesystem::temp_directory_path() / ("nythera-template-notify-" + std::to_string(::getpid()));
   std::filesystem::remove_all(root);
-  std::filesystem::create_directories(root / "config" / "noctalia");
+  std::filesystem::create_directories(root / "config" / "nythera");
   std::filesystem::create_directories(root / "state");
   std::filesystem::create_directories(root / "data");
-  ::setenv("NOCTALIA_CONFIG_HOME", (root / "config").c_str(), 1);
-  ::setenv("NOCTALIA_STATE_HOME", (root / "state").c_str(), 1);
-  ::setenv("NOCTALIA_DATA_HOME", (root / "data").c_str(), 1);
+  ::setenv("NYTHERA_CONFIG_HOME", (root / "config").c_str(), 1);
+  ::setenv("NYTHERA_STATE_HOME", (root / "state").c_str(), 1);
+  ::setenv("NYTHERA_DATA_HOME", (root / "data").c_str(), 1);
 
   int applications = 0;
   int paletteChanges = 0;
@@ -280,9 +280,9 @@ int main() {
   testHookWarnings(root, /*async=*/true);
   testHookWarnings(root, /*async=*/false);
 
-  ::unsetenv("NOCTALIA_CONFIG_HOME");
-  ::unsetenv("NOCTALIA_STATE_HOME");
-  ::unsetenv("NOCTALIA_DATA_HOME");
+  ::unsetenv("NYTHERA_CONFIG_HOME");
+  ::unsetenv("NYTHERA_STATE_HOME");
+  ::unsetenv("NYTHERA_DATA_HOME");
   std::filesystem::remove_all(root);
   return 0;
 }

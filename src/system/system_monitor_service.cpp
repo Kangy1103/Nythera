@@ -404,11 +404,11 @@ namespace {
     return total;
   }
 
-  noctalia::system::cpu_temp::ProbeResult readCpuTempSensor(const SystemConfig::MonitorConfig& config) {
+  nythera::system::cpu_temp::ProbeResult readCpuTempSensor(const SystemConfig::MonitorConfig& config) {
     try {
-      return noctalia::system::cpu_temp::read("/sys/class/hwmon", "/sys/class/thermal", config.cpuTempSensorPath);
+      return nythera::system::cpu_temp::read("/sys/class/hwmon", "/sys/class/thermal", config.cpuTempSensorPath);
     } catch (...) {
-      return noctalia::system::cpu_temp::ProbeResult{
+      return nythera::system::cpu_temp::ProbeResult{
           .reading = std::nullopt, .error = "CPU temperature sensor scan failed"
       };
     }
@@ -937,11 +937,11 @@ private:
 // needs the previous scan kept between polls.
 struct SystemMonitorService::IntelGpuReader {
   IntelGpuReader() {
-    m_devices = noctalia::system::intel_gpu::findDevices();
+    m_devices = nythera::system::intel_gpu::findDevices();
     // A discrete card is the one that reports VRAM; order it ahead of an integrated GPU so the
     // stats describe the card the user cares about.
-    std::ranges::stable_partition(m_devices, [](const noctalia::system::intel_gpu::Device& device) {
-      return noctalia::system::intel_gpu::readVram(device).has_value();
+    std::ranges::stable_partition(m_devices, [](const nythera::system::intel_gpu::Device& device) {
+      return nythera::system::intel_gpu::readVram(device).has_value();
     });
   }
 
@@ -949,10 +949,10 @@ struct SystemMonitorService::IntelGpuReader {
 
   // The first scan only baselines the counters, so name the source before it can report a value.
   [[nodiscard]] std::string usageSource() const {
-    return m_devices.empty() ? std::string{} : noctalia::system::intel_gpu::usageSource(m_devices.front());
+    return m_devices.empty() ? std::string{} : nythera::system::intel_gpu::usageSource(m_devices.front());
   }
 
-  [[nodiscard]] std::optional<noctalia::system::intel_gpu::UsageReading> readUsage() {
+  [[nodiscard]] std::optional<nythera::system::intel_gpu::UsageReading> readUsage() {
     for (const auto& device : m_devices) {
       if (const auto reading = m_samplers[device.pciSlot].sample(device); reading.has_value()) {
         return reading;
@@ -961,9 +961,9 @@ struct SystemMonitorService::IntelGpuReader {
     return std::nullopt;
   }
 
-  [[nodiscard]] std::optional<noctalia::system::intel_gpu::VramReading> readVram() const {
+  [[nodiscard]] std::optional<nythera::system::intel_gpu::VramReading> readVram() const {
     for (const auto& device : m_devices) {
-      if (const auto reading = noctalia::system::intel_gpu::readVram(device); reading.has_value()) {
+      if (const auto reading = nythera::system::intel_gpu::readVram(device); reading.has_value()) {
         return reading;
       }
     }
@@ -971,8 +971,8 @@ struct SystemMonitorService::IntelGpuReader {
   }
 
 private:
-  std::vector<noctalia::system::intel_gpu::Device> m_devices;
-  std::unordered_map<std::string, noctalia::system::intel_gpu::UsageSampler> m_samplers;
+  std::vector<nythera::system::intel_gpu::Device> m_devices;
+  std::unordered_map<std::string, nythera::system::intel_gpu::UsageSampler> m_samplers;
 };
 
 SystemMonitorService::SystemMonitorService(const SystemConfig::MonitorConfig& config) {
@@ -1225,7 +1225,7 @@ void SystemMonitorService::stop() {
 
 void SystemMonitorService::logDetectedSources() {
   const SystemConfig::MonitorConfig pollCfg = pollConfig();
-  const auto cpu = noctalia::system::cpu_stat::readTotals();
+  const auto cpu = nythera::system::cpu_stat::readTotals();
   const auto mem = readMemoryKb();
   const auto net = readNetBytes();
   const auto load = readLoadAvg();
@@ -1256,7 +1256,7 @@ void SystemMonitorService::logDetectedSources() {
 void SystemMonitorService::samplingLoop() {
   using Clock = std::chrono::steady_clock;
 
-  namespace cpu_stat = noctalia::system::cpu_stat;
+  namespace cpu_stat = nythera::system::cpu_stat;
 
   auto prevCpu = cpu_stat::readTotals();
   std::optional<std::vector<cpu_stat::Totals>> prevCpuCores;
@@ -1349,7 +1349,7 @@ void SystemMonitorService::samplingLoop() {
       }
 
       nextCpu = now + cpuInterval;
-      const auto freq = noctalia::system::cpu_freq::readFreqs();
+      const auto freq = nythera::system::cpu_freq::readFreqs();
       {
         std::scoped_lock lock{m_statsMutex};
         m_latest.cpuFreqAvailable = freq.curMhz.has_value();

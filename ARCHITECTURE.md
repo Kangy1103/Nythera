@@ -1,6 +1,6 @@
 # Architecture
 
-This file describes the architecture inherited from Noctalia and the technical invariants that still apply to Nythera. It should be updated as Nythera's implementation diverges. Existing identifiers and code references below intentionally reflect the current implementation, not the planned rebrand. For code style, testing, commit conventions, and the project layout, see [CONTRIBUTING.md](CONTRIBUTING.md).
+This file describes the architecture inherited from Noctalia and the technical invariants that still apply to Nythera. It should be updated as Nythera's implementation diverges. Application-owned identifiers and code references below use Nythera. Upstream-hosted services keep their original endpoints. For code style, testing, commit conventions, and the project layout, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Event Loop
 
@@ -93,7 +93,7 @@ Vertical text centering lives in the `Label` engine, never in widgets. Widgets b
 
 ### Panels
 
-- Every panel (attached, detached, floating, centered) owns its own `noctalia-panel` layer surface and draws its own background, shadow, blur, and reveal animation.
+- Every panel (attached, detached, floating, centered) owns its own `nythera-panel` layer surface and draws its own background, shadow, blur, and reveal animation.
 - "Attached" is a placement mode only: the panel's own surface is anchored to the bar's edge at the bar's layer, with a clipped reveal. It is not hosted in the bar surface.
 - Attached and single-bar detached placement is computed before commit against a specific bar on a specific output, so a panel needs a concrete output before commit. A NULL layer-shell output would mis-anchor it.
 
@@ -140,7 +140,7 @@ Desktop widgets live under `src/shell/desktop/` and do not use the bar `Widget` 
 
 ## Services
 
-- **Idle**: `IdleManager` runs `ext_idle_notifier_v1` behaviors. Each `[idle.behavior.*]` has a `command` and an optional `resume_command`. `noctalia:dpms-off` gets an automatic `noctalia:dpms-on` on resume. `pre_action_fade_seconds` drives `IdleGraceOverlay` on overlay layer surfaces.
+- **Idle**: `IdleManager` runs `ext_idle_notifier_v1` behaviors. Each `[idle.behavior.*]` has a `command` and an optional `resume_command`. `nythera:dpms-off` gets an automatic `nythera:dpms-on` on resume. `pre_action_fade_seconds` drives `IdleGraceOverlay` on overlay layer surfaces.
 - **PipeWire**: access SPA pod arrays with the stable `SPA_POD_ARRAY_*` macros from `spa/pod/pod.h`, not `spa_pod_get_array_full()` (added in PipeWire 1.6, absent in 1.4). Cast macro results from `size_t` to `uint32_t` explicitly.
 - **Clipboard**: large payloads are written across `POLLOUT` ticks; do not close the send fd on `EAGAIN`.
 - **Weather**: `auto_locate` is best effort and uses the cached location on failure. `[shell].offline_mode = true` disables all HTTP traffic. Never log coordinates or location names.
@@ -151,18 +151,18 @@ Desktop widgets live under `src/shell/desktop/` and do not use the bar `Widget` 
 - Plugins are trusted Luau code: installing one is equivalent to running a user-owned script. There is no permission broker, capability sandbox, consent prompt, or path sandbox. Luau sandboxing exists only for VM and global-state isolation.
 - A distributable plugin is a directory with one static `plugin.toml`. There are no single-file `define{}` plugins and no manifest defaults in script code.
 - Canonical ids are `author/plugin` and `author/plugin:entry`. Entry types are `[[widget]]`, `[[shortcut]]`, `[[service]]`, `[[desktop_widget]]`, `[[launcher_provider]]`, `[[panel]]`, and `[[layer]]`.
-- Defaults live once in `plugin.toml`. Plugin code reads them with `noctalia.getConfig(key)` or `barWidget.getConfig(key)`; undeclared keys are loud misses. Plugin-level overrides live under `[plugin_settings."author/plugin"]`.
+- Defaults live once in `plugin.toml`. Plugin code reads them with `nythera.getConfig(key)` or `barWidget.getConfig(key)`; undeclared keys are loud misses. Plugin-level overrides live under `[plugin_settings."author/plugin"]`.
 - Plugin bar widgets use the normal named `[widget.<name>]` settings, so separate widget names can reuse one plugin entry with different settings. Entry-specific settings belong to the owning surface's config model.
 - Git and path source lifecycle belongs to `PluginManager` and `plugin_git.*`. Source names and plugin ids are validated flat identifiers before they touch paths. Git sources use an app-managed repo cache and exported runtime files (no sparse checkout); `path` sources are for local development.
-- Changes to the plugin-facing API (bindings in `src/scripting/luau_host.cpp` and `src/scripting/plugin_bindings.cpp`, the `ui.*` prelude in `src/scripting/ui_prelude.h`, or the entry callbacks the host calls) require a matching update to `noctalia.d.luau` in the official-plugins repository.
+- Changes to the plugin-facing API (bindings in `src/scripting/luau_host.cpp` and `src/scripting/plugin_bindings.cpp`, the `ui.*` prelude in `src/scripting/ui_prelude.h`, or the entry callbacks the host calls) require matching updates to `docs/plugin-api.json` and Nythera's plugin documentation. The external official-plugins repository still supplies `noctalia.d.luau`; that upstream API is translated at source ingestion as described in [REBRAND.md](REBRAND.md).
 
 ## Theming and Style
 
 - Style constants live in `src/ui/style.h`, colors in `src/ui/palette.h`. Controls aim for a rounded, comfortably spaced look tuned for a native 1080p desktop.
 - Terminology: `Palette` is a resolved RGB set, `ColorRole` a named slot, `ColorSpec` a role or fixed value. User-facing strings say "color role"; "theme" refers to the `[theme]` palette subsystem.
 - `FixedPaletteMode` carries `dark` and `light`, each with a UI `palette` and a nested `terminal` palette.
-- Palette JSON (community, custom, `noctalia theme --theme-json`) carries a top-level integer `version`; a file without one is format 1. Format 2 keys are the color role names (`on_primary`, `surface_container`, terminal `selection_fg`), listed once in `kFixedPaletteJsonKeys`. `src/theme/fixed_palette_json.cpp` upgrades older formats in memory on read and rejects newer ones. Community palette requests send `?version=<kPaletteFormatVersion>`, and the API answers with at most that format, converting newer palettes down so older shells keep working.
-- Built-in template hooks live beside their template (for example `assets/templates/fuzzel/apply.sh`). Community templates are fetched from `https://api.noctalia.dev/templates` and cached under `$XDG_STATE_HOME/noctalia/community-templates`. Template application runs on a background worker.
+- Palette JSON (community, custom, `nythera theme --theme-json`) carries a top-level integer `version`; a file without one is format 1. Format 2 keys are the color role names (`on_primary`, `surface_container`, terminal `selection_fg`), listed once in `kFixedPaletteJsonKeys`. `src/theme/fixed_palette_json.cpp` upgrades older formats in memory on read and rejects newer ones. Community palette requests send `?version=<kPaletteFormatVersion>`, and the API answers with at most that format, converting newer palettes down so older shells keep working.
+- Built-in template hooks live beside their template (for example `assets/templates/fuzzel/apply.sh`). Community templates are fetched from `https://api.noctalia.dev/templates` and cached under `$XDG_STATE_HOME/nythera/community-templates`. Template application runs on a background worker.
 - Glyph names resolve through `src/render/text/glyph_registry.cpp`: curated aliases, then `U+`/`0x` codepoints, then Tabler names from `tabler.json`. C++ glyph literals belong in the curated registry.
 
 ## Launcher

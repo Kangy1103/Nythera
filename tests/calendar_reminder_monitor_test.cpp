@@ -52,18 +52,18 @@ namespace {
 
 int main() {
   const auto root =
-      std::filesystem::temp_directory_path() / ("noctalia-reminder-monitor-test-" + std::to_string(::getpid()));
+      std::filesystem::temp_directory_path() / ("nythera-reminder-monitor-test-" + std::to_string(::getpid()));
   const auto configHome = root / "config";
   const auto stateHome = root / "state";
   const auto cacheHome = root / "cache";
-  const auto configDir = configHome / "noctalia";
+  const auto configDir = configHome / "nythera";
 
   std::filesystem::remove_all(root);
   std::filesystem::create_directories(configDir);
   std::filesystem::create_directories(stateHome);
   std::filesystem::create_directories(cacheHome);
-  ::setenv("NOCTALIA_CONFIG_HOME", configHome.c_str(), 1);
-  ::setenv("NOCTALIA_STATE_HOME", stateHome.c_str(), 1);
+  ::setenv("NYTHERA_CONFIG_HOME", configHome.c_str(), 1);
+  ::setenv("NYTHERA_STATE_HOME", stateHome.c_str(), 1);
   ::setenv("XDG_CACHE_HOME", cacheHome.c_str(), 1);
 
   {

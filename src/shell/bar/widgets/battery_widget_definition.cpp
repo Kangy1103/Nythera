@@ -2,12 +2,12 @@
 
 #include "system/battery_warning_monitor.h"
 
-const noctalia::bar::WidgetDefinition<BatteryWidget::Options, BatteryWidgetDefinitionContext>&
+const nythera::bar::WidgetDefinition<BatteryWidget::Options, BatteryWidgetDefinitionContext>&
 batteryWidgetDefinition() {
-  using noctalia::bar::field;
+  using nythera::bar::field;
   using Options = BatteryWidget::Options;
 
-  static const noctalia::bar::WidgetDefinition<Options, BatteryWidgetDefinitionContext> definition{
+  static const nythera::bar::WidgetDefinition<Options, BatteryWidgetDefinitionContext> definition{
       .type = "battery",
       .fields =
           {

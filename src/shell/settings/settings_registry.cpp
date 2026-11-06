@@ -65,8 +65,8 @@ namespace settings {
 
     // What the dead zone does for a gesture nobody has bound, shown as the row's placeholder so an
     // empty field never reads as "does nothing".
-    [[nodiscard]] std::string deadZoneDefault(noctalia::bar::Gesture gesture) {
-      for (const auto& binding : noctalia::bar::deadZoneGestureDefaults()) {
+    [[nodiscard]] std::string deadZoneDefault(nythera::bar::Gesture gesture) {
+      for (const auto& binding : nythera::bar::deadZoneGestureDefaults()) {
         if (binding.gesture == gesture) {
           return std::string(binding.action);
         }
@@ -127,7 +127,7 @@ namespace settings {
     // one source. `integerValue` (write as int64) stays explicit: it is a UI/write
     // choice, not implied by the range's numeric type (e.g. transition_duration).
     template <typename V, typename T>
-    SliderSetting sliderFor(V value, const noctalia::config::schema::Range<T>& range, bool integerValue) {
+    SliderSetting sliderFor(V value, const nythera::config::schema::Range<T>& range, bool integerValue) {
       return SliderSetting{
           static_cast<double>(value), static_cast<double>(range.min.value()), static_cast<double>(range.max.value()),
           static_cast<double>(range.step.value()), integerValue
@@ -226,8 +226,8 @@ namespace settings {
 
     SelectSetting builtinPaletteSelect(std::string_view selected, ThemeMode mode) {
       std::vector<SelectOption> opts;
-      opts.reserve(noctalia::theme::builtinPalettes().size());
-      for (const auto& palette : noctalia::theme::builtinPalettes()) {
+      opts.reserve(nythera::theme::builtinPalettes().size());
+      for (const auto& palette : nythera::theme::builtinPalettes()) {
         opts.push_back(
             SelectOption{
                 .value = std::string(palette.name),
@@ -589,7 +589,7 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Appearance, "interface", tr("settings.schema.appearance.corner-roundness.label"),
         tr("settings.schema.appearance.corner-roundness.description"), {"shell", "corner_radius_scale"},
-        sliderFor(cfg.shell.cornerRadiusScale, noctalia::config::schema::kCornerRadiusScaleRange, false),
+        sliderFor(cfg.shell.cornerRadiusScale, nythera::config::schema::kCornerRadiusScaleRange, false),
         "rounded corners radius"
     ));
     entries.push_back(makeEntry(
@@ -620,7 +620,7 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Appearance, "accessibility", tr("settings.schema.appearance.ui-scale.label"),
         tr("settings.schema.appearance.ui-scale.description"), {"accessibility", "ui_scale"},
-        sliderFor(cfg.accessibility.uiScale, noctalia::config::schema::kScaleRange, false), "size scale text panels"
+        sliderFor(cfg.accessibility.uiScale, nythera::config::schema::kScaleRange, false), "size scale text panels"
     ));
     entries.push_back(makeEntry(
         SettingsSection::Appearance, "accessibility", tr("settings.schema.accessibility.high-contrast.label"),
@@ -635,7 +635,7 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Appearance, "motion", tr("settings.schema.appearance.animation-speed.label"),
         tr("settings.schema.appearance.animation-speed.description"), {"shell", "animation", "speed"},
-        sliderFor(cfg.shell.animation.speed, noctalia::config::schema::kAnimationSpeedRange, false), "motion"
+        sliderFor(cfg.shell.animation.speed, nythera::config::schema::kAnimationSpeedRange, false), "motion"
     ));
     entries.push_back(makeEntry(
         SettingsSection::Appearance, "borders", tr("settings.schema.appearance.button-borders.label"),
@@ -665,7 +665,7 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Appearance, "effects", tr("settings.schema.shared.shadow-alpha.label"),
         tr("settings.schema.appearance.global-shadow-alpha.description"), {"shell", "shadow", "alpha"},
-        sliderFor(cfg.shell.shadow.alpha, noctalia::config::schema::kUnitRange, false), "shadow opacity", true
+        sliderFor(cfg.shell.shadow.alpha, nythera::config::schema::kUnitRange, false), "shadow opacity", true
     ));
     entries.push_back(makeEntry(
         SettingsSection::Appearance, "effects", tr("settings.schema.appearance.popup-shadows.label"),
@@ -823,14 +823,14 @@ namespace settings {
         SettingsSection::Wallpaper, "transition", tr("settings.schema.wallpaper.transition-duration.label"),
         tr("settings.schema.wallpaper.transition-duration.description"), {"wallpaper", "transition_duration"},
         sliderFor(
-            cfg.wallpaper.transitionDurationMs, noctalia::config::schema::kWallpaperTransitionDurationRange, true
+            cfg.wallpaper.transitionDurationMs, nythera::config::schema::kWallpaperTransitionDurationRange, true
         ),
         "fade animation"
     ));
     entries.push_back(makeEntry(
         SettingsSection::Wallpaper, "transition", tr("settings.schema.wallpaper.edge-smoothness.label"),
         tr("settings.schema.wallpaper.edge-smoothness.description"), {"wallpaper", "edge_smoothness"},
-        sliderFor(cfg.wallpaper.edgeSmoothness, noctalia::config::schema::kUnitRange, false), "transition feathering",
+        sliderFor(cfg.wallpaper.edgeSmoothness, nythera::config::schema::kUnitRange, false), "transition feathering",
         true
     ));
     entries.push_back(makeEntry(
@@ -849,9 +849,9 @@ namespace settings {
         {"wallpaper", "automation", "interval_seconds"},
         StepperSetting{
             .value = cfg.wallpaper.automation.intervalSeconds,
-            .minValue = static_cast<int>(noctalia::config::schema::kWallpaperAutomationIntervalRange.min.value()),
-            .maxValue = static_cast<int>(noctalia::config::schema::kWallpaperAutomationIntervalRange.max.value()),
-            .step = static_cast<int>(noctalia::config::schema::kWallpaperAutomationIntervalRange.step.value()),
+            .minValue = static_cast<int>(nythera::config::schema::kWallpaperAutomationIntervalRange.min.value()),
+            .maxValue = static_cast<int>(nythera::config::schema::kWallpaperAutomationIntervalRange.max.value()),
+            .step = static_cast<int>(nythera::config::schema::kWallpaperAutomationIntervalRange.step.value()),
             .valueSuffix = "s",
         },
         "rotate slideshow"
@@ -888,7 +888,7 @@ namespace settings {
           SettingsSection::Templates, "built-in", tr("settings.schema.templates.builtin-ids.label"),
           tr("settings.schema.templates.builtin-ids.description"), {"theme", "templates", "builtin_ids"},
           TemplateGridSetting{
-              .options = noctalia::theme::availableTemplates(),
+              .options = nythera::theme::availableTemplates(),
               .selectedValues = cfg.theme.templates.builtinIds,
               .emptyText = tr("settings.schema.templates.builtin-ids.empty"),
           },
@@ -1035,57 +1035,57 @@ namespace settings {
       entries.push_back(makeEntry(
           SettingsSection::Dock, "layout", tr("settings.schema.dock.icon-size.label"),
           tr("settings.schema.dock.icon-size.description"), path("icon_size"),
-          sliderFor(dock.iconSize, noctalia::config::schema::kDockIconSizeRange, true), "apps"
+          sliderFor(dock.iconSize, nythera::config::schema::kDockIconSizeRange, true), "apps"
       ));
       entries.push_back(makeEntry(
           SettingsSection::Dock, "layout", tr("settings.schema.shared.main-axis-padding.label"),
           tr("settings.schema.dock.main-axis-padding.description"), path("main_axis_padding"),
-          sliderFor(dock.mainAxisPadding, noctalia::config::schema::kDockPaddingRange, true), "inset"
+          sliderFor(dock.mainAxisPadding, nythera::config::schema::kDockPaddingRange, true), "inset"
       ));
       entries.push_back(makeEntry(
           SettingsSection::Dock, "layout", tr("settings.schema.shared.cross-axis-padding.label"),
           tr("settings.schema.dock.cross-axis-padding.description"), path("cross_axis_padding"),
-          sliderFor(dock.crossAxisPadding, noctalia::config::schema::kDockPaddingRange, true), "inset"
+          sliderFor(dock.crossAxisPadding, nythera::config::schema::kDockPaddingRange, true), "inset"
       ));
       entries.push_back(makeEntry(
           SettingsSection::Dock, "layout", tr("settings.schema.dock.item-spacing.label"),
           tr("settings.schema.dock.item-spacing.description"), path("item_spacing"),
-          sliderFor(dock.itemSpacing, noctalia::config::schema::kDockItemSpacingRange, true), "gap"
+          sliderFor(dock.itemSpacing, nythera::config::schema::kDockItemSpacingRange, true), "gap"
       ));
       entries.push_back(makeEntry(
           SettingsSection::Dock, "layout", tr("settings.schema.shared.ends-margin.label"),
           tr("settings.schema.dock.ends-margin.description"), path("margin_ends"),
-          sliderFor(dock.marginEnds, noctalia::config::schema::kDockMarginEndsRange, true), "gap inset"
+          sliderFor(dock.marginEnds, nythera::config::schema::kDockMarginEndsRange, true), "gap inset"
       ));
       entries.push_back(makeEntry(
           SettingsSection::Dock, "layout", tr("settings.schema.shared.edge-margin.label"),
           tr("settings.schema.dock.edge-margin.description"), path("margin_edge"),
-          sliderFor(dock.marginEdge, noctalia::config::schema::kDockMarginEdgeRange, true), "gap inset"
+          sliderFor(dock.marginEdge, nythera::config::schema::kDockMarginEdgeRange, true), "gap inset"
       ));
       entries.push_back(makeEntry(
           SettingsSection::Dock, "shape", tr("settings.schema.shared.corner-radius.label"),
           tr("settings.schema.dock.corner-radius.description"), path("radius"),
-          sliderFor(dock.radius, noctalia::config::schema::kDockRadiusRange, true), "rounded"
+          sliderFor(dock.radius, nythera::config::schema::kDockRadiusRange, true), "rounded"
       ));
       entries.push_back(makeEntry(
           SettingsSection::Dock, "shape", tr("settings.schema.shared.corner-top-left.label"),
           tr("settings.schema.dock.corner-top-left.description"), path("radius_top_left"),
-          sliderFor(dock.radiusTopLeft, noctalia::config::schema::kDockRadiusRange, true), "rounded corner", true
+          sliderFor(dock.radiusTopLeft, nythera::config::schema::kDockRadiusRange, true), "rounded corner", true
       ));
       entries.push_back(makeEntry(
           SettingsSection::Dock, "shape", tr("settings.schema.shared.corner-top-right.label"),
           tr("settings.schema.dock.corner-top-right.description"), path("radius_top_right"),
-          sliderFor(dock.radiusTopRight, noctalia::config::schema::kDockRadiusRange, true), "rounded corner", true
+          sliderFor(dock.radiusTopRight, nythera::config::schema::kDockRadiusRange, true), "rounded corner", true
       ));
       entries.push_back(makeEntry(
           SettingsSection::Dock, "shape", tr("settings.schema.shared.corner-bottom-left.label"),
           tr("settings.schema.dock.corner-bottom-left.description"), path("radius_bottom_left"),
-          sliderFor(dock.radiusBottomLeft, noctalia::config::schema::kDockRadiusRange, true), "rounded corner", true
+          sliderFor(dock.radiusBottomLeft, nythera::config::schema::kDockRadiusRange, true), "rounded corner", true
       ));
       entries.push_back(makeEntry(
           SettingsSection::Dock, "shape", tr("settings.schema.shared.corner-bottom-right.label"),
           tr("settings.schema.dock.corner-bottom-right.description"), path("radius_bottom_right"),
-          sliderFor(dock.radiusBottomRight, noctalia::config::schema::kDockRadiusRange, true), "rounded corner", true
+          sliderFor(dock.radiusBottomRight, nythera::config::schema::kDockRadiusRange, true), "rounded corner", true
       ));
       {
         auto entry = makeEntry(
@@ -1104,12 +1104,12 @@ namespace settings {
       entries.push_back(makeEntry(
           SettingsSection::Dock, "shape", tr("settings.schema.dock.border-width.label"),
           tr("settings.schema.dock.border-width.description"), path("border_width"),
-          sliderFor(dock.borderWidth, noctalia::config::schema::kDockBorderWidthRange, false), "outline stroke", true
+          sliderFor(dock.borderWidth, nythera::config::schema::kDockBorderWidthRange, false), "outline stroke", true
       ));
       entries.push_back(makeEntry(
           SettingsSection::Dock, "effects", tr("settings.schema.shared.background-opacity.label"),
           tr("settings.schema.dock.background-opacity.description"), path("background_opacity"),
-          sliderFor(dock.backgroundOpacity, noctalia::config::schema::kUnitRange, false),
+          sliderFor(dock.backgroundOpacity, nythera::config::schema::kUnitRange, false),
           "alpha transparency translucent opacity"
       ));
       if (env.backgroundEffectBlurSupported) {
@@ -1131,28 +1131,28 @@ namespace settings {
       entries.push_back(makeEntry(
           SettingsSection::Dock, "focus-styling", tr("settings.schema.dock.magnification-scale.label"),
           tr("settings.schema.dock.magnification-scale.description"), path("magnification_scale"),
-          sliderFor(dock.magnificationScale, noctalia::config::schema::kDockMagnificationScaleRange, false),
+          sliderFor(dock.magnificationScale, nythera::config::schema::kDockMagnificationScaleRange, false),
           "magnify zoom"
       ));
       entries.push_back(makeEntry(
           SettingsSection::Dock, "focus-styling", tr("settings.schema.dock.active-icon-scale.label"),
           tr("settings.schema.dock.active-icon-scale.description"), path("active_scale"),
-          sliderFor(dock.activeScale, noctalia::config::schema::kDockActiveScaleRange, false), "focused", true
+          sliderFor(dock.activeScale, nythera::config::schema::kDockActiveScaleRange, false), "focused", true
       ));
       entries.push_back(makeEntry(
           SettingsSection::Dock, "focus-styling", tr("settings.schema.dock.inactive-icon-scale.label"),
           tr("settings.schema.dock.inactive-icon-scale.description"), path("inactive_scale"),
-          sliderFor(dock.inactiveScale, noctalia::config::schema::kDockInactiveScaleRange, false), "unfocused", true
+          sliderFor(dock.inactiveScale, nythera::config::schema::kDockInactiveScaleRange, false), "unfocused", true
       ));
       entries.push_back(makeEntry(
           SettingsSection::Dock, "focus-styling", tr("settings.schema.dock.active-icon-opacity.label"),
           tr("settings.schema.dock.active-icon-opacity.description"), path("active_opacity"),
-          sliderFor(dock.activeOpacity, noctalia::config::schema::kUnitRange, false), "focused alpha", true
+          sliderFor(dock.activeOpacity, nythera::config::schema::kUnitRange, false), "focused alpha", true
       ));
       entries.push_back(makeEntry(
           SettingsSection::Dock, "focus-styling", tr("settings.schema.dock.inactive-icon-opacity.label"),
           tr("settings.schema.dock.inactive-icon-opacity.description"), path("inactive_opacity"),
-          sliderFor(dock.inactiveOpacity, noctalia::config::schema::kUnitRange, false), "unfocused alpha", true
+          sliderFor(dock.inactiveOpacity, nythera::config::schema::kUnitRange, false), "unfocused alpha", true
       ));
       entries.push_back(makeEntry(
           SettingsSection::Dock, "pinned-apps", tr("settings.schema.dock.pinned-apps.label"),
@@ -1210,7 +1210,7 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Panels, "effects", tr("settings.schema.panels.border-width.label"),
         tr("settings.schema.panels.border-width.description"), {"shell", "panel", "border_width"},
-        sliderFor(cfg.shell.panel.borderWidth, noctalia::config::schema::kPanelBorderWidthRange, false),
+        sliderFor(cfg.shell.panel.borderWidth, nythera::config::schema::kPanelBorderWidthRange, false),
         "outline border width thickness"
     ));
     entries.push_back(makeEntry(
@@ -1307,7 +1307,7 @@ namespace settings {
         "launcher layout simple full classic minimal compact toolbar tabs"
     ));
     {
-      auto width = sliderFor(cfg.shell.launcher.width, noctalia::config::schema::kLauncherWidthRange, true);
+      auto width = sliderFor(cfg.shell.launcher.width, nythera::config::schema::kLauncherWidthRange, true);
       width.valueSuffix = "px";
       auto e = makeEntry(
           SettingsSection::Launcher, "launcher", tr("settings.schema.panels.launcher-width.label"),
@@ -1556,7 +1556,7 @@ namespace settings {
     ));
     {
       SliderSetting width =
-          sliderFor(cfg.controlCenter.width, noctalia::config::schema::kControlCenterWidthRange, true);
+          sliderFor(cfg.controlCenter.width, nythera::config::schema::kControlCenterWidthRange, true);
       width.valueSuffix = "px";
       entries.push_back(makeEntry(
           SettingsSection::ControlCenter, "layout", tr("settings.schema.panels.control-center-width.label"),
@@ -1637,7 +1637,7 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Desktop, "screen-corners", tr("settings.schema.desktop.screen-corners-size.label"),
         tr("settings.schema.desktop.screen-corners-size.description"), {"shell", "screen_corners", "size"},
-        sliderFor(cfg.shell.screenCorners.size, noctalia::config::schema::kScreenCornersSizeRange, true),
+        sliderFor(cfg.shell.screenCorners.size, nythera::config::schema::kScreenCornersSizeRange, true),
         "screen corners radius"
     ));
 
@@ -1648,7 +1648,7 @@ namespace settings {
     ));
     {
       auto delay = sliderFor(
-          static_cast<std::int64_t>(cfg.hotCorners.delayMs), noctalia::config::schema::kHotCornersDelayMsRange, true
+          static_cast<std::int64_t>(cfg.hotCorners.delayMs), nythera::config::schema::kHotCornersDelayMsRange, true
       );
       delay.valueSuffix = "ms";
       SettingEntry e = makeEntry(
@@ -1864,7 +1864,7 @@ namespace settings {
       auto e = makeEntry(
           SettingsSection::LockScreen, "background", tr("settings.schema.lockscreen.blur-intensity.label"),
           tr("settings.schema.lockscreen.blur-intensity.description"), {"lockscreen", "blur_intensity"},
-          sliderFor(cfg.lockscreen.blurIntensity, noctalia::config::schema::kUnitRange, false), "lock screen blur"
+          sliderFor(cfg.lockscreen.blurIntensity, nythera::config::schema::kUnitRange, false), "lock screen blur"
       );
       e.visibleWhen = lockscreenOn;
       entries.push_back(std::move(e));
@@ -1873,7 +1873,7 @@ namespace settings {
       auto e = makeEntry(
           SettingsSection::LockScreen, "background", tr("settings.schema.lockscreen.tint-intensity.label"),
           tr("settings.schema.lockscreen.tint-intensity.description"), {"lockscreen", "tint_intensity"},
-          sliderFor(cfg.lockscreen.tintIntensity, noctalia::config::schema::kUnitRange, false), "lock screen tint"
+          sliderFor(cfg.lockscreen.tintIntensity, nythera::config::schema::kUnitRange, false), "lock screen tint"
       );
       e.visibleWhen = lockscreenOn;
       entries.push_back(std::move(e));
@@ -1900,7 +1900,7 @@ namespace settings {
           SettingsSection::LockScreen, "transition", tr("settings.schema.lockscreen.transition-duration.label"),
           tr("settings.schema.lockscreen.transition-duration.description"), {"lockscreen", "transition_duration"},
           sliderFor(
-              cfg.lockscreen.transitionDurationMs, noctalia::config::schema::kLockscreenTransitionDurationRange, true
+              cfg.lockscreen.transitionDurationMs, nythera::config::schema::kLockscreenTransitionDurationRange, true
           ),
           "lock screen transition animation duration"
       );
@@ -1910,7 +1910,7 @@ namespace settings {
       auto edgeSmoothness = makeEntry(
           SettingsSection::LockScreen, "transition", tr("settings.schema.lockscreen.edge-smoothness.label"),
           tr("settings.schema.lockscreen.edge-smoothness.description"), {"lockscreen", "edge_smoothness"},
-          sliderFor(cfg.lockscreen.edgeSmoothness, noctalia::config::schema::kUnitRange, false),
+          sliderFor(cfg.lockscreen.edgeSmoothness, nythera::config::schema::kUnitRange, false),
           "lock screen transition feathering", true
       );
       edgeSmoothness.visibleWhen = lockscreenOn;
@@ -2041,9 +2041,9 @@ namespace settings {
           {"shell", "clipboard_history_max_entries"},
           StepperSetting{
               .value = cfg.shell.clipboardHistoryMaxEntries,
-              .minValue = static_cast<int>(noctalia::config::schema::kClipboardHistoryMaxEntriesRange.min.value()),
-              .maxValue = static_cast<int>(noctalia::config::schema::kClipboardHistoryMaxEntriesRange.max.value()),
-              .step = static_cast<int>(noctalia::config::schema::kClipboardHistoryMaxEntriesRange.step.value())
+              .minValue = static_cast<int>(nythera::config::schema::kClipboardHistoryMaxEntriesRange.min.value()),
+              .maxValue = static_cast<int>(nythera::config::schema::kClipboardHistoryMaxEntriesRange.max.value()),
+              .step = static_cast<int>(nythera::config::schema::kClipboardHistoryMaxEntriesRange.step.value())
           },
           "clipboard history limit entries"
       );
@@ -2118,7 +2118,7 @@ namespace settings {
         tr("settings.schema.shell.screenshot-region-border-width.description"),
         {"shell", "screenshot", "region_border_width"},
         sliderFor(
-            cfg.shell.screenshot.regionBorderWidth, noctalia::config::schema::kScreenshotRegionBorderWidthRange, false
+            cfg.shell.screenshot.regionBorderWidth, nythera::config::schema::kScreenshotRegionBorderWidthRange, false
         ),
         "screenshot region border outline width stroke"
     ));
@@ -2127,7 +2127,7 @@ namespace settings {
         tr("settings.schema.shell.screenshot-region-dim-opacity.label"),
         tr("settings.schema.shell.screenshot-region-dim-opacity.description"),
         {"shell", "screenshot", "region_dim_opacity"},
-        sliderFor(cfg.shell.screenshot.regionDimOpacity, noctalia::config::schema::kUnitRange, false),
+        sliderFor(cfg.shell.screenshot.regionDimOpacity, nythera::config::schema::kUnitRange, false),
         "screenshot region dim opacity darkness overlay"
     ));
     entries.push_back(makeEntry(
@@ -2228,7 +2228,7 @@ namespace settings {
       auto e = makeEntry(
           SettingsSection::Screenshot, "screenshot-output", tr("settings.schema.shell.screenshot-quality.label"),
           tr("settings.schema.shell.screenshot-quality.description"), {"shell", "screenshot", "quality"},
-          sliderFor(cfg.shell.screenshot.quality, noctalia::config::schema::kScreenshotQualityRange, true),
+          sliderFor(cfg.shell.screenshot.quality, nythera::config::schema::kScreenshotQualityRange, true),
           "screenshot capture save file quality compression lossless jpeg webp jxl"
       );
       e.visibleWhen = [](const Config& c) { return c.shell.screenshot.format != ScreenshotFormat::Png; };
@@ -2349,9 +2349,9 @@ namespace settings {
         tr("settings.schema.shell.osd-hide-delay.description"), {"osd", "hide_delay_ms"},
         StepperSetting{
             .value = static_cast<int>(cfg.osd.hideDelayMs),
-            .minValue = static_cast<int>(noctalia::config::schema::kOsdHideDelayMsRange.min.value()),
-            .maxValue = static_cast<int>(noctalia::config::schema::kOsdHideDelayMsRange.max.value()),
-            .step = static_cast<int>(noctalia::config::schema::kOsdHideDelayMsRange.step.value()),
+            .minValue = static_cast<int>(nythera::config::schema::kOsdHideDelayMsRange.min.value()),
+            .maxValue = static_cast<int>(nythera::config::schema::kOsdHideDelayMsRange.max.value()),
+            .step = static_cast<int>(nythera::config::schema::kOsdHideDelayMsRange.step.value()),
             .valueSuffix = "ms",
         },
         "hud overlay popup timeout duration visible"
@@ -2359,7 +2359,7 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Osd, "osd", tr("settings.schema.shell.osd-scale.label"),
         tr("settings.schema.shell.osd-scale.description"), {"osd", "scale"},
-        sliderFor(cfg.osd.scale, noctalia::config::schema::kScaleRange, false),
+        sliderFor(cfg.osd.scale, nythera::config::schema::kScaleRange, false),
         "hud overlay volume brightness size scale multiplier"
     ));
     entries.push_back(makeEntry(
@@ -2377,7 +2377,7 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Osd, "osd", tr("settings.schema.shell.osd-background-opacity.label"),
         tr("settings.schema.shell.osd-background-opacity.description"), {"osd", "background_opacity"},
-        sliderFor(cfg.osd.backgroundOpacity, noctalia::config::schema::kUnitRange, false),
+        sliderFor(cfg.osd.backgroundOpacity, nythera::config::schema::kUnitRange, false),
         "hud overlay popup alpha transparency translucent opacity"
     ));
     entries.push_back(makeEntry(
@@ -2393,7 +2393,7 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Osd, "osd", tr("settings.schema.shell.osd-border-width.label"),
         tr("settings.schema.shell.osd-border-width.description"), {"osd", "border_width"},
-        sliderFor(cfg.osd.borderWidth, noctalia::config::schema::kOsdBorderWidthRange, false),
+        sliderFor(cfg.osd.borderWidth, nythera::config::schema::kOsdBorderWidthRange, false),
         "outline border width thickness"
     ));
     entries.push_back(makeEntry(
@@ -2618,12 +2618,12 @@ namespace settings {
         entries.push_back(makeEntry(
             SettingsSection::Niri, "backdrop", tr("settings.schema.backdrop.blur-intensity.label"),
             tr("settings.schema.backdrop.blur-intensity.description"), {"backdrop", "blur_intensity"},
-            sliderFor(cfg.backdrop.blurIntensity, noctalia::config::schema::kUnitRange, false), "wallpaper"
+            sliderFor(cfg.backdrop.blurIntensity, nythera::config::schema::kUnitRange, false), "wallpaper"
         ));
         entries.push_back(makeEntry(
             SettingsSection::Niri, "backdrop", tr("settings.schema.backdrop.tint-intensity.label"),
             tr("settings.schema.backdrop.tint-intensity.description"), {"backdrop", "tint_intensity"},
-            sliderFor(cfg.backdrop.tintIntensity, noctalia::config::schema::kUnitRange, false), "wallpaper"
+            sliderFor(cfg.backdrop.tintIntensity, nythera::config::schema::kUnitRange, false), "wallpaper"
         ));
       }
     }
@@ -2658,7 +2658,7 @@ namespace settings {
         entries.push_back(makeEntry(
             SettingsSection::System, "battery", tr("settings.schema.system.battery-warning-threshold.label"),
             tr("settings.schema.system.battery-warning-threshold.description"), {"battery", "warning_threshold"},
-            sliderFor(cfg.battery.warningThreshold, noctalia::config::schema::kBatteryWarningThresholdRange, true),
+            sliderFor(cfg.battery.warningThreshold, nythera::config::schema::kBatteryWarningThresholdRange, true),
             "battery low warning threshold notification"
         ));
       }
@@ -2734,7 +2734,7 @@ namespace settings {
 
       // One dual-thumb range row per metric: low thumb = activity threshold, high thumb = critical.
       auto addThresholdPair = [&](std::string_view baseKey, std::string_view statLabelKey, double activityValue,
-                                  double criticalValue, noctalia::sysmon::ThresholdProfile profile, bool integerValue,
+                                  double criticalValue, nythera::sysmon::ThresholdProfile profile, bool integerValue,
                                   std::string valueSuffix) {
         const std::vector<std::string> activityPath = {
             "system", "monitor", std::string(baseKey) + "_activity_threshold"
@@ -2764,64 +2764,64 @@ namespace settings {
         entries.push_back(std::move(entry));
       };
 
-      using noctalia::sysmon::Stat;
+      using nythera::sysmon::Stat;
       addThresholdPair(
           "cpu_usage", "settings.schema.services.system-monitor.stats.cpu-usage", mon.cpuUsageActivityThreshold,
-          mon.cpuUsageCriticalThreshold, noctalia::sysmon::thresholdProfile(Stat::CpuUsage), true, "%"
+          mon.cpuUsageCriticalThreshold, nythera::sysmon::thresholdProfile(Stat::CpuUsage), true, "%"
       );
       addThresholdPair(
           "cpu_temp", "settings.schema.services.system-monitor.stats.cpu-temp", mon.cpuTempActivityThreshold,
-          mon.cpuTempCriticalThreshold, noctalia::sysmon::thresholdProfile(Stat::CpuTemp), true, "°C"
+          mon.cpuTempCriticalThreshold, nythera::sysmon::thresholdProfile(Stat::CpuTemp), true, "°C"
       );
       addThresholdPair(
           "cpu_freq", "settings.schema.services.system-monitor.stats.cpu-freq", mon.cpuFreqActivityThreshold,
-          mon.cpuFreqCriticalThreshold, noctalia::sysmon::thresholdProfile(Stat::CpuFreq), false, "GHz"
+          mon.cpuFreqCriticalThreshold, nythera::sysmon::thresholdProfile(Stat::CpuFreq), false, "GHz"
       );
       addThresholdPair(
           "gpu_usage", "settings.schema.services.system-monitor.stats.gpu-usage", mon.gpuUsageActivityThreshold,
-          mon.gpuUsageCriticalThreshold, noctalia::sysmon::thresholdProfile(Stat::GpuUsage), true, "%"
+          mon.gpuUsageCriticalThreshold, nythera::sysmon::thresholdProfile(Stat::GpuUsage), true, "%"
       );
       addThresholdPair(
           "gpu_temp", "settings.schema.services.system-monitor.stats.gpu-temp", mon.gpuTempActivityThreshold,
-          mon.gpuTempCriticalThreshold, noctalia::sysmon::thresholdProfile(Stat::GpuTemp), true, "°C"
+          mon.gpuTempCriticalThreshold, nythera::sysmon::thresholdProfile(Stat::GpuTemp), true, "°C"
       );
       addThresholdPair(
           "gpu_vram", "settings.schema.services.system-monitor.stats.gpu-vram", mon.gpuVramActivityThreshold,
-          mon.gpuVramCriticalThreshold, noctalia::sysmon::thresholdProfile(Stat::GpuVram), true, "%"
+          mon.gpuVramCriticalThreshold, nythera::sysmon::thresholdProfile(Stat::GpuVram), true, "%"
       );
       addThresholdPair(
           "ram_pct", "settings.schema.services.system-monitor.stats.ram-usage", mon.ramPctActivityThreshold,
-          mon.ramPctCriticalThreshold, noctalia::sysmon::thresholdProfile(Stat::RamPct), true, "%"
+          mon.ramPctCriticalThreshold, nythera::sysmon::thresholdProfile(Stat::RamPct), true, "%"
       );
       addThresholdPair(
           "swap_pct", "settings.schema.services.system-monitor.stats.swap-usage", mon.swapPctActivityThreshold,
-          mon.swapPctCriticalThreshold, noctalia::sysmon::thresholdProfile(Stat::SwapPct), true, "%"
+          mon.swapPctCriticalThreshold, nythera::sysmon::thresholdProfile(Stat::SwapPct), true, "%"
       );
       addThresholdPair(
           "disk_used_pct", "settings.schema.services.system-monitor.stats.disk-used-pct",
           mon.diskUsedPctActivityThreshold, mon.diskUsedPctCriticalThreshold,
-          noctalia::sysmon::thresholdProfile(Stat::DiskUsedPct), true, "%"
+          nythera::sysmon::thresholdProfile(Stat::DiskUsedPct), true, "%"
       );
       addThresholdPair(
           "disk_used", "settings.schema.services.system-monitor.stats.disk-used", mon.diskUsedActivityThreshold,
-          mon.diskUsedCriticalThreshold, noctalia::sysmon::thresholdProfile(Stat::DiskUsed), true, "%"
+          mon.diskUsedCriticalThreshold, nythera::sysmon::thresholdProfile(Stat::DiskUsed), true, "%"
       );
       addThresholdPair(
           "disk_free_pct", "settings.schema.services.system-monitor.stats.disk-free-pct",
           mon.diskFreePctActivityThreshold, mon.diskFreePctCriticalThreshold,
-          noctalia::sysmon::thresholdProfile(Stat::DiskFreePct), true, "%"
+          nythera::sysmon::thresholdProfile(Stat::DiskFreePct), true, "%"
       );
       addThresholdPair(
           "disk_free", "settings.schema.services.system-monitor.stats.disk-free", mon.diskFreeActivityThreshold,
-          mon.diskFreeCriticalThreshold, noctalia::sysmon::thresholdProfile(Stat::DiskFree), true, "%"
+          mon.diskFreeCriticalThreshold, nythera::sysmon::thresholdProfile(Stat::DiskFree), true, "%"
       );
       addThresholdPair(
           "net_rx", "settings.schema.services.system-monitor.stats.network-rx", mon.netRxActivityThreshold,
-          mon.netRxCriticalThreshold, noctalia::sysmon::thresholdProfile(Stat::NetRx), false, "MB/s"
+          mon.netRxCriticalThreshold, nythera::sysmon::thresholdProfile(Stat::NetRx), false, "MB/s"
       );
       addThresholdPair(
           "net_tx", "settings.schema.services.system-monitor.stats.network-tx", mon.netTxActivityThreshold,
-          mon.netTxCriticalThreshold, noctalia::sysmon::thresholdProfile(Stat::NetTx), false, "MB/s"
+          mon.netTxCriticalThreshold, nythera::sysmon::thresholdProfile(Stat::NetTx), false, "MB/s"
       );
     }
 
@@ -2944,7 +2944,7 @@ namespace settings {
       auto e = makeEntry(
           SettingsSection::Location, "weather", tr("settings.schema.services.weather-refresh-interval.label"),
           tr("settings.schema.services.weather-refresh-interval.description"), {"weather", "refresh_minutes"},
-          sliderFor(cfg.weather.refreshMinutes, noctalia::config::schema::kRefreshMinutesRange, true), "forecast"
+          sliderFor(cfg.weather.refreshMinutes, nythera::config::schema::kRefreshMinutesRange, true), "forecast"
       );
       e.visibleWhen = weatherOn;
       entries.push_back(std::move(e));
@@ -3118,7 +3118,7 @@ namespace settings {
           {"control_center", "calendar", "past_events_threshold_minutes"},
           sliderFor(
               cfg.controlCenter.calendarTab.pastEventsThresholdMinutes,
-              noctalia::config::schema::kPastEventsThresholdMinutesRange, true
+              nythera::config::schema::kPastEventsThresholdMinutesRange, true
           ),
           "calendar past events threshold minutes hide old finished"
       );
@@ -3154,7 +3154,7 @@ namespace settings {
           tr("settings.schema.services.calendar-reminder-lead.description"),
           {"calendar", "reminders", "default_lead_minutes"},
           sliderFor(
-              cfg.calendar.reminders.defaultLeadMinutes, noctalia::config::schema::kReminderLeadMinutesRange, true
+              cfg.calendar.reminders.defaultLeadMinutes, nythera::config::schema::kReminderLeadMinutesRange, true
           ),
           "calendar reminder lead minutes before default"
       );
@@ -3180,7 +3180,7 @@ namespace settings {
           SettingsSection::Calendar, "calendar-accounts",
           tr("settings.schema.services.calendar-refresh-interval.label"),
           tr("settings.schema.services.calendar-refresh-interval.description"), {"calendar", "refresh_minutes"},
-          sliderFor(cfg.calendar.refreshMinutes, noctalia::config::schema::kRefreshMinutesRange, true), "calendar sync"
+          sliderFor(cfg.calendar.refreshMinutes, nythera::config::schema::kRefreshMinutesRange, true), "calendar sync"
       );
       e.visibleWhen = calendarOn;
       entries.push_back(std::move(e));
@@ -3220,7 +3220,7 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Services, "audio", tr("settings.schema.services.sound-volume.label"),
         tr("settings.schema.services.sound-volume.description"), {"audio", "sound_volume"},
-        sliderFor(cfg.audio.soundVolume, noctalia::config::schema::kUnitRange, false), "sound"
+        sliderFor(cfg.audio.soundVolume, nythera::config::schema::kUnitRange, false), "sound"
     ));
     std::vector<SelectOption> soundThemeOptions;
     for (const auto& [value, label] : SoundPlayer::availableThemes()) {
@@ -3273,7 +3273,7 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Services, "brightness", tr("settings.schema.services.minimum-brightness.label"),
         tr("settings.schema.services.minimum-brightness.description"), {"brightness", "minimum_brightness"},
-        sliderFor(cfg.brightness.minimumBrightness, noctalia::config::schema::kUnitRange, false), "floor clamp"
+        sliderFor(cfg.brightness.minimumBrightness, nythera::config::schema::kUnitRange, false), "floor clamp"
     ));
     entries.push_back(makeEntry(
         SettingsSection::Services, "brightness", tr("settings.schema.services.sync-monitor-brightness.label"),
@@ -3325,9 +3325,9 @@ namespace settings {
           tr("settings.schema.power.session-grid-columns.description"), {"shell", "session", "grid_columns"},
           StepperSetting{
               .value = static_cast<int>(cfg.shell.session.gridColumns),
-              .minValue = static_cast<int>(noctalia::config::schema::kSessionGridColumnsRange.min.value()),
-              .maxValue = static_cast<int>(noctalia::config::schema::kSessionGridColumnsRange.max.value()),
-              .step = static_cast<int>(noctalia::config::schema::kSessionGridColumnsRange.step.value()),
+              .minValue = static_cast<int>(nythera::config::schema::kSessionGridColumnsRange.min.value()),
+              .maxValue = static_cast<int>(nythera::config::schema::kSessionGridColumnsRange.max.value()),
+              .step = static_cast<int>(nythera::config::schema::kSessionGridColumnsRange.step.value()),
           },
           "session panel grid columns per row"
       );
@@ -3493,10 +3493,10 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Notifications, "toasts", tr("settings.schema.notifications.scale.label"),
         tr("settings.schema.notifications.scale.description"), {"notification", "scale"},
-        sliderFor(cfg.notification.scale, noctalia::config::schema::kScaleRange, false), "toast size scale"
+        sliderFor(cfg.notification.scale, nythera::config::schema::kScaleRange, false), "toast size scale"
     ));
     {
-      SliderSetting width = sliderFor(cfg.notification.width, noctalia::config::schema::kNotificationWidthRange, true);
+      SliderSetting width = sliderFor(cfg.notification.width, nythera::config::schema::kNotificationWidthRange, true);
       width.valueSuffix = "px";
       entries.push_back(makeEntry(
           SettingsSection::Notifications, "toasts", tr("settings.schema.notifications.width.label"),
@@ -3531,7 +3531,7 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Notifications, "toasts", tr("settings.schema.notifications.toast-opacity.label"),
         tr("settings.schema.notifications.toast-opacity.description"), {"notification", "background_opacity"},
-        sliderFor(cfg.notification.backgroundOpacity, noctalia::config::schema::kUnitRange, false),
+        sliderFor(cfg.notification.backgroundOpacity, nythera::config::schema::kUnitRange, false),
         "popup alpha transparency translucent opacity"
     ));
     entries.push_back(makeEntry(
@@ -3547,7 +3547,7 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Notifications, "toasts", tr("settings.schema.notifications.border-width.label"),
         tr("settings.schema.notifications.border-width.description"), {"notification", "border_width"},
-        sliderFor(cfg.notification.borderWidth, noctalia::config::schema::kNotificationToastBorderWidthRange, false),
+        sliderFor(cfg.notification.borderWidth, nythera::config::schema::kNotificationToastBorderWidthRange, false),
         "outline border width thickness"
     ));
     entries.push_back(makeEntry(
@@ -3622,9 +3622,9 @@ namespace settings {
             tr("settings.schema.bar.auto-hide-delay.description"), path("auto_hide_delay_ms"),
             StepperSetting{
                 .value = bar.autoHideDelayMs,
-                .minValue = static_cast<int>(noctalia::config::schema::kBarAutoHideDelayMsRange.min.value()),
-                .maxValue = static_cast<int>(noctalia::config::schema::kBarAutoHideDelayMsRange.max.value()),
-                .step = static_cast<int>(noctalia::config::schema::kBarAutoHideDelayMsRange.step.value()),
+                .minValue = static_cast<int>(nythera::config::schema::kBarAutoHideDelayMsRange.min.value()),
+                .maxValue = static_cast<int>(nythera::config::schema::kBarAutoHideDelayMsRange.max.value()),
+                .step = static_cast<int>(nythera::config::schema::kBarAutoHideDelayMsRange.step.value()),
                 .valueSuffix = "ms",
             },
             "autohide delay wait"
@@ -3673,7 +3673,7 @@ namespace settings {
       entries.push_back(makeEntry(
           section, "layout", tr("settings.schema.bar.font-scale.label"),
           tr("settings.schema.bar.font-scale.description"), path("font_scale"),
-          sliderFor(bar.fontScale, noctalia::config::schema::kBarFontScaleRange, false), "text zoom size"
+          sliderFor(bar.fontScale, nythera::config::schema::kBarFontScaleRange, false), "text zoom size"
       ));
       entries.push_back(makeEntry(
           section, "layout", tr("settings.schema.shared.ends-margin.label"),
@@ -3978,7 +3978,7 @@ entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-
         auto e = makeEntry(
             section, "capsules", tr("settings.schema.bar.capsule-border-width.label"),
             tr("settings.schema.bar.capsule-border-width.description"), path("capsule_border_width"),
-            sliderFor(bar.widgetCapsuleBorderWidth, noctalia::config::schema::kBarCapsuleBorderWidthRange, false),
+            sliderFor(bar.widgetCapsuleBorderWidth, nythera::config::schema::kBarCapsuleBorderWidthRange, false),
             "pill outline width", true
         );
         e.visibleWhen = capsuleOn;
@@ -4028,11 +4028,11 @@ entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-
       }
       // One row per gesture, from the same closed set widget actions use. An unset row shows the
       // built-in default as its placeholder, so "empty" never reads as "does nothing".
-      for (const auto gesture : noctalia::bar::allGestures()) {
-        const std::string key(noctalia::bar::gestureConfigKey(gesture));
+      for (const auto gesture : nythera::bar::allGestures()) {
+        const std::string key(nythera::bar::gestureConfigKey(gesture));
         const auto configured = bar.deadZone.actions.find(key);
         entries.push_back(makeEntry(
-            section, "dead-zone", tr(noctalia::bar::gestureLabelKey(gesture)),
+            section, "dead-zone", tr(nythera::bar::gestureLabelKey(gesture)),
             tr("settings.schema.bar.dead-zone-action.description"),
             std::vector<std::string>{"bar", bar.name, "dead_zone", "actions", key},
             GestureActionSetting{
@@ -4081,9 +4081,9 @@ entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-
               tr("settings.schema.bar.auto-hide-delay.description"), monitorPath("auto_hide_delay_ms"),
               StepperSetting{
                   .value = ovr.autoHideDelayMs.value_or(bar.autoHideDelayMs),
-                  .minValue = static_cast<int>(noctalia::config::schema::kBarAutoHideDelayMsRange.min.value()),
-                  .maxValue = static_cast<int>(noctalia::config::schema::kBarAutoHideDelayMsRange.max.value()),
-                  .step = static_cast<int>(noctalia::config::schema::kBarAutoHideDelayMsRange.step.value()),
+                  .minValue = static_cast<int>(nythera::config::schema::kBarAutoHideDelayMsRange.min.value()),
+                  .maxValue = static_cast<int>(nythera::config::schema::kBarAutoHideDelayMsRange.max.value()),
+                  .step = static_cast<int>(nythera::config::schema::kBarAutoHideDelayMsRange.step.value()),
                   .valueSuffix = "ms",
               },
               "autohide delay wait"
@@ -4145,7 +4145,7 @@ entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-
         entries.push_back(makeEntry(
             section, "layout", tr("settings.schema.bar.font-scale.label"),
             tr("settings.schema.bar.font-scale.description"), monitorPath("font_scale"),
-            sliderFor(ovr.fontScale.value_or(bar.fontScale), noctalia::config::schema::kBarFontScaleRange, false),
+            sliderFor(ovr.fontScale.value_or(bar.fontScale), nythera::config::schema::kBarFontScaleRange, false),
             "text zoom size"
         ));
         entries.push_back(makeEntry(
@@ -4443,7 +4443,7 @@ entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-
               tr("settings.schema.bar.capsule-border-width.description"), monitorPath("capsule_border_width"),
               sliderFor(
                   ovr.widgetCapsuleBorderWidth.value_or(bar.widgetCapsuleBorderWidth),
-                  noctalia::config::schema::kBarCapsuleBorderWidthRange, false
+                  nythera::config::schema::kBarCapsuleBorderWidthRange, false
               ),
               "pill outline width", true
           );
@@ -4498,8 +4498,8 @@ entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-
           e.visibleWhen = [monitorAutoHideOn](const Config& c) { return !monitorAutoHideOn(c); };
           entries.push_back(std::move(e));
         }
-        for (const auto gesture : noctalia::bar::allGestures()) {
-          const std::string key(noctalia::bar::gestureConfigKey(gesture));
+        for (const auto gesture : nythera::bar::allGestures()) {
+          const std::string key(nythera::bar::gestureConfigKey(gesture));
           std::vector<std::string> gesturePath = root;
           gesturePath.emplace_back("dead_zone");
           gesturePath.emplace_back("actions");
@@ -4515,7 +4515,7 @@ entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-
           }
           const auto inherited = bar.deadZone.actions.find(key);
           entries.push_back(makeEntry(
-              section, "dead-zone", tr(noctalia::bar::gestureLabelKey(gesture)),
+              section, "dead-zone", tr(nythera::bar::gestureLabelKey(gesture)),
               tr("settings.schema.bar.dead-zone-action.description"), std::move(gesturePath),
               GestureActionSetting{
                   .gestureKey = key,
@@ -4599,7 +4599,7 @@ entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-
         verified = true;
         const Logger log("settings");
         const auto verify = [&](const std::vector<std::string>& path, std::string_view what) {
-          if (!path.empty() && !noctalia::config::schema::isKnownConfigPath(path)) {
+          if (!path.empty() && !nythera::config::schema::isKnownConfigPath(path)) {
             std::string dotted;
             for (const auto& seg : path) {
               dotted += (dotted.empty() ? "" : ".") + seg;

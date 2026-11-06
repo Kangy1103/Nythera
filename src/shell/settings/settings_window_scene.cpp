@@ -374,7 +374,7 @@ namespace {
   }
 
   std::optional<toml::table> configSectionTable(const Config& cfg, std::string_view section) {
-    namespace schema = noctalia::config::schema;
+    namespace schema = nythera::config::schema;
 
     if (section == "audio") {
       return schema::writeTable(cfg.audio, schema::audioSchema());
@@ -541,7 +541,7 @@ namespace {
   class SettingsProfileWatch {
   public:
     SettingsProfileWatch() {
-      if (noctalia::profiling::enabled()) {
+      if (nythera::profiling::enabled()) {
         m_watch.emplace();
       }
     }
@@ -556,7 +556,7 @@ namespace {
     [[nodiscard]] double elapsedMs() const { return m_watch.has_value() ? m_watch->elapsedMs() : 0.0; }
 
   private:
-    std::optional<noctalia::profiling::StopWatch> m_watch;
+    std::optional<nythera::profiling::StopWatch> m_watch;
   };
 
   void logSettingsProfile(std::string_view label, const SettingsProfileWatch& watch) {
@@ -745,7 +745,7 @@ settings::RegistryEnvironment SettingsWindow::buildRegistryEnvironment() const {
   env.greeterSyncAvailable =
       m_config != nullptr && greeter::appearanceSyncAvailable(m_config->config().shell.greeterSync);
   const ThemeMode previewMode = m_config != nullptr ? shellThemeMode(m_config->config().theme) : ThemeMode::Dark;
-  for (const auto& paletteInfo : noctalia::theme::availableCommunityPalettes()) {
+  for (const auto& paletteInfo : nythera::theme::availableCommunityPalettes()) {
     env.communityPalettes.push_back(
         settings::SelectOption{
             .value = paletteInfo.name,
@@ -755,7 +755,7 @@ settings::RegistryEnvironment SettingsWindow::buildRegistryEnvironment() const {
         }
     );
   }
-  for (const auto& p : noctalia::theme::availableCustomPalettes()) {
+  for (const auto& p : nythera::theme::availableCustomPalettes()) {
     env.customPalettes.push_back(
         settings::SelectOption{
             .value = p.name,
@@ -765,13 +765,13 @@ settings::RegistryEnvironment SettingsWindow::buildRegistryEnvironment() const {
         }
     );
   }
-  for (const auto& t : noctalia::theme::CommunityTemplateService::availableTemplates()) {
+  for (const auto& t : nythera::theme::CommunityTemplateService::availableTemplates()) {
     env.communityTemplates.push_back(
         settings::SelectOption{
             .value = t.id,
             .label = t.displayName,
             .description = t.category,
-            .tooltip = noctalia::theme::formatTemplateTooltip(t)
+            .tooltip = nythera::theme::formatTemplateTooltip(t)
         }
     );
   }
@@ -853,7 +853,7 @@ std::vector<settings::GestureActionOption> SettingsWindow::gestureActionCatalog(
   std::vector<settings::GestureActionOption> options;
   for (const auto& handler : m_ipcService->handlers()) {
     // `exec` and `none` are grammar keywords, not commands, and are offered as their own rows.
-    if (handler.command == noctalia::bar::kExecVerb || handler.command == noctalia::bar::kNoneVerb) {
+    if (handler.command == nythera::bar::kExecVerb || handler.command == nythera::bar::kNoneVerb) {
       continue;
     }
     if (handler.actionEditorVisibility == IpcService::ActionEditorVisibility::Hidden) {
@@ -1198,7 +1198,7 @@ void SettingsWindow::rebuildSettingsContent() {
   }
   logSettingsProfile("rebuildContent plugins", phaseProfileWatch);
   logSettingsProfile("rebuildContent total", totalProfileWatch);
-  if (noctalia::profiling::enabled()) {
+  if (nythera::profiling::enabled()) {
     kLog.info(
         "profile rebuildContent visibleEntries={} registrySize={} selectedSection=\"{}\" searchActive={}",
         visibleEntries, m_settingsRegistry.size(), m_selectedSection, !m_searchQuery.empty()
@@ -1305,7 +1305,7 @@ std::unique_ptr<Flex> SettingsWindow::buildFilterRow(
   }
   filters->addChild(ui::spacer());
 
-  static const bool translatorMode = SysUtils::isEnvFlagOn("NOCTALIA_TRANSLATOR");
+  static const bool translatorMode = SysUtils::isEnvFlagOn("NYTHERA_TRANSLATOR");
   if (translatorMode) {
     auto enLabel =
         makeLabel("en", Style::fontSizeBody * scale, colorSpecFromRole(ColorRole::Error), FontWeight::Normal);
@@ -2310,7 +2310,7 @@ void SettingsWindow::buildScene(std::uint32_t width, std::uint32_t height) {
   m_surface->setSceneRoot(m_sceneRoot.get());
   logSettingsProfile("buildScene input", phaseProfileWatch);
   logSettingsProfile("buildScene total", totalProfileWatch);
-  if (noctalia::profiling::enabled()) {
+  if (nythera::profiling::enabled()) {
     kLog.info(
         "profile buildScene registrySize={} sections={} selectedSection=\"{}\" size={}x{}", m_settingsRegistry.size(),
         sections.size(), m_selectedSection, width, height

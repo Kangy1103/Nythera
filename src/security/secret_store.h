@@ -10,10 +10,11 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace security {
 
-  inline constexpr std::string_view SecretStoreSchemaName = "dev.noctalia.Secret";
+  inline constexpr std::string_view SecretStoreSchemaName = "dev.nythera.Secret";
 
   struct SecretId {
     std::string scope;
@@ -35,6 +36,8 @@ namespace security {
 
   [[nodiscard]] SecretStoreAttributes secretStoreAttributes(const SecretId& id);
   [[nodiscard]] bool isValidSecretId(const SecretId& id);
+  // Explicit one-shot import; never used as a runtime lookup fallback.
+  bool migrateLegacySecrets(const std::vector<SecretId>& ids, const std::function<void(const std::string&)>& log);
 
   enum class SecretStoreStatus {
     Success,

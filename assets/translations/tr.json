@@ -765,19 +765,19 @@
       "calendar-google-connect-start-failed": "Google yetkilendirmesi başlatılamadı. Ağ bağlantınızı kontrol edin ve tekrar deneyin.",
       "calendar-google-connect-start-http": "Google yetkilendirmesi başlatılamadı. OAuth aracısı HTTP {status} döndürdü.",
       "calendar-google-connect-timeout": "Google yetkilendirmesi zaman aşımına uğradı. Oturum açmaya hazır olduğunuzda bağlantıyı tekrar başlatın.",
-      "config-migration-body": "Kaynak dosyadaki {path} konumunu güncelleyin. Noctalia bu değişimi sadece geçici olarak uyguluyor. Gerekli tüm değişiklikleri listelemek için noctalia config validate komutunu çalıştırın.",
+      "config-migration-body": "Kaynak dosyadaki {path} konumunu güncelleyin. Nythera bu değişimi sadece geçici olarak uyguluyor. Gerekli tüm değişiklikleri listelemek için nythera config validate komutunu çalıştırın.",
       "config-migration-title": "Yapılandırma güncellemesi gerekiyor",
       "dbus-disabled": "DBus bildirimleri devre dışı",
       "desktop-widgets-editor": "Bileşen düzenleyici",
       "desktop-widgets-editor-enabled": "Masaüstü bileşen düzenleyicisi açık. Açık pencerelerin düzenleyiciyi kapatmaması için boş bir çalışma alanına geçin.",
-      "greeter-sync": "Noctalia Karşılama Ekranı",
+      "greeter-sync": "Nythera Karşılama Ekranı",
       "greeter-sync-pending": "Karşılama ekranına yazmak için yönetici onayı bekleniyor.",
-      "greeter-sync-pending-console": "Yönetici onayı bekleniyor. Noctalia içindeki, bir TTY veya konsoldaki polkit istemini onaylayın ya da pkexec'i manuel olarak çalıştırın.",
-      "greeter-sync-pending-manual": "Dosyalar hazırlandı. Terminalde çalıştırın: pkexec noctalia-greeter-apply-appearance \"$XDG_RUNTIME_DIR/noctalia-greeter-sync\". Veya shell.greeter_sync.privilege_command (örneğin ghostty -e pkexec) ayarlayıp tekrar senkronize edin.",
+      "greeter-sync-pending-console": "Yönetici onayı bekleniyor. Nythera içindeki, bir TTY veya konsoldaki polkit istemini onaylayın ya da pkexec'i manuel olarak çalıştırın.",
+      "greeter-sync-pending-manual": "Dosyalar hazırlandı. Terminalde çalıştırın: pkexec nythera-greeter-apply-appearance \"$XDG_RUNTIME_DIR/nythera-greeter-sync\". Veya shell.greeter_sync.privilege_command (örneğin ghostty -e pkexec) ayarlayıp tekrar senkronize edin.",
       "greeter-sync-success": "Görünüm senkronize edildi. Değişiklikler bir sonraki giriş ekranında uygulanacak.",
       "greeter-sync-timeout": "Karşılama ekranı senkronizasyonu hâlâ yönetici onayı bekliyor. Polkit istemi için bir TTY veya konsolu kontrol edin, Güvenlik ayarlarında polkit aracısını etkinleştirin veya pkexec'i manuel olarak çalıştırın.",
-      "greeter-sync-timeout-manual": "Karşılama ekranı senkronizasyonu hâlâ yönetici onayı gerektiriyor. Terminalde şunu çalıştırın: pkexec noctalia-greeter-apply-appearance \"$XDG_RUNTIME_DIR/noctalia-greeter-sync\"",
-      "keybind-app": "Noctalia",
+      "greeter-sync-timeout-manual": "Karşılama ekranı senkronizasyonu hâlâ yönetici onayı gerektiriyor. Terminalde şunu çalıştırın: pkexec nythera-greeter-apply-appearance \"$XDG_RUNTIME_DIR/nythera-greeter-sync\"",
+      "keybind-app": "Nythera",
       "keybind-invalid-modifier": "Bu kısayol, değiştirici olmadan yalnızca tek bir tuş kabul eder.",
       "keybind-invalid-printable": "Yazdırılabilir tuşlar (harfler, sayılar, semboller) Ctrl veya Alt gibi bir değiştirici tuş gerektirir.",
       "keybind-invalid-super": "Super/Windows tuşu sistem tuş atamalarında kullanılamaz.",
@@ -849,7 +849,7 @@
     },
     "enable-failed": {
       "body-error": "{plugin}: {error}",
-      "body-incompatible": "{plugin}, {version} eklenti API'yını hedefliyor; bu Noctalia {oldest}–{current} API'larını destekliyor.",
+      "body-incompatible": "{plugin}, {version} eklenti API'yını hedefliyor; bu Nythera {oldest}–{current} API'larını destekliyor.",
       "body-timeout": "{plugin} yüklemesi zaman aşımına uğradı.",
       "title": "Eklenti devre dışı"
     }
@@ -1138,9 +1138,9 @@
       },
       "reset-page": "Bazı ayarlar sıfırlanamadı.",
       "support-report": "Destek raporu kaydedilemedi.",
-      "sync-greeter": "Görünüm, Noctalia Karşılama Ekranı ile senkronize edilemedi.",
+      "sync-greeter": "Görünüm, Nythera Karşılama Ekranı ile senkronize edilemedi.",
       "sync-greeter-timeout": "Karşılama ekranı senkronizasyonu hala yönetici onayı bekliyor. TTY veya konsoldaki polkit onayını kontrol edin, Güvenlik ayarlarından polkit aracını etkinleştirin veya pkexec komutunu manuel olarak çalıştırın.",
-      "sync-greeter-timeout-manual": "Karşılama ekranı senkronizasyonu hala yönetici onayına ihtiyaç duyuyor. Terminalde şu komutu çalıştırın: pkexec noctalia-greeter-apply-appearance \"$XDG_RUNTIME_DIR/noctalia-greeter-sync\"",
+      "sync-greeter-timeout-manual": "Karşılama ekranı senkronizasyonu hala yönetici onayına ihtiyaç duyuyor. Terminalde şu komutu çalıştırın: pkexec nythera-greeter-apply-appearance \"$XDG_RUNTIME_DIR/nythera-greeter-sync\"",
       "widget": {
         "rename": "İsimlendirilmiş araç yeniden adlandırılamadı."
       },
@@ -1508,7 +1508,7 @@
         "deprecated": "kullanımdan kaldırıldı",
         "empty": "Etkin eklenti yok.",
         "held-back": "eski sürüm",
-        "held-back-hint": "v{version} sürümü {required} eklenti API'sine ihtiyaç duyuyor; Noctalia sürümünüz en fazla {current} destekliyor. Yüklemek için Noctalia'yı güncelleyin.",
+        "held-back-hint": "v{version} sürümü {required} eklenti API'sine ihtiyaç duyuyor; Nythera sürümünüz en fazla {current} destekliyor. Yüklemek için Nythera'yı güncelleyin.",
         "incompatible-plugin-api": "uyumsuz eklenti API'si",
         "remove": "Eklentiyi kaldır",
         "requires": "Gereksinimler: {dependencies}",
@@ -1542,7 +1542,7 @@
         "kind-label": "Tür",
         "location-label": "Konum",
         "location-placeholder-git": "https://github.com/ben/noctalia-eklentilerim",
-        "location-placeholder-path": "~/dev/noctalia-eklentilerim",
+        "location-placeholder-path": "~/dev/nythera-eklentilerim",
         "name-label": "Kaynak ID'si",
         "name-placeholder": "eklentilerim",
         "precedence-hint": "Aynı eklentiyi sunduklarında alt sıradaki kaynaklar üst sıradakileri ezer.",
@@ -1552,15 +1552,15 @@
         "update": "Kaynağı güncelle"
       },
       "store": {
-        "add": "Noctalia'ya Ekle",
+        "add": "Nythera'ya Ekle",
         "back-to-catalog": "Eklenti kataloğuna dön",
         "categories": "Kategoriler",
         "category-all": "Tümü",
         "empty": "Eklenti bulunamadı",
         "held-back": "Eski sürüm",
-        "held-back-hint": "Eklenti API'si {resolved} için v{version} kuruluyor. En yeni v{latest} sürümü, eklenti API'si {latestRequired} gerektirir; Noctalia sürümünüz en fazla {current} destekliyor.",
+        "held-back-hint": "Eklenti API'si {resolved} için v{version} kuruluyor. En yeni v{latest} sürümü, eklenti API'si {latestRequired} gerektirir; Nythera sürümünüz en fazla {current} destekliyor.",
         "incompatible": "Uyumsuz",
-        "incompatible-hint": "Eklenti API'si {required} gerektirir; Noctalia sürümünüz {oldest}–{current} arasını destekliyor.",
+        "incompatible-hint": "Eklenti API'si {required} gerektirir; Nythera sürümünüz {oldest}–{current} arasını destekliyor.",
         "loading": "Katalog yükleniyor...",
         "no-readme": "Açıklama mevcut değil.",
         "open-page": "Eklentinin sayfasını noctalia.dev'de aç",
@@ -1623,7 +1623,7 @@
           "label": "Köşe Yuvarlaklığı"
         },
         "custom-palette": {
-          "description": "~/.config/noctalia/palettes/ klasöründen özel bir palet seç",
+          "description": "~/.config/nythera/palettes/ klasöründen özel bir palet seç",
           "label": "Özel Palet",
           "search-placeholder": "Özel paletlerde ara..."
         },
@@ -2093,7 +2093,7 @@
             "label": "Sistem Kapanırken"
           },
           "started": {
-            "description": "Noctalia başladıktan sonra çalıştırılacak komut",
+            "description": "Nythera başladıktan sonra çalıştırılacak komut",
             "label": "Başlangıçta"
           },
           "theme-mode-changed": {
@@ -2101,7 +2101,7 @@
             "label": "Tema Modu Değiştiğinde"
           },
           "wallpaper-changed": {
-            "description": "Duvar kağıdı değiştiğinde çalıştırılacak komut; ortam değişkeni olarak NOCTALIA_WALLPAPER_PATH ve NOCTALIA_WALLPAPER_CONNECTOR sağlar",
+            "description": "Duvar kağıdı değiştiğinde çalıştırılacak komut; ortam değişkeni olarak NYTHERA_WALLPAPER_PATH ve NYTHERA_WALLPAPER_CONNECTOR sağlar",
             "label": "Duvar Kağıdı Değiştiğinde"
           },
           "wifi-disabled": {
@@ -2846,9 +2846,9 @@
           "label": "Klavye Düzeni Etiketleri"
         },
         "launch-apps-as-systemd-services": {
-          "description": "Uygulamaları Noctalia'nın cgroup'unu paylaşmamaları için ayrı systemd servisleri olarak başlatır",
+          "description": "Uygulamaları Nythera'nın cgroup'unu paylaşmamaları için ayrı systemd servisleri olarak başlatır",
           "label": "Uygulamaları systemd Servisi Olarak Başlat",
-          "requires-systemd-session": "Noctalia'nın bir systemd kullanıcı servisi olarak çalışmasını gerektirir (uwsm veya systemd kullanıcı birimi)"
+          "requires-systemd-session": "Nythera'nın bir systemd kullanıcı servisi olarak çalışmasını gerektirir (uwsm veya systemd kullanıcı birimi)"
         },
         "launch-apps-custom-command": {
           "description": "Başlatıcıdan, rıhtımdan ve görev çubuğundan başlatılan uygulamaları sarar; $CMD'yi orijinal komutla değiştirir.",
@@ -3044,8 +3044,8 @@
         },
         "sync-greeter": {
           "button": "Şimdi Senkronize Et",
-          "description": "Geçerli duvar kağıdını ve renkleri Noctalia Karşılayıcısına (Greeter) kopyala (yönetici izni gerektirir)",
-          "label": "Noctalia Karşılayıcısı"
+          "description": "Geçerli duvar kağıdını ve renkleri Nythera Karşılayıcısına (Greeter) kopyala (yönetici izni gerektirir)",
+          "label": "Nythera Karşılayıcısı"
         },
         "telemetry": {
           "description": "Sürüm, işletim sistemi, görüntü sunucusu, monitör çözünürlükleri, RAM ve arayüz ölçeği bilgilerini içeren küçük bir anonim başlangıç isteği gönderir",
@@ -3936,8 +3936,8 @@
       "export-config": "Yapılandırmayı Dışa Aktar...",
       "export-config-saved": "Yapılandırma dışa aktarımı kaydedildi.",
       "filter-overridden": "Üzerine yazıldı",
-      "legacy-config-warning": "Eski ayar: {issue}. Bu kaynak girişini düzenleyin; Noctalia değişimi sadece geçici olarak uyguluyor. Gerekli tüm değişiklikleri listelemek için noctalia config validate komutunu çalıştırın.",
-      "native-title": "Noctalia Ayarları",
+      "legacy-config-warning": "Eski ayar: {issue}. Bu kaynak girişini düzenleyin; Nythera değişimi sadece geçici olarak uyguluyor. Gerekli tüm değişiklikleri listelemek için nythera config validate komutunu çalıştırın.",
+      "native-title": "Nythera Ayarları",
       "no-results": "Ayar bulunamadı",
       "no-results-hint": "Farklı bir ayar veya yapılandırma adı girin.",
       "offline-mode-notice": {
@@ -3972,7 +3972,7 @@
     "no-wallpaper-selected": "Duvar kağıdı seçilmedi",
     "select-wallpaper": "Duvar Kağıdı Seç",
     "subtitle": "Başlamanız için birkaç hızlı seçenek.",
-    "title": "Noctalia'ya Hoş Geldiniz",
+    "title": "Nythera'ya Hoş Geldiniz",
     "wallpaper": "Duvar Kağıdı",
     "wallpaper-scheme": "Duvar Kağıdı Şeması"
   },

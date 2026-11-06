@@ -28,9 +28,9 @@ struct KeyboardEvent;
 struct PointerEvent;
 struct wl_output;
 
-namespace noctalia::cli {
+namespace nythera::cli {
   struct Command;
-} // namespace noctalia::cli
+} // namespace nythera::cli
 
 class ScreenshotService {
 public:
@@ -237,9 +237,9 @@ struct ScreenshotIpcRequest {
   std::string target; // screenshot-fullscreen target / annotate path; empty when omitted
 };
 
-// Applies `noctalia msg <command>` flags on top of `base` (the [shell.screenshot] snapshot).
+// Applies `nythera msg <command>` flags on top of `base` (the [shell.screenshot] snapshot).
 // The error string is the complete IPC response: an "error: ...\n" line, or the help text.
 [[nodiscard]] std::expected<ScreenshotIpcRequest, std::string> parseScreenshotIpcRequest(
-    const noctalia::cli::Command& command, std::string_view args, ScreenshotService::OutputOptions base,
+    const nythera::cli::Command& command, std::string_view args, ScreenshotService::OutputOptions base,
     std::optional<std::string_view> callerCwd
 );

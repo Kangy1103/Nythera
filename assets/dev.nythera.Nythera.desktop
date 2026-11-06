@@ -1,9 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=Noctalia
+Name=Nythera
 Comment=A sleek, customizable desktop shell crafted for Wayland.
-Exec=noctalia --daemon
-Icon=noctalia
+Exec=nythera --daemon
+Icon=nythera
 Terminal=false
 Categories=Settings;DesktopSettings;
 StartupNotify=false
@@ -12,4 +12,4 @@ Keywords=desktop;shell;wayland;
 
 [Desktop Action Settings]
 Name=Open Settings
-Exec=sh -c "noctalia msg settings-open || { noctalia --daemon && noctalia msg settings-open; }"
+Exec=sh -c "nythera msg settings-open || { nythera --daemon && nythera msg settings-open; }"

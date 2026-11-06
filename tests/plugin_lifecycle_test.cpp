@@ -82,9 +82,9 @@ int main() {
     scripting::ScriptRuntime runtime("test/enable:service", {}, api, {});
     runtime.start(
         "=enable",
-        "noctalia.state.set('loaded', true)\n"
+        "nythera.state.set('loaded', true)\n"
         "function onEnable()\n"
-        "  noctalia.state.set('enabled', true)\n"
+        "  nythera.state.set('enabled', true)\n"
         "end\n",
         {}
     );
@@ -102,10 +102,10 @@ int main() {
     scripting::ScriptRuntime runtime("test/deactivate:service", {}, api, {});
     runtime.start(
         "=deactivate",
-        "noctalia.state.set('loaded', true)\n"
+        "nythera.state.set('loaded', true)\n"
         "function onExit(signal, reason)\n"
-        "  noctalia.state.set('exit_signal', signal)\n"
-        "  noctalia.state.set('exit_reason', reason)\n"
+        "  nythera.state.set('exit_signal', signal)\n"
+        "  nythera.state.set('exit_reason', reason)\n"
         "end\n",
         {}
     );
@@ -128,10 +128,10 @@ int main() {
     scripting::ScriptRuntime runtime("test/remove:service", {}, api, {});
     runtime.start(
         "=remove",
-        "noctalia.state.set('loaded', true)\n"
+        "nythera.state.set('loaded', true)\n"
         "function onExit(signal, reason)\n"
-        "  noctalia.state.set('exit_signal', signal)\n"
-        "  noctalia.state.set('exit_reason', reason)\n"
+        "  nythera.state.set('exit_signal', signal)\n"
+        "  nythera.state.set('exit_reason', reason)\n"
         "end\n",
         {}
     );
@@ -154,10 +154,10 @@ int main() {
     scripting::ScriptRuntime runtime("test/ordinary-stop:service", {}, api, {});
     runtime.start(
         "=ordinary-stop",
-        "noctalia.state.set('loaded', true)\n"
+        "nythera.state.set('loaded', true)\n"
         "function onExit(signal, reason)\n"
-        "  noctalia.state.set('exit_signal', signal)\n"
-        "  noctalia.state.set('exit_reason', reason)\n"
+        "  nythera.state.set('exit_signal', signal)\n"
+        "  nythera.state.set('exit_reason', reason)\n"
         "end\n",
         {}
     );
@@ -177,9 +177,9 @@ int main() {
     scripting::ScriptRuntime runtime("test/non-service:widget", {}, api, {});
     runtime.start(
         "=non-service-disable",
-        "noctalia.state.set('loaded', true)\n"
+        "nythera.state.set('loaded', true)\n"
         "function onExit(_signal, reason)\n"
-        "  noctalia.state.set('exit_reason', reason)\n"
+        "  nythera.state.set('exit_reason', reason)\n"
         "end\n",
         {}
     );
@@ -197,15 +197,15 @@ int main() {
     scripting::ScriptRuntime runtime("test/reload:service", {}, api, {});
     runtime.start(
         "=before-reload",
-        "noctalia.state.set('loaded', true)\n"
+        "nythera.state.set('loaded', true)\n"
         "function onExit(signal, reason)\n"
-        "  noctalia.state.set('exit_signal', signal)\n"
-        "  noctalia.state.set('exit_reason', reason)\n"
+        "  nythera.state.set('exit_signal', signal)\n"
+        "  nythera.state.set('exit_reason', reason)\n"
         "end\n",
         {}
     );
     ok = expect(waitForState("test/reload", "loaded"), "reload service did not load") && ok;
-    runtime.reload("=after-reload", "noctalia.state.set('reloaded', true)\n", {});
+    runtime.reload("=after-reload", "nythera.state.set('reloaded', true)\n", {});
     ok = expect(waitForState("test/reload", "reloaded"), "service did not reload") && ok;
     ok = expect(
              scripting::PluginStateStore::instance().get("test/reload", "exit_signal") == "0"
@@ -223,9 +223,9 @@ int main() {
     scripting::ScriptRuntime runtime("test/get-setting-reload:service", {}, api, {});
     runtime.start(
         "=get-setting-reload",
-        "local loads = (noctalia.state.get('loads') or 0) + 1\n"
-        "noctalia.state.set('loads', loads)\n"
-        "noctalia.state.set('offline_' .. tostring(noctalia.getSetting('shell.offline_mode')), loads)\n",
+        "local loads = (nythera.state.get('loads') or 0) + 1\n"
+        "nythera.state.set('loads', loads)\n"
+        "nythera.state.set('offline_' .. tostring(nythera.getSetting('shell.offline_mode')), loads)\n",
         {}
     );
     ok = expect(waitForState("test/get-setting-reload", "offline_true"), "getSetting runtime did not load") && ok;
@@ -246,11 +246,11 @@ int main() {
     scripting::ScriptRuntime runtime("test/get-setting-handler:service", {}, api, {});
     runtime.start(
         "=get-setting-handler",
-        "local loads = (noctalia.state.get('loads') or 0) + 1\n"
-        "noctalia.state.set('loads', loads)\n"
-        "noctalia.getSetting('shell.offline_mode')\n"
+        "local loads = (nythera.state.get('loads') or 0) + 1\n"
+        "nythera.state.set('loads', loads)\n"
+        "nythera.getSetting('shell.offline_mode')\n"
         "function onConfigChanged()\n"
-        "  noctalia.state.set('changed', noctalia.getSetting('shell.offline_mode'))\n"
+        "  nythera.state.set('changed', nythera.getSetting('shell.offline_mode'))\n"
         "end\n",
         {}
     );
@@ -270,10 +270,10 @@ int main() {
     scripting::ScriptRuntime runtime("test/shutdown:service", {}, api, {});
     runtime.start(
         "=shutdown",
-        "noctalia.state.set('loaded', true)\n"
+        "nythera.state.set('loaded', true)\n"
         "function onExit(signal, reason)\n"
-        "  noctalia.state.set('exit_signal', signal)\n"
-        "  noctalia.state.set('exit_reason', reason)\n"
+        "  nythera.state.set('exit_signal', signal)\n"
+        "  nythera.state.set('exit_reason', reason)\n"
         "end\n",
         {}
     );
@@ -291,14 +291,14 @@ int main() {
       && ok;
 
   const auto root =
-      std::filesystem::temp_directory_path() / ("noctalia-plugin-lifecycle-test-" + std::to_string(::getpid()));
+      std::filesystem::temp_directory_path() / ("nythera-plugin-lifecycle-test-" + std::to_string(::getpid()));
   std::filesystem::remove_all(root);
   std::filesystem::create_directories(root / "config");
   std::filesystem::create_directories(root / "state");
   std::filesystem::create_directories(root / "data");
-  ::setenv("NOCTALIA_CONFIG_HOME", (root / "config").c_str(), 1);
-  ::setenv("NOCTALIA_STATE_HOME", (root / "state").c_str(), 1);
-  ::setenv("NOCTALIA_DATA_HOME", (root / "data").c_str(), 1);
+  ::setenv("NYTHERA_CONFIG_HOME", (root / "config").c_str(), 1);
+  ::setenv("NYTHERA_STATE_HOME", (root / "state").c_str(), 1);
+  ::setenv("NYTHERA_DATA_HOME", (root / "data").c_str(), 1);
   const auto modulePluginDir = root / "module-plugin";
   ok = expect(
            writeText(modulePluginDir / "main.luau", "return true\n")
@@ -380,12 +380,12 @@ int main() {
         "local first = require('./modules/counter.luau')\n"
         // Same file by a non-normalized spelling: one cache slot, one dependency.
         "local second = require('./modules/../modules/counter.luau')\n"
-        "noctalia.state.set('value', first.value)\n"
-        "noctalia.state.set('cached', first == second and first.runs == 1)\n"
-        "noctalia.state.set('globals_isolated', moduleGlobal == nil and moduleRuns == nil)\n"
-        "noctalia.state.set('own_globals', first.ownG ~= _G)\n"
+        "nythera.state.set('value', first.value)\n"
+        "nythera.state.set('cached', first == second and first.runs == 1)\n"
+        "nythera.state.set('globals_isolated', moduleGlobal == nil and moduleRuns == nil)\n"
+        "nythera.state.set('own_globals', first.ownG ~= _G)\n"
         // Resolves against the module's own directory even though it runs from here.
-        "noctalia.state.set('deferred_base', first.deferredSibling())\n",
+        "nythera.state.set('deferred_base', first.deferredSibling())\n",
         {}
     );
     ok = expect(
@@ -434,7 +434,7 @@ int main() {
     runtime.start(
         (modulePluginDir / "lazy-main.luau").string(),
         "function onIpc()\n"
-        "  noctalia.state.set('lazy', require('./modules/lazy.luau'))\n"
+        "  nythera.state.set('lazy', require('./modules/lazy.luau'))\n"
         "end\n",
         {}
     );
@@ -464,10 +464,10 @@ int main() {
     runtime.start(
         (modulePluginDir / "missing-main.luau").string(),
         "local ok, err = pcall(function() require('./modules/absent.luau') end)\n"
-        "noctalia.state.set('missing_failed', ok == false)\n"
-        "noctalia.state.set('missing_message', string.find(err, 'cannot open') ~= nil)\n"
+        "nythera.state.set('missing_failed', ok == false)\n"
+        "nythera.state.set('missing_message', string.find(err, 'cannot open') ~= nil)\n"
         "local ok2, err2 = pcall(function() require('modules/value.luau') end)\n"
-        "noctalia.state.set('shape_message', string.find(err2, 'must be relative') ~= nil)\n",
+        "nythera.state.set('shape_message', string.find(err2, 'must be relative') ~= nil)\n",
         {}
     );
     ok = expect(
@@ -522,8 +522,8 @@ int main() {
         (modulePluginDir / "speed-main.luau").string(),
         "local gated = require('./modules/gated.luau')\n"
         "local fast = require('./modules/ungated.luau')\n"
-        "noctalia.state.set('module_G_is_env', gated.sameEnv)\n"
-        "noctalia.state.set('module_G_shadow_visible', gated.shadowVisible)\n"
+        "nythera.state.set('module_G_is_env', gated.sameEnv)\n"
+        "nythera.state.set('module_G_shadow_visible', gated.shadowVisible)\n"
         "local buf = buffer.create(65536)\n"
         "local function pass()\n"
         "  local o = 0\n"
@@ -557,8 +557,8 @@ int main() {
         "  moduleBest = math.min(moduleBest, os.clock() - moduleAt)\n"
         "  agree = agree and entry == module\n"
         "end\n"
-        "noctalia.state.set('speed_loops_agree', agree)\n"
-        "noctalia.state.set('speed_ratio', moduleBest / entryBest)\n",
+        "nythera.state.set('speed_loops_agree', agree)\n"
+        "nythera.state.set('speed_ratio', moduleBest / entryBest)\n",
         {}
     );
     ok = expect(
@@ -648,18 +648,18 @@ int main() {
     scripting::ScriptRuntime runtime("test/sound-outcomes:service", {}, api, soundPluginDir);
     runtime.start(
         "=sound-outcomes",
-        "local successAccepted = noctalia.sound.load('click', 'sounds/click.wav', function(ok, err)\n"
-        "  noctalia.state.set('success_ok', ok)\n"
-        "  noctalia.state.set('success_error_nil', err == nil)\n"
-        "  if ok then noctalia.sound.play('click') end\n"
+        "local successAccepted = nythera.sound.load('click', 'sounds/click.wav', function(ok, err)\n"
+        "  nythera.state.set('success_ok', ok)\n"
+        "  nythera.state.set('success_error_nil', err == nil)\n"
+        "  if ok then nythera.sound.play('click') end\n"
         "end)\n"
-        "noctalia.state.set('success_accepted', successAccepted)\n"
-        "local failureAccepted = noctalia.sound.load('broken', 'sounds/broken.wav', function(ok, err)\n"
-        "  noctalia.state.set('failure_ok', ok)\n"
-        "  noctalia.state.set('failure_error', err)\n"
-        "  if ok then noctalia.sound.play('broken') end\n"
+        "nythera.state.set('success_accepted', successAccepted)\n"
+        "local failureAccepted = nythera.sound.load('broken', 'sounds/broken.wav', function(ok, err)\n"
+        "  nythera.state.set('failure_ok', ok)\n"
+        "  nythera.state.set('failure_error', err)\n"
+        "  if ok then nythera.sound.play('broken') end\n"
         "end)\n"
-        "noctalia.state.set('failure_accepted', failureAccepted)\n",
+        "nythera.state.set('failure_accepted', failureAccepted)\n",
         {}
     );
     ok =
@@ -718,15 +718,15 @@ int main() {
         "=sound-limits",
         "local accepted = 0\n"
         "for index = 1, 8 do\n"
-        "  if noctalia.sound.load('pending' .. index, 'sound.wav', function() end) then\n"
+        "  if nythera.sound.load('pending' .. index, 'sound.wav', function() end) then\n"
         "    accepted = accepted + 1\n"
         "  end\n"
         "end\n"
-        "local duplicate = noctalia.sound.load('pending1', 'other.wav', function() end)\n"
-        "local ninth = noctalia.sound.load('pending9', 'sound.wav', function() end)\n"
-        "noctalia.state.set('accepted_count', accepted)\n"
-        "noctalia.state.set('duplicate_accepted', duplicate)\n"
-        "noctalia.state.set('ninth_accepted', ninth)\n",
+        "local duplicate = nythera.sound.load('pending1', 'other.wav', function() end)\n"
+        "local ninth = nythera.sound.load('pending9', 'sound.wav', function() end)\n"
+        "nythera.state.set('accepted_count', accepted)\n"
+        "nythera.state.set('duplicate_accepted', duplicate)\n"
+        "nythera.state.set('ninth_accepted', ninth)\n",
         {}
     );
     ok = expect(waitForState("test/sound-limits", "ninth_accepted"), "sound pending-limit script did not run") && ok;
@@ -753,14 +753,14 @@ int main() {
     runtime.start(
         "=sound-unhealthy",
         "for index = 1, 5 do\n"
-        "  noctalia.sound.load('failure' .. index, 'sound.wav', function()\n"
+        "  nythera.sound.load('failure' .. index, 'sound.wav', function()\n"
         "    error('deliberate callback failure')\n"
         "  end)\n"
         "end\n"
-        "local accepted = noctalia.sound.load('after-errors', 'sound.wav', function(ok, err)\n"
-        "  noctalia.state.set('completion_after_unhealthy', ok and err == nil)\n"
+        "local accepted = nythera.sound.load('after-errors', 'sound.wav', function(ok, err)\n"
+        "  nythera.state.set('completion_after_unhealthy', ok and err == nil)\n"
         "end)\n"
-        "noctalia.state.set('after_errors_accepted', accepted)\n",
+        "nythera.state.set('after_errors_accepted', accepted)\n",
         {}
     );
     ok = expect(
@@ -795,8 +795,8 @@ int main() {
   {
     scripting::ScriptRuntime first("test/sound-isolation:service", {}, api, root / "sound-first");
     scripting::ScriptRuntime second("test/sound-isolation:service", {}, api, root / "sound-second");
-    const std::string source = "noctalia.sound.load('click', 'click.wav', function(ok)\n"
-                               "  if ok then noctalia.sound.play('click') end\n"
+    const std::string source = "nythera.sound.load('click', 'click.wav', function(ok)\n"
+                               "  if ok then nythera.sound.play('click') end\n"
                                "end)\n";
     first.start("=sound-first", source, {});
     second.start("=sound-second", source, {});
@@ -848,15 +848,15 @@ int main() {
     onSoundLoad = [&runtime] {
       runtime.reload(
           "=sound-replacement",
-          "noctalia.state.set('replacement_loaded', true)\n"
-          "noctalia.state.set('stale_callback_reached', false)\n",
+          "nythera.state.set('replacement_loaded', true)\n"
+          "nythera.state.set('stale_callback_reached', false)\n",
           {}
       );
     };
     runtime.start(
         "=sound-stale",
-        "noctalia.sound.load('stale', 'stale.wav', function()\n"
-        "  noctalia.state.set('stale_callback_reached', true)\n"
+        "nythera.sound.load('stale', 'stale.wav', function()\n"
+        "  nythera.state.set('stale_callback_reached', true)\n"
         "end)\n",
         {}
     );
@@ -903,9 +903,9 @@ int main() {
            )
                && writeText(
                    root / "path-plugins/api16/service.luau",
-                   "noctalia.state.set('loaded', true)\n"
+                   "nythera.state.set('loaded', true)\n"
                    "function onEnable()\n"
-                   "  noctalia.state.set('enabled', true)\n"
+                   "  nythera.state.set('enabled', true)\n"
                    "end\n"
                )
                && writeText(
@@ -920,9 +920,9 @@ int main() {
                )
                && writeText(
                    root / "path-plugins/api17/service.luau",
-                   "noctalia.state.set('loaded', true)\n"
+                   "nythera.state.set('loaded', true)\n"
                    "function onEnable()\n"
-                   "  noctalia.state.set('enabled', true)\n"
+                   "  nythera.state.set('enabled', true)\n"
                    "end\n"
                ),
            "failed to create service API fixtures"
@@ -1035,9 +1035,9 @@ int main() {
         std::make_unique<scripting::ScriptRuntime>("test/plugin:widget", scripting::ScriptSettings{}, api, root);
     lifecycleRuntime->start(
         "=manager-disable",
-        "noctalia.state.set('disable_loaded', true)\n"
+        "nythera.state.set('disable_loaded', true)\n"
         "function onExit(_signal, reason)\n"
-        "  noctalia.state.set('disable_reason', reason)\n"
+        "  nythera.state.set('disable_reason', reason)\n"
         "end\n",
         {}
     );
@@ -1064,9 +1064,9 @@ int main() {
         std::make_unique<scripting::ScriptRuntime>("test/plugin:panel", scripting::ScriptSettings{}, api, root);
     lifecycleRuntime->start(
         "=manager-uninstall",
-        "noctalia.state.set('uninstall_loaded', true)\n"
+        "nythera.state.set('uninstall_loaded', true)\n"
         "function onExit(_signal, reason)\n"
-        "  noctalia.state.set('uninstall_reason', reason)\n"
+        "  nythera.state.set('uninstall_reason', reason)\n"
         "end\n",
         {}
     );
@@ -1098,9 +1098,9 @@ int main() {
         std::make_unique<scripting::ScriptRuntime>("test/api16:widget", scripting::ScriptSettings{}, api, root);
     lifecycleRuntime->start(
         "=legacy-disable",
-        "noctalia.state.set('legacy_loaded', true)\n"
+        "nythera.state.set('legacy_loaded', true)\n"
         "function onExit(_signal, reason)\n"
-        "  noctalia.state.set('exit_reason', reason)\n"
+        "  nythera.state.set('exit_reason', reason)\n"
         "end\n",
         {}
     );
@@ -1150,14 +1150,14 @@ int main() {
     scripting::ScriptRuntime runtime("test/wallpaper-mask:service", {}, api, maskPluginDir);
     runtime.start(
         "=wallpaper-mask",
-        "assert(noctalia.getSetting('shell.offline_mode'))\n"
-        "assert(noctalia.wallpaperPath('DP-1') == '/wallpapers/current.png')\n"
-        "assert(noctalia.wallpaperPath('missing') == nil)\n"
-        "noctalia.setWallpaperMask('DP-1', {\n"
+        "assert(nythera.getSetting('shell.offline_mode'))\n"
+        "assert(nythera.wallpaperPath('DP-1') == '/wallpapers/current.png')\n"
+        "assert(nythera.wallpaperPath('missing') == nil)\n"
+        "nythera.setWallpaperMask('DP-1', {\n"
         "  path = 'cache/mask.png',\n"
         "  wallpaperPath = '/wallpapers/current.png',\n"
         "})\n"
-        "noctalia.setWallpaperMask('DP-1', nil)\n",
+        "nythera.setWallpaperMask('DP-1', nil)\n",
         {}
     );
     ok = expect(
@@ -1199,9 +1199,9 @@ int main() {
         && ok;
   }
 
-  ::unsetenv("NOCTALIA_CONFIG_HOME");
-  ::unsetenv("NOCTALIA_STATE_HOME");
-  ::unsetenv("NOCTALIA_DATA_HOME");
+  ::unsetenv("NYTHERA_CONFIG_HOME");
+  ::unsetenv("NYTHERA_STATE_HOME");
+  ::unsetenv("NYTHERA_DATA_HOME");
   std::filesystem::remove_all(root);
   return ok ? 0 : 1;
 }

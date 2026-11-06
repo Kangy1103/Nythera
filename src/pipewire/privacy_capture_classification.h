@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-namespace noctalia::pipewire {
+namespace nythera::pipewire {
 
   struct PrivacyAudioConsumerProperties {
     std::string_view mediaClass;
@@ -15,4 +15,4 @@ namespace noctalia::pipewire {
   // filters, loopbacks, or sink monitors into the PipeWire graph.
   [[nodiscard]] bool isPrivacyAudioCaptureConsumer(const PrivacyAudioConsumerProperties& properties);
 
-} // namespace noctalia::pipewire
+} // namespace nythera::pipewire

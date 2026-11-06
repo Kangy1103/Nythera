@@ -60,7 +60,7 @@ namespace {
 
 int main() {
   const fs::path tempDir = fs::temp_directory_path()
-      / ("noctalia-wallpaper-scan-symlink-"
+      / ("nythera-wallpaper-scan-symlink-"
          + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
   const fs::path root = tempDir / "root";
   const fs::path local = root / "local";

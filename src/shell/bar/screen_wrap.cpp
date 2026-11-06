@@ -114,7 +114,7 @@ struct ScreenWrap::Shared {
         strip.surface = std::make_unique<LayerSurface>(
             wayland,
             LayerSurfaceConfig{
-                .nameSpace = "noctalia-bar-reservation-" + std::to_string(i),
+                .nameSpace = "nythera-bar-reservation-" + std::to_string(i),
                 .layer = LayerShellLayer::Top,
                 .anchor = anchor,
                 .width = side ? 1U : 0U,
@@ -219,7 +219,7 @@ struct ScreenWrap::Shared {
         strip.surface = std::make_unique<LayerSurface>(
             wayland,
             LayerSurfaceConfig{
-                .nameSpace = "noctalia-bar-wrap-shared",
+                .nameSpace = "nythera-bar-wrap-shared",
                 .layer = layer,
                 .anchor = LayerShellAnchor::Top | LayerShellAnchor::Left,
                 .width = static_cast<unsigned>(strip.rect.width),

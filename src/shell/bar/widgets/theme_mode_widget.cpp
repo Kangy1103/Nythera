@@ -14,7 +14,7 @@ namespace {
 
 } // namespace
 
-ThemeModeWidget::ThemeModeWidget(noctalia::theme::ThemeService* themeService) : m_themeService(themeService) {}
+ThemeModeWidget::ThemeModeWidget(nythera::theme::ThemeService* themeService) : m_themeService(themeService) {}
 
 void ThemeModeWidget::create() {
   auto area = ui::inputArea({});

@@ -19,7 +19,7 @@ class SystemMonitorService;
 
 namespace scripting {
 
-  // A connected output as exposed to plugin scripts via noctalia.outputs().
+  // A connected output as exposed to plugin scripts via nythera.outputs().
   struct ScriptOutputInfo {
     std::string name; // DRM connector name, e.g. "DP-1"
     std::string description;
@@ -31,7 +31,7 @@ namespace scripting {
     bool focused = false;
   };
 
-  // A calendar event as exposed to plugin scripts via noctalia.calendarEvents().
+  // A calendar event as exposed to plugin scripts via nythera.calendarEvents().
   // Mirrors CalendarEvent, but with wall-clock milliseconds instead of a chrono time_point so the
   // scripting layer stays off the calendar layer's headers.
   struct ScriptCalendarEvent {
@@ -167,7 +167,7 @@ namespace scripting {
       return m_calendarEvents;
     }
 
-    // Shell [shell].time_format / date_format — mirrored for noctalia.timeFormat() / dateFormat().
+    // Shell [shell].time_format / date_format — mirrored for nythera.timeFormat() / dateFormat().
     void setTimeFormat(std::string format) {
       std::scoped_lock lock(m_mutex);
       m_timeFormat = std::move(format);
@@ -281,7 +281,7 @@ namespace scripting {
 
     [[nodiscard]] UnloadPluginSoundsHook unloadPluginSoundsHook() const { return m_unloadPluginSoundsHook; }
 
-    // noctalia.idle.watch()/unwatch(). Wired to PluginIdleWatches in Application; invoked only on
+    // nythera.idle.watch()/unwatch(). Wired to PluginIdleWatches in Application; invoked only on
     // the main thread (from dispatchSideEffects). The release hook runs when a Luau host dies.
     void setIdleWatchHook(IdleWatchHook hook) { m_idleWatchHook = std::move(hook); }
 
@@ -305,7 +305,7 @@ namespace scripting {
 
     [[nodiscard]] ReleaseIdleWatchesHook releaseIdleWatchesHook() const { return m_releaseIdleWatchesHook; }
 
-    // noctalia.layer.show()/hide()/configure(). Wired to PluginLayerHost in Application; main thread
+    // nythera.layer.show()/hide()/configure(). Wired to PluginLayerHost in Application; main thread
     // only (from dispatchSideEffects).
     void setLayerCommandHook(LayerCommandHook hook) { m_layerCommandHook = std::move(hook); }
 

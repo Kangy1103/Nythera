@@ -6,9 +6,9 @@ config_file="$config_dir/alacritty/alacritty.toml"
 
 # alacritty expands ~ in import paths; keep it tilde'd so the path stays portable.
 if [[ "$config_dir" == "$HOME"/* ]]; then
-    theme_path="~/${config_dir#"$HOME"/}/alacritty/themes/noctalia.toml"
+    theme_path="~/${config_dir#"$HOME"/}/alacritty/themes/nythera.toml"
 else
-    theme_path="$config_dir/alacritty/themes/noctalia.toml"
+    theme_path="$config_dir/alacritty/themes/nythera.toml"
 fi
 
 mkdir -p "$(dirname "$config_file")"
@@ -45,7 +45,7 @@ find_other_config() {
 
 if [ ! -f "$config_file" ]; then
     if other_config="$(find_other_config)"; then
-        echo "Warning: not creating $config_file because it would hide $other_config; add \"$theme_path\" to [general] import in your alacritty config to apply the Noctalia theme" >&2
+        echo "Warning: not creating $config_file because it would hide $other_config; add \"$theme_path\" to [general] import in your alacritty config to apply the Nythera theme" >&2
         exit 0
     fi
     cat >"$config_file" <<EOF
@@ -60,8 +60,8 @@ fi
 tmp_file="$(mktemp "${config_file}.tmp.XXXXXX")"
 trap 'rm -f "$tmp_file"' EXIT
 
-if grep -q 'noctalia\.toml' "$config_file"; then
-    sed -E 's|"themes/noctalia.toml"|"'"$theme_path"'"|g' "$config_file" >"$tmp_file"
+if grep -q 'nythera\.toml' "$config_file"; then
+    sed -E 's|"themes/nythera.toml"|"'"$theme_path"'"|g' "$config_file" >"$tmp_file"
 elif grep -q '^\[general\]' "$config_file"; then
     if grep -q '^import\s*=' "$config_file"; then
         sed '/^import\s*=\s*\[/,/\]/{/\]/s|]|    "'"$theme_path"'",\n]|}' "$config_file" >"$tmp_file"

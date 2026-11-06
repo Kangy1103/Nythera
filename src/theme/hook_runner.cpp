@@ -5,7 +5,7 @@
 
 #include <utility>
 
-namespace noctalia::theme {
+namespace nythera::theme {
 
   namespace {
     constexpr Logger kLog("hook_runner");
@@ -153,4 +153,4 @@ namespace noctalia::theme {
     return false;
   }
 
-} // namespace noctalia::theme
+} // namespace nythera::theme

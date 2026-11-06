@@ -10,7 +10,7 @@
 #include <unordered_set>
 #include <vector>
 
-namespace noctalia::config::schema {
+namespace nythera::config::schema {
 
   // Populate `out` from `tbl` by running every field's reader. Absent keys leave
   // the struct default. Replaces a hand-written parseConfigTable section.
@@ -210,4 +210,4 @@ namespace noctalia::config::schema {
     };
   }
 
-} // namespace noctalia::config::schema
+} // namespace nythera::config::schema

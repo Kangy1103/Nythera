@@ -5,13 +5,13 @@
 class Glyph;
 class InputArea;
 
-namespace noctalia::theme {
+namespace nythera::theme {
   class ThemeService;
 }
 
 class ThemeModeWidget : public Widget {
 public:
-  explicit ThemeModeWidget(noctalia::theme::ThemeService* themeService);
+  explicit ThemeModeWidget(nythera::theme::ThemeService* themeService);
 
   void create() override;
 
@@ -20,7 +20,7 @@ private:
   void doUpdate(Renderer& renderer) override;
   void syncState(Renderer& renderer);
 
-  noctalia::theme::ThemeService* m_themeService = nullptr;
+  nythera::theme::ThemeService* m_themeService = nullptr;
   InputArea* m_area = nullptr;
   Glyph* m_glyph = nullptr;
   bool m_lastIsLight = false;

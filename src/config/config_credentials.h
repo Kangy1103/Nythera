@@ -6,9 +6,9 @@
 #include <optional>
 #include <string_view>
 
-namespace noctalia::config {
+namespace nythera::config {
 
-  // How `noctalia config export` writes values that are credentials.
+  // How `nythera config export` writes values that are credentials.
   enum class CredentialExportMode : std::uint8_t {
     Keep,  // verbatim
     Omit,  // key removed
@@ -22,4 +22,4 @@ namespace noctalia::config {
   // declares with `secret = true` (plugin_settings, bar widgets, desktop and lockscreen widgets).
   void applyCredentialExportMode(toml::table& root, CredentialExportMode mode);
 
-} // namespace noctalia::config
+} // namespace nythera::config

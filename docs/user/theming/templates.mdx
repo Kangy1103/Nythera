@@ -111,7 +111,7 @@ The built-in Material color tokens are:
 | Background          | `background`, `on_background`                                                                                                                                                                                                      |
 | Hover               | `hover`, `on_hover`                                                                                                                                                                                                                |
 
-This list covers the 48 Material color tokens plus the two hover roles exposed through `colors`. `hover` and `on_hover` carry the palette's [`mHover` and `mOnHover`](/noctalia/theming/palette/#color-roles); wallpaper-generated palettes set them to `tertiary` and `on_tertiary`. Terminal tokens are listed in [Terminal Tokens](#terminal-tokens). Custom colors add their generated token names at render time; see [Custom Colors](#custom-colors).
+This list covers the 48 Material color tokens plus the two hover roles exposed through `colors`. `hover` and `on_hover` carry the palette's [`mHover` and `mOnHover`](/nythera/theming/palette/#color-roles); wallpaper-generated palettes set them to `tertiary` and `on_tertiary`. Terminal tokens are listed in [Terminal Tokens](#terminal-tokens). Custom colors add their generated token names at render time; see [Custom Colors](#custom-colors).
 
 ### Modes
 
@@ -297,7 +297,7 @@ Supported iterable expressions:
 - arrays and maps from the current scope (e.g. TOML data bound via `[config]`)
 
 :::note
-Noctalia uses `<* *>` for block tags and `{{ }}` for expressions. This is different from matugen, which uses Tera syntax (`{% %}` / `{{ }}`). The two are not interchangeable: a matugen template must be adapted to use `<* *>` blocks.
+Nythera uses `<* *>` for block tags and `{{ }}` for expressions. This is different from matugen, which uses Tera syntax (`{% %}` / `{{ }}`). The two are not interchangeable: a matugen template must be adapted to use `<* *>` blocks.
 :::
 
 ### `colors`
@@ -434,14 +434,14 @@ Use the generated roles through `colors.<role>.<mode>.<format>` just like built-
 }
 ```
 
-In Noctalia's main config, put the same custom color definitions under `[theme.templates.custom_colors]` and reference them from any enabled user template:
+In Nythera's main config, put the same custom color definitions under `[theme.templates.custom_colors]` and reference them from any enabled user template:
 
 ```toml
 [theme.templates.custom_colors]
 warning = "#f97316"
 
 [theme.templates.user.my_app]
-input_path  = "$XDG_CONFIG_HOME/noctalia/templates/my-app.css"
+input_path  = "$XDG_CONFIG_HOME/nythera/templates/my-app.css"
 output_path = "$XDG_CONFIG_HOME/my-app/theme.css"
 ```
 
@@ -499,8 +499,8 @@ Each template entry supports:
 [templates.qt]
 input_path = "./qtct.conf"
 output_path = [
-  "$XDG_CONFIG_HOME/qt5ct/colors/noctalia.conf",
-  "$XDG_CONFIG_HOME/qt6ct/colors/noctalia.conf",
+  "$XDG_CONFIG_HOME/qt5ct/colors/nythera.conf",
+  "$XDG_CONFIG_HOME/qt6ct/colors/nythera.conf",
 ]
 ```
 
@@ -526,7 +526,7 @@ Set `hook_async = false` when the hook must not overlap with another one. Such a
 
 ```toml
 [theme.templates.user.my_app]
-input_path  = "$XDG_CONFIG_HOME/noctalia/templates/my-app.css"
+input_path  = "$XDG_CONFIG_HOME/nythera/templates/my-app.css"
 output_path = "$XDG_CONFIG_HOME/my-app/theme.css"
 post_hook   = "my-app --reload-theme"
 hook_async  = false
@@ -536,7 +536,7 @@ hook_async  = false
 
 When several entries share the same `input_path` but write to different client config roots (for example Discord forks or VS Code vs VSCodium), the engine infers each output's client root and skips outputs whose root is missing. Single-app templates (one entry per input) still create missing directories as before.
 
-`gtk_extension` (`"gtk3"` or `"gtk4"`) is for community templates only. It marks the entry as app-scoped CSS for a GTK app: Noctalia renders it to `noctalia-extensions/<template>.<entry>.css` in the matching `gtk-3.0`/`gtk-4.0` config directory and lists it in `noctalia-extensions.css`, which the built-in GTK template's `noctalia.css` imports. The entry is skipped while that built-in GTK template is disabled, and an extension may not set `output_path`, `output_path_dynamic`, hooks, `post_action`, or `requires_path`. Disabling the template removes its import and file on the next application.
+`gtk_extension` (`"gtk3"` or `"gtk4"`) is for community templates only. It marks the entry as app-scoped CSS for a GTK app: Nythera renders it to `nythera-extensions/<template>.<entry>.css` in the matching `gtk-3.0`/`gtk-4.0` config directory and lists it in `nythera-extensions.css`, which the built-in GTK template's `nythera.css` imports. The entry is skipped while that built-in GTK template is disabled, and an extension may not set `output_path`, `output_path_dynamic`, hooks, `post_action`, or `requires_path`. Disabling the template removes its import and file on the next application.
 
 ### Closest Color
 
@@ -568,9 +568,9 @@ By default `post_hook` commands from different entries run in the background: th
 
 A theme change always waits for the hooks it started before reporting the theme as applied, and hooks left over from a superseded theme change are dropped or awaited before the next one is applied.
 
-When Noctalia exits, hooks that are still running get 5 seconds to finish. After that their process group is terminated, so a hook that never exits cannot keep Noctalia from quitting. `output_path_dynamic` commands follow the same rule. A hook that rewrites a file should write a temporary file and move it into place, so an interrupted run leaves the previous file intact.
+When Nythera exits, hooks that are still running get 5 seconds to finish. After that their process group is terminated, so a hook that never exits cannot keep Nythera from quitting. `output_path_dynamic` commands follow the same rule. A hook that rewrites a file should write a temporary file and move it into place, so an interrupted run leaves the previous file intact.
 
-`post_action` selects a Noctalia-owned native operation that runs after all outputs are written successfully. The canonical `kde-color-scheme` action requires exactly one output, merges that generated KDE color scheme into `$XDG_CONFIG_HOME/kdeglobals`, and notifies running KDE applications over the session bus. Unknown action names fail the template entry.
+`post_action` selects a Nythera-owned native operation that runs after all outputs are written successfully. The canonical `kde-color-scheme` action requires exactly one output, merges that generated KDE color scheme into `$XDG_CONFIG_HOME/kdeglobals`, and notifies running KDE applications over the session bus. Unknown action names fail the template entry.
 
 Additional variables available inside hooks and templates:
 
@@ -616,24 +616,24 @@ These are accessed like any other color token:
 
 ## CLI Usage
 
-Template rendering is available through `noctalia theme`.
+Template rendering is available through `nythera theme`.
 
 Render one file:
 
 ```sh
-noctalia theme <image> -r input.txt:output.txt
+nythera theme <image> -r input.txt:output.txt
 ```
 
 Process a TOML config:
 
 ```sh
-noctalia theme <image> -c templates.toml
+nythera theme <image> -c templates.toml
 ```
 
 List available templates:
 
 ```sh
-noctalia theme --list-templates
+nythera theme --list-templates
 ```
 
 Pass `-c <file>` with `--list-templates` to include entries from a standalone template TOML config.
@@ -641,7 +641,7 @@ Pass `-c <file>` with `--list-templates` to include entries from a standalone te
 Process the shipped built-in template catalog:
 
 ```sh
-noctalia theme <image> --builtin-config
+nythera theme <image> --builtin-config
 ```
 
 The shipped built-in catalog lives at `assets/templates/builtin.toml`.
@@ -649,13 +649,13 @@ The shipped built-in catalog lives at `assets/templates/builtin.toml`.
 Render from a precomputed theme JSON:
 
 ```sh
-noctalia theme --theme-json theme.json -r input.txt:output.txt
+nythera theme --theme-json theme.json -r input.txt:output.txt
 ```
 
 Combine both: `-c` and `-r` can be used in the same command. The config's `[config.custom_colors]` are loaded first, so the `-r` templates can reference them:
 
 ```sh
-noctalia theme <image> -c templates.toml -r input.txt:output.txt
+nythera theme <image> -c templates.toml -r input.txt:output.txt
 ```
 
 The `-r` files are rendered first, then the templates declared in the config.
@@ -663,5 +663,5 @@ The `-r` files are rendered first, then the templates declared in the config.
 Set the default template mode:
 
 ```sh
-noctalia theme <image> --default-mode light -r input.txt:output.txt
+nythera theme <image> --default-mode light -r input.txt:output.txt
 ```

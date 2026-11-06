@@ -13,7 +13,7 @@
 #include <sstream>
 #include <utility>
 
-namespace noctalia::theme {
+namespace nythera::theme {
 
   namespace {
 
@@ -226,4 +226,4 @@ namespace noctalia::theme {
     }
   }
 
-} // namespace noctalia::theme
+} // namespace nythera::theme

@@ -27,7 +27,7 @@
 #include <unistd.h>
 
 #ifdef __GLIBC__
-#ifdef NOCTALIA_USE_JEMALLOC
+#ifdef NYTHERA_USE_JEMALLOC
 #include <jemalloc/jemalloc.h>
 #else
 #include <malloc.h>
@@ -38,7 +38,7 @@ namespace {
 
   enum class SpawnResult { Parent, Error };
 
-  constexpr const char* kDaemonPipeEnv = "NOCTALIA_DAEMON_PIPE_FD";
+  constexpr const char* kDaemonPipeEnv = "NYTHERA_DAEMON_PIPE_FD";
   int g_daemonPipe = -1;
 
   void closeFd(int& fd) {
@@ -131,12 +131,12 @@ namespace {
 
   int runTopLevelFlag(const char* flag) {
     if (std::strcmp(flag, "--version") == 0 || std::strcmp(flag, "-v") == 0) {
-      const std::string version = noctalia::build_info::displayVersion();
-      std::println("noctalia {}", version);
+      const std::string version = nythera::build_info::displayVersion();
+      std::println("nythera {}", version);
       return 0;
     }
     if (std::strcmp(flag, "--help") == 0 || std::strcmp(flag, "-h") == 0) {
-      std::print("{}", noctalia::cli::renderHelp(noctalia::cli::kRootCmd, "noctalia"));
+      std::print("{}", nythera::cli::renderHelp(nythera::cli::kRootCmd, "nythera"));
       return 0;
     }
     return -1;
@@ -225,7 +225,7 @@ namespace {
     // is settled before bars or surfaces are created. Held for the process lifetime.
     SingleInstanceLock instanceLock;
     if (!instanceLock.tryAcquire()) {
-      std::println(stderr, "error: noctalia is already running");
+      std::println(stderr, "error: nythera is already running");
       completeDaemonStartup(1);
       _exit(1);
     }
@@ -242,35 +242,14 @@ namespace {
 
 } // namespace
 
-#ifdef NOCTALIA_USE_JEMALLOC
+#ifdef NYTHERA_USE_JEMALLOC
 // jemalloc reads this before its first allocation; the background thread runs
 // decay even while the shell is idle.
 const char* malloc_conf = "background_thread:true,narenas:2,dirty_decay_ms:1000,muzzy_decay_ms:5000,lg_tcache_max:12";
 #endif
 
 int main(int argc, char* argv[]) {
-  // A direct repo launch must be as isolated as the shell switcher's launch.
-  // FileUtils appends /noctalia to these application-specific base directories.
-  const auto privateHome = [](const char* overrideName, const char* xdgName, const char* fallback) {
-    if (const char* current = std::getenv(overrideName); current != nullptr && current[0] != '\0') {
-      return;
-    }
-    std::string base;
-    if (const char* xdg = std::getenv(xdgName); xdg != nullptr && xdg[0] != '\0') {
-      base = xdg;
-    } else if (const char* home = std::getenv("HOME"); home != nullptr && home[0] != '\0') {
-      base = std::string(home) + fallback;
-    } else {
-      return;
-    }
-    base += "/cyberpunk-shell";
-    (void)::setenv(overrideName, base.c_str(), 1);
-  };
-  privateHome("NOCTALIA_CONFIG_HOME", "XDG_CONFIG_HOME", "/.config");
-  privateHome("NOCTALIA_STATE_HOME", "XDG_STATE_HOME", "/.local/state");
-  privateHome("NOCTALIA_DATA_HOME", "XDG_DATA_HOME", "/.local/share");
-
-#if defined(__GLIBC__) && !defined(NOCTALIA_USE_JEMALLOC)
+#if defined(__GLIBC__) && !defined(NYTHERA_USE_JEMALLOC)
   mallopt(M_ARENA_MAX, 2);
 #endif
 
@@ -295,25 +274,25 @@ int main(int argc, char* argv[]) {
   }
 
   if (argc >= 2) {
-    if (noctalia::theme::isFirefoxNativeMessagingLaunch(argc, argv))
-      return noctalia::theme::runFirefoxNativeMessagingHost();
+    if (nythera::theme::isFirefoxNativeMessagingLaunch(argc, argv))
+      return nythera::theme::runFirefoxNativeMessagingHost();
     if (std::strcmp(argv[1], "completions") == 0)
-      return noctalia::cli::runCompletionsCli(argc, argv);
+      return nythera::cli::runCompletionsCli(argc, argv);
     if (std::strcmp(argv[1], "firefox-theme") == 0)
-      return noctalia::theme::runFirefoxThemeCli(argc, argv);
+      return nythera::theme::runFirefoxThemeCli(argc, argv);
     if (std::strcmp(argv[1], "theme") == 0)
-      return noctalia::theme::runCli(argc, argv);
+      return nythera::theme::runCli(argc, argv);
     if (std::strcmp(argv[1], "msg") == 0)
-      return noctalia::ipc::runCli(argc, argv);
+      return nythera::ipc::runCli(argc, argv);
     // Internal mode for PAM authentication after re-exec.
     if (std::strcmp(argv[1], "pam-helper") == 0)
       return PamAuthenticator::runHelperMode(argc, argv);
     if (std::strcmp(argv[1], "config") == 0)
-      return noctalia::config::runCli(argc, argv);
+      return nythera::config::runCli(argc, argv);
     if (std::strcmp(argv[1], "dmenu") == 0)
-      return noctalia::launcher::runDmenuCli(argc, argv);
+      return nythera::launcher::runDmenuCli(argc, argv);
     if (std::strcmp(argv[1], "plugins") == 0)
-      return noctalia::plugins::runCli(argc, argv);
+      return nythera::plugins::runCli(argc, argv);
   }
 
   for (int i = 1; i < argc; ++i) {
@@ -329,8 +308,17 @@ int main(int argc, char* argv[]) {
 
   if (argc >= 2) {
     std::println(stderr, "error: unknown command: {}", argv[1]);
-    std::println(stderr, "Run 'noctalia --help' for usage.");
+    std::println(stderr, "Run 'nythera --help' for usage.");
     return 1;
+  }
+
+  // Daemon re-exec must survive the HOME chdir even for ./build-debug/nythera.
+  std::array<char, 4096> executableBuffer{};
+  const auto executableLength = ::readlink("/proc/self/exe", executableBuffer.data(), executableBuffer.size() - 1);
+  std::string daemonExecutable;
+  if (executableLength > 0) {
+    daemonExecutable.assign(executableBuffer.data(), static_cast<std::size_t>(executableLength));
+    argv[0] = daemonExecutable.data();
   }
 
   {
@@ -357,7 +345,7 @@ int main(int argc, char* argv[]) {
         return 1;
       }
       if (daemonResult == 0) {
-        std::println("noctalia started [pid: {}]", pid);
+        std::println("nythera started [pid: {}]", pid);
       }
       return daemonResult;
     }

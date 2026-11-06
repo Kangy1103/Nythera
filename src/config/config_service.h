@@ -26,8 +26,8 @@ class NotificationManager;
 // Diagnostics a caller already computed for an override mutation, so validation does not merge
 // and validate the same tables again. Null members are computed on demand.
 struct OverrideDiagnostics {
-  const noctalia::config::schema::Diagnostics* baseline = nullptr;  // for the persisted overrides
-  const noctalia::config::schema::Diagnostics* candidate = nullptr; // for the candidate table
+  const nythera::config::schema::Diagnostics* baseline = nullptr;  // for the persisted overrides
+  const nythera::config::schema::Diagnostics* candidate = nullptr; // for the candidate table
 };
 
 class ConfigService {
@@ -66,15 +66,15 @@ public:
   [[nodiscard]] bool matchesKeybind(KeybindAction action, std::uint32_t sym, std::uint32_t modifiers) const;
   [[nodiscard]] int watchFd() const noexcept { return m_inotify.fd(); }
   [[nodiscard]] std::string buildSupportReport() const;
-  [[nodiscard]] std::string buildMergedUserConfig(noctalia::config::CredentialExportMode credentials) const;
-  [[nodiscard]] std::string buildEffectiveConfig(noctalia::config::CredentialExportMode credentials) const;
+  [[nodiscard]] std::string buildMergedUserConfig(nythera::config::CredentialExportMode credentials) const;
+  [[nodiscard]] std::string buildEffectiveConfig(nythera::config::CredentialExportMode credentials) const;
   [[nodiscard]] static std::string buildMergedUserConfigFromSources(
       std::string_view configDir, std::string_view settingsPath, std::string* error = nullptr,
-      noctalia::config::CredentialExportMode credentials = noctalia::config::CredentialExportMode::Keep
+      nythera::config::CredentialExportMode credentials = nythera::config::CredentialExportMode::Keep
   );
   [[nodiscard]] static std::string buildEffectiveConfigFromSources(
       std::string_view configDir, std::string_view settingsPath, std::string* error = nullptr,
-      noctalia::config::CredentialExportMode credentials = noctalia::config::CredentialExportMode::Keep
+      nythera::config::CredentialExportMode credentials = nythera::config::CredentialExportMode::Keep
   );
   [[nodiscard]] bool shouldRunSetupWizard() const;
   [[nodiscard]] std::optional<bool> stateBool(std::string_view owner, std::string_view key) const;
@@ -85,11 +85,11 @@ public:
   stateStringArray(std::string_view owner, std::string_view key) const;
   bool setStateStringArray(std::string_view owner, std::string_view key, const std::vector<std::string>& value);
   [[nodiscard]] std::optional<std::string> stateString(std::string_view owner, std::string_view key) const;
-  [[nodiscard]] const noctalia::config::LegacyConfigIssues& legacyConfigIssues() const noexcept {
+  [[nodiscard]] const nythera::config::LegacyConfigIssues& legacyConfigIssues() const noexcept {
     return m_legacyConfigIssues;
   }
 
-  // The optional label is used only for opt-in reload profiling (NOCTALIA_PROFILE);
+  // The optional label is used only for opt-in reload profiling (NYTHERA_PROFILE);
   // unlabeled subscribers are reported by registration index.
   void addReloadCallback(ReloadCallback callback, std::string_view label = {});
   void setNotificationManager(NotificationManager* manager);
@@ -210,7 +210,7 @@ private:
   static void
   parseConfigTable(const toml::table& tbl, Config& config, bool logSummary, bool logSchemaDiagnostics = true);
   [[nodiscard]] std::optional<Config> configForOverrides(const toml::table& overrides) const;
-  [[nodiscard]] noctalia::config::schema::Diagnostics diagnosticsForOverrides(const toml::table& overrides) const;
+  [[nodiscard]] nythera::config::schema::Diagnostics diagnosticsForOverrides(const toml::table& overrides) const;
   // Rejects a candidate that adds errors compared to the persisted overrides.
   [[nodiscard]] bool
   validateOverrideMutation(const toml::table& candidateOverrides, const OverrideDiagnostics& known = {});
@@ -235,19 +235,19 @@ private:
   // the on-screen notification puts the location in its title and the text in
   // its body. `message` is "<dotted.path>: <problem>" and never carries a location.
   struct ConfigProblem {
-    noctalia::config::schema::SourceOrigin origin;
+    nythera::config::schema::SourceOrigin origin;
     std::string message;
 
     [[nodiscard]] bool empty() const { return message.empty(); }
     // Single-line form for logs and the settings status banner.
     [[nodiscard]] std::string flatten(std::string_view baseDir) const { return origin.prefixedShort(baseDir, message); }
-    [[nodiscard]] static ConfigProblem from(const noctalia::config::schema::Diagnostics::Entry& entry) {
+    [[nodiscard]] static ConfigProblem from(const nythera::config::schema::Diagnostics::Entry& entry) {
       return ConfigProblem{entry.origin, entry.path + ": " + entry.message};
     }
   };
 
   void setConfigParseError(ConfigProblem problem);
-  void updateLegacyConfigIssues(noctalia::config::LegacyConfigIssues issues);
+  void updateLegacyConfigIssues(nythera::config::LegacyConfigIssues issues);
   void notifyLegacyConfigIssues();
   // Validates m_overridesTable against the persisted table and writes it; restores the persisted
   // table on failure.
@@ -290,7 +290,7 @@ private:
   ConfigProblem m_overridesParseError;
   ConfigProblem m_pendingError;             // parse error from initial load, notified once the manager is wired up
   uint32_t m_configErrorNotificationId = 0; // ID of the active config-error notification, 0 if none
-  noctalia::config::LegacyConfigIssues m_legacyConfigIssues;
+  nythera::config::LegacyConfigIssues m_legacyConfigIssues;
   std::string m_loggedLegacyIssueFingerprint;
   bool m_legacyReminderPending = false;
   Timer m_legacyReminderTimer;

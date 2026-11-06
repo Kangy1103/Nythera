@@ -45,26 +45,26 @@ int main() {
   });
 
   constexpr auto source = R"(
-assert(not noctalia.runAsync(""))
-assert(noctalia.runAsync(
+assert(not nythera.runAsync(""))
+assert(nythera.runAsync(
   { "printf", "%s", "owner/repo; printf injected" },
   function(_) end,
   5000
 ))
-assert(noctalia.getSetting("shell.offline_mode"))
-assert(noctalia.wallpaperPath("DP-1") == "/tmp/wallpaper.png")
-assert(noctalia.wallpaperPath("missing") == nil)
-assert(type(noctalia.getColor("primary")) == "string")
-assert(string.len(noctalia.getColor("primary")) == 7)
-assert(string.sub(noctalia.getColor("primary"), 1, 1) == "#")
-assert(noctalia.getColor("surface") ~= nil)
-assert(noctalia.getColor("on_surface") ~= nil)
-assert(noctalia.getColor("missing_role") == nil)
-noctalia.setWallpaperMask("DP-1", {
+assert(nythera.getSetting("shell.offline_mode"))
+assert(nythera.wallpaperPath("DP-1") == "/tmp/wallpaper.png")
+assert(nythera.wallpaperPath("missing") == nil)
+assert(type(nythera.getColor("primary")) == "string")
+assert(string.len(nythera.getColor("primary")) == 7)
+assert(string.sub(nythera.getColor("primary"), 1, 1) == "#")
+assert(nythera.getColor("surface") ~= nil)
+assert(nythera.getColor("on_surface") ~= nil)
+assert(nythera.getColor("missing_role") == nil)
+nythera.setWallpaperMask("DP-1", {
   path = "/tmp/mask.png",
   wallpaperPath = "/tmp/wallpaper.png",
 })
-noctalia.setWallpaperMask("DP-1", nil)
+nythera.setWallpaperMask("DP-1", nil)
 )";
   if (!expect(host.exec("=direct-argv", source), "argv call should be accepted")) {
     return 1;
@@ -98,7 +98,7 @@ noctalia.setWallpaperMask("DP-1", nil)
   testPalette.primary = rgba(1.0F, 0.0F, 0.0F, 1.0F);
   setPalette(testPalette);
   ok = expect(
-           host.exec("=get-color", "assert(noctalia.getColor('primary') == '#FF0000')\n"),
+           host.exec("=get-color", "assert(nythera.getColor('primary') == '#FF0000')\n"),
            "getColor should return updated color from active palette"
        )
       && ok;
@@ -106,8 +106,8 @@ noctalia.setWallpaperMask("DP-1", nil)
   ok = expect(
            host.exec(
                "=get-color-restored",
-               "assert(noctalia.getColor('primary') ~= '#FF0000')\n"
-               "assert(noctalia.getColor('invalid_role') == nil)\n"
+               "assert(nythera.getColor('primary') ~= '#FF0000')\n"
+               "assert(nythera.getColor('invalid_role') == nil)\n"
            ),
            "getColor should track restored palette and return nil for invalid roles"
        )

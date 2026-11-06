@@ -285,7 +285,7 @@ PowerProfilesChangeOrigin PowerProfilesService::consumeActiveProfileChangeOrigin
   }
   const bool matchesLocalRequest = *m_pendingLocalActiveProfile == profile;
   m_pendingLocalActiveProfile.reset();
-  return matchesLocalRequest ? PowerProfilesChangeOrigin::Noctalia : PowerProfilesChangeOrigin::External;
+  return matchesLocalRequest ? PowerProfilesChangeOrigin::Nythera : PowerProfilesChangeOrigin::External;
 }
 
 void PowerProfilesService::emitChangedIfNeeded(PowerProfilesState next, bool stateSnapshot) {
@@ -310,7 +310,7 @@ void PowerProfilesService::emitChangedIfNeeded(PowerProfilesState next, bool sta
 }
 
 void PowerProfilesService::registerIpc(IpcService& ipc, const StateFeedbackCallback& stateFeedback) {
-  ipc.bind(noctalia::cli::msg::powerSet, [this, stateFeedback](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::powerSet, [this, stateFeedback](const std::string& args) -> std::string {
     const std::string profile = StringUtils::trim(args);
     if (profile.empty()) {
       return "error: profile required (power-set <profile>); typical values: performance, balanced, "
@@ -336,7 +336,7 @@ void PowerProfilesService::registerIpc(IpcService& ipc, const StateFeedbackCallb
     }
     return "ok\n";
   });
-  ipc.bindCycle(noctalia::cli::msg::powerCycle, [this, stateFeedback](const std::string& args) -> std::string {
+  ipc.bindCycle(nythera::cli::msg::powerCycle, [this, stateFeedback](const std::string& args) -> std::string {
     const std::string direction = StringUtils::trim(args);
     int step = 1;
     if (direction == "prev") {

@@ -1,13 +1,13 @@
 #include "shell/bar/widgets/media_widget_definition.h"
 
-const noctalia::bar::WidgetDefinition<MediaWidget::Options>& mediaWidgetDefinition() {
-  using noctalia::bar::field;
+const nythera::bar::WidgetDefinition<MediaWidget::Options>& mediaWidgetDefinition() {
+  using nythera::bar::field;
   using Options = MediaWidget::Options;
 
   static const settings::WidgetSettingVisibility notAlbumArtOnly{"album_art_only", {"false"}};
   static const settings::WidgetSettingVisibility notHideAlbumArt{"hide_album_art", {"false"}};
 
-  static const noctalia::bar::WidgetDefinition<Options> definition{
+  static const nythera::bar::WidgetDefinition<Options> definition{
       .type = "media",
       .fields = {
           field<&Options::albumArtOnly>({

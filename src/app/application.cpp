@@ -62,14 +62,14 @@
 #include <chrono>
 #include <cstring>
 #include <malloc.h>
-#ifdef NOCTALIA_USE_JEMALLOC
+#ifdef NYTHERA_USE_JEMALLOC
 #include <jemalloc/jemalloc.h>
 #endif
 #include <string_view>
 
-#ifdef NOCTALIA_USE_JEMALLOC
-#define NOCTALIA_STRINGIFY_HELPER(x) #x
-#define NOCTALIA_STRINGIFY(x) NOCTALIA_STRINGIFY_HELPER(x)
+#ifdef NYTHERA_USE_JEMALLOC
+#define NYTHERA_STRINGIFY_HELPER(x) #x
+#define NYTHERA_STRINGIFY(x) NYTHERA_STRINGIFY_HELPER(x)
 #endif
 
 std::atomic<bool> Application::s_shutdownRequested{false};
@@ -146,7 +146,7 @@ Application::~Application() {
   SearchPickerDialog::setPopup(nullptr);
   m_settingsWindow.shutdownDialogPresenter();
   // m_systemMonitor is declared after the plugin hosts, so it is destroyed first; drop the script
-  // API's pointer to it here, while both are still alive, or a plugin that used noctalia.cpuCores
+  // API's pointer to it here, while both are still alive, or a plugin that used nythera.cpuCores
   // releases its reference through a dangling pointer as its host is torn down.
   m_scriptApi.setSystemMonitor(nullptr);
   TooltipManager::instance().shutdown();
@@ -160,7 +160,7 @@ Application::~Application() {
 void Application::run(const std::function<void()>& startupReadyCallback) {
   initLogFile();
   initLogLevelFromEnvironment();
-  kLog.info("noctalia {}", noctalia::build_info::displayVersion());
+  kLog.info("nythera {}", nythera::build_info::displayVersion());
   // Claim the tray watcher name first. The tray UI itself is wired up later.
   // Item callbacks run from deferred work on the main loop, after the shell
   // is initialized.
@@ -180,7 +180,7 @@ void Application::run(const std::function<void()>& startupReadyCallback) {
   runStartupPhase("initUi", [this] { initUi(); });
   runStartupPhase("initPluginServices", [this] {
     // Outputs are enumerated by now (wallpaper created its surfaces in initUi); refresh
-    // the script-visible output snapshot before any service/panel reads noctalia.outputs().
+    // the script-visible output snapshot before any service/panel reads nythera.outputs().
     if (m_syncScriptApiOutputs) {
       m_syncScriptApiOutputs();
     }
@@ -229,10 +229,10 @@ void Application::run(const std::function<void()>& startupReadyCallback) {
 
 #ifdef __GLIBC__
   runStartupPhase("allocator_trim", [] {
-#ifdef NOCTALIA_USE_JEMALLOC
+#ifdef NYTHERA_USE_JEMALLOC
     // jemalloc exports no malloc_trim; purge unused pages in every arena.
     const int purgeResult =
-        mallctl("arena." NOCTALIA_STRINGIFY(MALLCTL_ARENAS_ALL) ".purge", nullptr, nullptr, nullptr, 0);
+        mallctl("arena." NYTHERA_STRINGIFY(MALLCTL_ARENAS_ALL) ".purge", nullptr, nullptr, nullptr, 0);
     if (purgeResult != 0) {
       kLog.warn("failed to purge jemalloc arenas: {}", std::strerror(purgeResult));
     }

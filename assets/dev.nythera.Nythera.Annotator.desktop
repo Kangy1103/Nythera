@@ -1,10 +1,10 @@
 [Desktop Entry]
 Categories=Graphics;ImageProcessing;
-Comment=Edit images with Noctalia's built-in image annotator
-Exec=noctalia msg annotate %f
-Icon=noctalia
+Comment=Edit images with Nythera's built-in image annotator
+Exec=nythera msg annotate %f
+Icon=nythera
 MimeType=image/bmp;image/gif;image/vnd.microsoft.icon;image/jpeg;image/jxl;image/png;image/qoi;image/svg+xml;image/x-tga;image/webp;image/vnd.wap.wbmp;image/x-portable-anymap;image/x-portable-graymap;image/x-portable-pixmap;
-Name=Noctalia Image Annotator
+Name=Nythera Image Annotator
 NoDisplay=true
 Terminal=false
 Type=Application

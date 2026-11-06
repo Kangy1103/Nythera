@@ -135,7 +135,7 @@ public:
 };
 
 int main() {
-  using namespace noctalia::bar;
+  using namespace nythera::bar;
   const auto smallBadge = taskbarBadgeSize(6.0F, 8.0F, 12.0F, 1.0F);
   const auto largeBadge = taskbarBadgeSize(12.0F, 16.0F, 24.0F, 2.0F);
   TEST_CHECK(largeBadge.width == smallBadge.width * 2.0F);

@@ -29,7 +29,7 @@
 #include <unistd.h>
 #include <vector>
 
-namespace noctalia::theme {
+namespace nythera::theme {
   namespace {
 
     namespace css = firefox_theme::css;
@@ -37,7 +37,7 @@ namespace noctalia::theme {
     namespace settings = firefox_theme::settings;
 
     // Wire names required by the Pywalfox Firefox/Thunderbird extension.
-    constexpr std::string_view kHostVersion = "noctalia-2.9.0-compat";
+    constexpr std::string_view kHostVersion = "nythera-2.9.0-compat";
 
     constexpr std::string_view kActionVersion = "debug:version";
     constexpr std::string_view kActionColors = "action:colors";
@@ -107,9 +107,9 @@ namespace noctalia::theme {
     // reach all Firefox profiles, not only the process that owns the Unix socket.
     [[nodiscard]] std::filesystem::path commandNotifyDir() {
       if (const char* runtime = std::getenv("XDG_RUNTIME_DIR"); runtime != nullptr && runtime[0] != '\0') {
-        return std::filesystem::path(runtime) / "noctalia" / "firefox-theme";
+        return std::filesystem::path(runtime) / "nythera" / "firefox-theme";
       }
-      return std::filesystem::temp_directory_path() / ("noctalia-firefox-theme-" + std::to_string(::getuid()));
+      return std::filesystem::temp_directory_path() / ("nythera-firefox-theme-" + std::to_string(::getuid()));
     }
 
     [[nodiscard]] std::filesystem::path commandNotifyPath() { return commandNotifyDir() / "command"; }
@@ -190,13 +190,13 @@ namespace noctalia::theme {
       return home / ".mozilla" / "native-messaging-hosts" / "pywalfox.json";
     }
 
-    [[nodiscard]] std::filesystem::path resolveNoctaliaExecutable() {
+    [[nodiscard]] std::filesystem::path resolveNytheraExecutable() {
       std::string self = selfExePath();
       if (!self.empty()) {
         return self;
       }
-#ifdef NOCTALIA_INSTALL_PREFIX
-      auto installed = std::filesystem::path(NOCTALIA_INSTALL_PREFIX) / "bin" / "noctalia";
+#ifdef NYTHERA_INSTALL_PREFIX
+      auto installed = std::filesystem::path(NYTHERA_INSTALL_PREFIX) / "bin" / "nythera";
       std::error_code ec;
       if (std::filesystem::is_regular_file(installed, ec)) {
         return installed;
@@ -237,12 +237,12 @@ namespace noctalia::theme {
       return true;
     }
 
-    // Install only when absent or already owned by noctalia — never clobber a foreign host.
-    bool ensureManifestOwnedByNoctalia(std::string* error, std::string* warning) {
-      const auto host = resolveNoctaliaExecutable();
+    // Install only when absent or already owned by nythera — never clobber a foreign host.
+    bool ensureManifestOwnedByNythera(std::string* error, std::string* warning) {
+      const auto host = resolveNytheraExecutable();
       if (host.empty()) {
         if (error != nullptr) {
-          *error = "noctalia executable not found";
+          *error = "nythera executable not found";
         }
         return false;
       }
@@ -571,7 +571,7 @@ namespace noctalia::theme {
 
     std::string ensureError;
     std::string ensureWarning;
-    if (!ensureManifestOwnedByNoctalia(&ensureError, &ensureWarning)) {
+    if (!ensureManifestOwnedByNythera(&ensureError, &ensureWarning)) {
       result.error = ensureError;
       return result;
     }
@@ -705,7 +705,7 @@ namespace noctalia::theme {
 
   int runFirefoxThemeCli(int argc, char* argv[]) {
     auto parsed = cli::parseOrReport(
-        cli::kFirefoxThemeCmd, "noctalia firefox-theme",
+        cli::kFirefoxThemeCmd, "nythera firefox-theme",
         std::span<char* const>{argv + 2, static_cast<std::size_t>(argc - 2)}
     );
     if (!parsed)
@@ -714,14 +714,14 @@ namespace noctalia::theme {
       return 0;
     const std::string_view action = parsed->positionals.front();
     if (action == "help") {
-      std::print("{}", cli::renderHelp(cli::kFirefoxThemeCmd, "noctalia firefox-theme"));
+      std::print("{}", cli::renderHelp(cli::kFirefoxThemeCmd, "nythera firefox-theme"));
       return 0;
     }
     if (action == "host" || action == "start") {
       return runFirefoxNativeMessagingHost();
     }
     if (action == "install") {
-      const auto host = resolveNoctaliaExecutable();
+      const auto host = resolveNytheraExecutable();
       std::string err;
       if (!installManifest(host, &err)) {
         std::println(stderr, "install failed: {}", err);
@@ -761,4 +761,4 @@ namespace noctalia::theme {
     return 1;
   }
 
-} // namespace noctalia::theme
+} // namespace nythera::theme

@@ -5,14 +5,14 @@
 ;;;
 ;;; --8<---------------cut here---------------start------------->8---
 ;;; (channel
-;;;   (name 'noctalia)
-;;;   (url "https://github.com/noctalia-dev/noctalia")
-;;;   (branch "main"))
+;;;   (name 'nythera)
+;;;   (url "https://github.com/Kangy1103/noctalia")
+;;;   (branch "codex/dynamic-bar-prototype"))
 ;;; --8<---------------cut here---------------end--------------->8---
 ;;;
-;;; It provides this (noctalia) module with the noctalia-git package.
+;;; It provides this (nythera) module with the nythera-git package.
 
-(define-module (noctalia)
+(define-module (nythera)
   ;; Utilities
   #:use-module (guix gexp)
   #:use-module ((guix licenses) #:prefix license:)
@@ -62,15 +62,15 @@
                 "0zqnn7bwqzifchjhclrrcqnp39cpd3nnf6nbd9bav2hwhcx92mwy"))))))
 
 (define source-checkout
-  (local-file "." "noctalia-checkout"
+  (local-file "." "nythera-checkout"
               #:recursive? #t
               #:select?
               (or (git-predicate (current-source-directory))
                   (const #t))))
 
-(define-public noctalia-git
+(define-public nythera-git
   (package
-    (name "noctalia-git")
+    (name "nythera-git")
     (version "latest")
     (source source-checkout)
     (build-system meson-build-system)
@@ -123,17 +123,17 @@
            wayland
            wayland-protocols-1.48
            wireplumber))
-    (home-page "https://noctalia.dev/")
+    (home-page "https://github.com/Kangy1103/noctalia")
     (synopsis "Wayland shell and bar")
     (description
-     "Noctalia is a lightweight Wayland shell and bar built directly on
+     "Nythera is a lightweight Wayland shell and bar built directly on
 Wayland and OpenGL ES, with no Qt or GTK dependency.")
     (license license:expat)))
 
 ;; Also return the package at the end, so that this file can be used by
 ;; commands that evaluate it.  For example:
 ;;
-;; guix build --file=noctalia.scm
-;; guix shell --file=noctalia.scm
-;; guix package --install-from-file=noctalia.scm
-noctalia-git
+;; guix build --file=nythera.scm
+;; guix shell --file=nythera.scm
+;; guix package --install-from-file=nythera.scm
+nythera-git

@@ -15,10 +15,10 @@
 
 namespace {
 
-  using noctalia::theme::HookRunner;
-  using noctalia::theme::TemplateEngine;
+  using nythera::theme::HookRunner;
+  using nythera::theme::TemplateEngine;
 
-  const std::filesystem::path kRoot = std::filesystem::temp_directory_path() / "noctalia_hook_async_test";
+  const std::filesystem::path kRoot = std::filesystem::temp_directory_path() / "nythera_hook_async_test";
 
   void writeFile(const std::filesystem::path& path, const std::string& text) {
     std::ofstream out(path);

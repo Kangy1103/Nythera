@@ -67,7 +67,7 @@ void Application::initIpc() {
   m_dmenuIpc.start();
 
   m_ipcService.bind(
-      noctalia::cli::msg::status,
+      nythera::cli::msg::status,
       [this](const std::string&) -> std::string {
         const bool panelOpen = m_panelManager.isOpen();
         std::string json = "{\n";
@@ -86,9 +86,9 @@ void Application::initIpc() {
   );
 
   m_ipcService.bind(
-      noctalia::cli::msg::logLevelSet,
+      nythera::cli::msg::logLevelSet,
       [](const std::string& args) -> std::string {
-        const auto parts = noctalia::ipc::splitWords(args);
+        const auto parts = nythera::ipc::splitWords(args);
         if (parts.size() != 1) {
           return "error: log-level-set requires <debug|info|warn|error>\n";
         }
@@ -106,7 +106,7 @@ void Application::initIpc() {
   );
 
   m_ipcService.bind(
-      noctalia::cli::msg::logLevelStatus,
+      nythera::cli::msg::logLevelStatus,
       [](const std::string&) -> std::string { return std::string(logLevelName(currentLogLevel())) + "\n"; },
       IpcService::HandlerOptions{.actionEditorVisibility = IpcService::ActionEditorVisibility::Hidden}
   );
@@ -120,8 +120,8 @@ void Application::initIpc() {
   };
 
   m_ipcService.bind(
-      noctalia::cli::msg::notificationDndSet, [this, applyNotificationDnd](const std::string& args) -> std::string {
-        const auto parts = noctalia::ipc::splitWords(args);
+      nythera::cli::msg::notificationDndSet, [this, applyNotificationDnd](const std::string& args) -> std::string {
+        const auto parts = nythera::ipc::splitWords(args);
         if (parts.size() != 1) {
           return "error: notification-dnd-set requires <on|off|true|false|1|0>\n";
         }
@@ -146,7 +146,7 @@ void Application::initIpc() {
   );
 
   m_ipcService.bind(
-      noctalia::cli::msg::notificationDndToggle, [this, applyNotificationDnd](const std::string&) -> std::string {
+      nythera::cli::msg::notificationDndToggle, [this, applyNotificationDnd](const std::string&) -> std::string {
         const bool nextState = !m_notificationManager.doNotDisturb();
         applyNotificationDnd(nextState);
         m_osdOverlay.show(dndOsdContent(nextState));
@@ -155,12 +155,12 @@ void Application::initIpc() {
   );
 
   m_ipcService.bind(
-      noctalia::cli::msg::notificationDndStatus,
+      nythera::cli::msg::notificationDndStatus,
       [this](const std::string&) -> std::string { return m_notificationManager.doNotDisturb() ? "on\n" : "off\n"; },
       IpcService::HandlerOptions{.actionEditorVisibility = IpcService::ActionEditorVisibility::Hidden}
   );
 
-  m_ipcService.bind(noctalia::cli::msg::notificationClearActive, [this](const std::string&) -> std::string {
+  m_ipcService.bind(nythera::cli::msg::notificationClearActive, [this](const std::string&) -> std::string {
     std::vector<uint32_t> activeIds;
     activeIds.reserve(m_notificationManager.all().size());
     for (const auto& notification : m_notificationManager.all()) {
@@ -175,7 +175,7 @@ void Application::initIpc() {
     return "ok\n";
   });
 
-  m_ipcService.bind(noctalia::cli::msg::notificationInvokeLatest, [this](const std::string&) -> std::string {
+  m_ipcService.bind(nythera::cli::msg::notificationInvokeLatest, [this](const std::string&) -> std::string {
     // Mirror the toast left-click behavior for the most recent active notification:
     // invoke its "default" action so the source application raises/focuses its window.
     // all() stores notifications oldest-first (push_back), so iterate in reverse for newest.
@@ -195,7 +195,7 @@ void Application::initIpc() {
     return "ok\n"; // No active notification carries a default action; nothing to do.
   });
 
-  m_ipcService.bind(noctalia::cli::msg::notificationClearHistory, [this](const std::string&) -> std::string {
+  m_ipcService.bind(nythera::cli::msg::notificationClearHistory, [this](const std::string&) -> std::string {
     m_notificationManager.clearHistory();
     if (m_panelManager.isOpenPanel("control-center")) {
       m_panelManager.refresh();
@@ -203,13 +203,13 @@ void Application::initIpc() {
     return "ok\n";
   });
 
-  m_ipcService.bind(noctalia::cli::msg::notificationShow, [this](const std::string& args) -> std::string {
+  m_ipcService.bind(nythera::cli::msg::notificationShow, [this](const std::string& args) -> std::string {
     const std::string input = StringUtils::trim(args);
     if (input.empty()) {
       return "error: notification-show requires <summary> or <json-payload>\n";
     }
 
-    std::string appName = "Noctalia";
+    std::string appName = "Nythera";
     std::string summary;
     std::string body;
     Urgency urgency = Urgency::Normal;
@@ -320,12 +320,12 @@ void Application::initIpc() {
 
     if (icon.has_value()) {
       const std::string& iconValue = *icon;
-      const bool hasExplicitPrefix = iconValue.starts_with("noctalia-glyph:");
+      const bool hasExplicitPrefix = iconValue.starts_with("nythera-glyph:");
       const bool looksLikePath = iconValue.starts_with('/') || iconValue.starts_with("~/") || iconValue.contains('/');
       const bool looksLikeFileUri = iconValue.starts_with("file:");
       const bool looksLikeRemoteUrl = iconValue.starts_with("http://") || iconValue.starts_with("https://");
       if (!hasExplicitPrefix && !looksLikePath && !looksLikeFileUri && !looksLikeRemoteUrl) {
-        icon = "noctalia-glyph:" + iconValue;
+        icon = "nythera-glyph:" + iconValue;
       }
     }
 
@@ -336,13 +336,13 @@ void Application::initIpc() {
     return "ok\n";
   });
 
-  m_ipcService.bind(noctalia::cli::msg::clipboardClear, [this](const std::string&) -> std::string {
+  m_ipcService.bind(nythera::cli::msg::clipboardClear, [this](const std::string&) -> std::string {
     // Pinned entries survive; with nothing pinned this clears the whole history.
     m_clipboardService.clearUnpinnedHistory();
     return "ok\n";
   });
 
-  m_ipcService.bind(noctalia::cli::msg::clipboardCopy, [this](const std::string& args) -> std::string {
+  m_ipcService.bind(nythera::cli::msg::clipboardCopy, [this](const std::string& args) -> std::string {
     if (args.empty()) {
       return "error: clipboard-copy requires <text>\n";
     }
@@ -353,28 +353,28 @@ void Application::initIpc() {
   });
 
   m_ipcService.bind(
-      noctalia::cli::msg::clipboardText, // The response is the clipboard payload itself, so it carries no trailing
+      nythera::cli::msg::clipboardText, // The response is the clipboard payload itself, so it carries no trailing
                                          // newline.
       [this](const std::string&) -> std::string { return m_clipboardService.clipboardText().value_or(""); },
       IpcService::HandlerOptions{.actionEditorVisibility = IpcService::ActionEditorVisibility::Hidden}
   );
 
-  m_ipcService.bind(noctalia::cli::msg::dpmsOn, [this](const std::string&) -> std::string {
+  m_ipcService.bind(nythera::cli::msg::dpmsOn, [this](const std::string&) -> std::string {
     if (!setOutputPower(true)) {
       return "error: failed to execute dpms-on command\n";
     }
     return "ok\n";
   });
 
-  m_ipcService.bind(noctalia::cli::msg::dpmsOff, [this](const std::string&) -> std::string {
+  m_ipcService.bind(nythera::cli::msg::dpmsOff, [this](const std::string&) -> std::string {
     if (!setOutputPower(false)) {
       return "error: failed to execute dpms-off command\n";
     }
     return "ok\n";
   });
 
-  m_ipcService.bindCycle(noctalia::cli::msg::workspaceSwitch, [this](const std::string& args) -> std::string {
-    const auto parts = noctalia::ipc::splitWords(args);
+  m_ipcService.bindCycle(nythera::cli::msg::workspaceSwitch, [this](const std::string& args) -> std::string {
+    const auto parts = nythera::ipc::splitWords(args);
     if (parts.size() != 1 || (parts[0] != "next" && parts[0] != "prev")) {
       return "error: workspace-switch requires <next|prev>\n";
     }
@@ -414,8 +414,8 @@ void Application::initIpc() {
     return "ok\n";
   });
 
-  m_ipcService.bindCycle(noctalia::cli::msg::keyboardLayoutCycle, [this](const std::string& args) -> std::string {
-    if (!noctalia::ipc::splitWords(args).empty()) {
+  m_ipcService.bindCycle(nythera::cli::msg::keyboardLayoutCycle, [this](const std::string& args) -> std::string {
+    if (!nythera::ipc::splitWords(args).empty()) {
       return "error: keyboard-layout-cycle takes no arguments\n";
     }
     if (!m_compositorPlatform.hasKeyboardLayoutBackend()) {
@@ -435,7 +435,7 @@ void Application::initIpc() {
     return StringUtils::join(tokens, "\n") + "\n";
   };
 
-  m_ipcService.bind(noctalia::cli::msg::workspaceAlertAdd, [this](const std::string& args) -> std::string {
+  m_ipcService.bind(nythera::cli::msg::workspaceAlertAdd, [this](const std::string& args) -> std::string {
     const std::string workspace = StringUtils::trim(args);
     if (workspace.empty()) {
       return "error: workspace-alert-add requires <workspace>\n";
@@ -451,8 +451,8 @@ void Application::initIpc() {
     m_bar.refresh();
     return "ok\n";
   });
-  m_ipcService.bind(noctalia::cli::msg::workspaceAlertAddWindow, [this](const std::string& args) -> std::string {
-    const auto parts = noctalia::ipc::splitWords(args);
+  m_ipcService.bind(nythera::cli::msg::workspaceAlertAddWindow, [this](const std::string& args) -> std::string {
+    const auto parts = nythera::ipc::splitWords(args);
     if (parts.size() != 1) {
       return "error: workspace-alert-add-window requires <window-id>\n";
     }
@@ -464,7 +464,7 @@ void Application::initIpc() {
     m_bar.refresh();
     return "ok\n";
   });
-  m_ipcService.bind(noctalia::cli::msg::workspaceAlertClear, [this](const std::string& args) -> std::string {
+  m_ipcService.bind(nythera::cli::msg::workspaceAlertClear, [this](const std::string& args) -> std::string {
     const std::string workspace = StringUtils::trim(args);
     if (workspace.empty()) {
       return "error: workspace-alert-clear requires <workspace>\n";
@@ -473,8 +473,8 @@ void Application::initIpc() {
     m_bar.refresh();
     return "ok\n";
   });
-  m_ipcService.bind(noctalia::cli::msg::workspaceAlertClearAll, [this](const std::string& args) -> std::string {
-    if (!noctalia::ipc::splitWords(args).empty()) {
+  m_ipcService.bind(nythera::cli::msg::workspaceAlertClearAll, [this](const std::string& args) -> std::string {
+    if (!nythera::ipc::splitWords(args).empty()) {
       return "error: workspace-alert-clear-all takes no arguments\n";
     }
     m_workspaceAlertService.clearAll();
@@ -482,9 +482,9 @@ void Application::initIpc() {
     return "ok\n";
   });
   m_ipcService.bind(
-      noctalia::cli::msg::workspaceAlertStatus,
+      nythera::cli::msg::workspaceAlertStatus,
       [workspaceAlertStatus](const std::string& args) -> std::string {
-        if (!noctalia::ipc::splitWords(args).empty()) {
+        if (!nythera::ipc::splitWords(args).empty()) {
           return "error: workspace-alert-status takes no arguments\n";
         }
         return workspaceAlertStatus();
@@ -522,32 +522,32 @@ void Application::initIpc() {
   if (m_keyboardBacklightService != nullptr) {
     m_keyboardBacklightService->registerIpc(m_ipcService);
   }
-  m_ipcService.bind(noctalia::cli::msg::keyboardBacklightOsd, [this](const std::string& args) -> std::string {
-    const auto parts = noctalia::ipc::splitWords(args);
+  m_ipcService.bind(nythera::cli::msg::keyboardBacklightOsd, [this](const std::string& args) -> std::string {
+    const auto parts = nythera::ipc::splitWords(args);
     if (parts.size() != 1) {
       return "error: keyboard-backlight-osd requires <value>\n";
     }
-    const auto value = noctalia::ipc::parseNormalizedOrPercent(parts[0]);
+    const auto value = nythera::ipc::parseNormalizedOrPercent(parts[0]);
     if (!value.has_value()) {
       return "error: invalid keyboard backlight value (use percent like 65 or 65%, or normalized like 0.65)\n";
     }
     m_keyboardBacklightOsd.showValue(*value);
     return "ok\n";
   });
-  m_ipcService.bind(noctalia::cli::msg::brightnessOsd, [this](const std::string& args) -> std::string {
-    const auto parts = noctalia::ipc::splitWords(args);
+  m_ipcService.bind(nythera::cli::msg::brightnessOsd, [this](const std::string& args) -> std::string {
+    const auto parts = nythera::ipc::splitWords(args);
     if (parts.size() != 1) {
       return "error: brightness-osd requires <value>\n";
     }
-    const auto value = noctalia::ipc::parseNormalizedOrPercent(parts[0]);
+    const auto value = nythera::ipc::parseNormalizedOrPercent(parts[0]);
     if (!value.has_value()) {
       return "error: invalid brightness value (use percent like 65 or 65%, or normalized like 0.65)\n";
     }
     m_brightnessOsd.showValue(*value);
     return "ok\n";
   });
-  m_ipcService.bind(noctalia::cli::msg::volumeOsd, [this](const std::string& args) -> std::string {
-    const auto parts = noctalia::ipc::splitWords(args);
+  m_ipcService.bind(nythera::cli::msg::volumeOsd, [this](const std::string& args) -> std::string {
+    const auto parts = nythera::ipc::splitWords(args);
     if (parts.size() > 1) {
       return "error: volume-osd accepts at most one optional [value]\n";
     }
@@ -561,7 +561,7 @@ void Application::initIpc() {
     float volume = sink->volume;
     if (parts.size() == 1) {
       const auto value =
-          noctalia::ipc::parseNormalizedOrPercent(parts[0], maxAudioVolume(m_configService.config().audio) * 100.0F);
+          nythera::ipc::parseNormalizedOrPercent(parts[0], maxAudioVolume(m_configService.config().audio) * 100.0F);
       if (!value.has_value()) {
         return "error: invalid volume value (use percent like 65 or 65%, or normalized like 0.65)\n";
       }
@@ -570,8 +570,8 @@ void Application::initIpc() {
     m_audioOsd.showOutputValue(volume, sink->muted);
     return "ok\n";
   });
-  m_ipcService.bind(noctalia::cli::msg::micVolumeOsd, [this](const std::string& args) -> std::string {
-    const auto parts = noctalia::ipc::splitWords(args);
+  m_ipcService.bind(nythera::cli::msg::micVolumeOsd, [this](const std::string& args) -> std::string {
+    const auto parts = nythera::ipc::splitWords(args);
     if (parts.size() > 1) {
       return "error: mic-volume-osd accepts at most one optional [value]\n";
     }
@@ -585,7 +585,7 @@ void Application::initIpc() {
     float volume = source->volume;
     if (parts.size() == 1) {
       const auto value =
-          noctalia::ipc::parseNormalizedOrPercent(parts[0], maxAudioVolume(m_configService.config().audio) * 100.0F);
+          nythera::ipc::parseNormalizedOrPercent(parts[0], maxAudioVolume(m_configService.config().audio) * 100.0F);
       if (!value.has_value()) {
         return "error: invalid mic volume value (use percent like 65 or 65%, or normalized like 0.65)\n";
       }
@@ -596,13 +596,13 @@ void Application::initIpc() {
   });
   m_configService.registerIpc(m_ipcService);
   scripting::PluginIpcRouter::instance().setPlatform(&m_compositorPlatform);
-  m_ipcService.bind(noctalia::cli::msg::plugin, [](const std::string& args) -> std::string {
+  m_ipcService.bind(nythera::cli::msg::plugin, [](const std::string& args) -> std::string {
     return scripting::PluginIpcRouter::instance().dispatch(args);
   });
   m_ipcService.bind(
-      noctalia::cli::msg::plugins,
+      nythera::cli::msg::plugins,
       [this](const std::string& args) -> std::string {
-        const auto parts = noctalia::ipc::splitWords(args);
+        const auto parts = nythera::ipc::splitWords(args);
         if (parts.empty()) {
           return "error: plugins <list|enable|disable> [author/plugin]\n";
         }
@@ -725,7 +725,7 @@ void Application::initIpc() {
   }
   m_screenshotService.registerIpc(m_ipcService, m_configService);
   m_windowSwitcher.registerIpc(m_ipcService);
-  for (const noctalia::cli::Command& command : noctalia::cli::kMsgCmd.subcommands) {
+  for (const nythera::cli::Command& command : nythera::cli::kMsgCmd.subcommands) {
     if (!m_ipcService.hasHandler(command.name))
       kLog.debug("IPC schema command '{}' has no registered handler", command.name);
   }

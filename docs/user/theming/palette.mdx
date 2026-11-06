@@ -5,7 +5,7 @@ sidebar:
   order: 9
 ---
 
-A palette is the set of colors selected by [`[theme]`](/noctalia/theming/). The theme config chooses the source and mode; the palette provides the actual color values used by bars, panels, widgets, templates, and other theme-aware UI.
+A palette is the set of colors selected by [`[theme]`](/nythera/theming/). The theme config chooses the source and mode; the palette provides the actual color values used by bars, panels, widgets, templates, and other theme-aware UI.
 
 ## Color Roles
 
@@ -44,7 +44,7 @@ A palette file sets 16 of these roles directly, keyed by role name. The remainin
 | `hover`                     | palette file                              | Hover and interactive highlight background.                       |
 | `on_hover`                  | palette file                              | Text and icons placed on `hover`.                                 |
 
-The former `surface_variant` and `outline` roles are now `surface_container` and `outline_variant`, with the same colors. Noctalia rewrites them in your config on load and warns about it; update hand-written config files to the new names. The new names need plugin API 43, so plugins using them should declare `plugin_api = 43`. Plugins still get the old names mapped to the new roles with a log warning until 5.5.0. Templates are unaffected: they keep the full Material token set, where `surface_variant` and `outline` have their Material meaning.
+The former `surface_variant` and `outline` roles are now `surface_container` and `outline_variant`, with the same colors. Nythera rewrites them in your config on load and warns about it; update hand-written config files to the new names. The new names need plugin API 43, so plugins using them should declare `plugin_api = 43`. Plugins still get the old names mapped to the new roles with a log warning until 5.5.0. Templates are unaffected: they keep the full Material token set, where `surface_variant` and `outline` have their Material meaning.
 
 ## Palette Inspector
 
@@ -56,7 +56,7 @@ The inspector follows **Theme Mode**, which controls generated templates, and up
 
 ## Custom Palette Files
 
-When `source = "custom"`, `custom_palette` names a JSON file in the Noctalia config directory's `palettes/` folder:
+When `source = "custom"`, `custom_palette` names a JSON file in the Nythera config directory's `palettes/` folder:
 
 ```toml
 [theme]
@@ -67,7 +67,7 @@ custom_palette = "MyPalette"
 With the default config location, that loads:
 
 ```text
-~/.config/noctalia/palettes/MyPalette.json
+~/.config/nythera/palettes/MyPalette.json
 ```
 
 The palette JSON format is the same format v4 called a color scheme. For v5, the concept is called a palette, the file lives under `palettes/`, and it is selected by `custom_palette`; v4 used `colorschemes/`.
@@ -75,15 +75,15 @@ The palette JSON format is the same format v4 called a color scheme. For v5, the
 If you are migrating a v4 color scheme, copy the JSON payload to the v5 palette location:
 
 ```text
-~/.config/noctalia/colorschemes/MyScheme/MyScheme.json
--> ~/.config/noctalia/palettes/MyScheme.json
+~/.config/nythera/colorschemes/MyScheme/MyScheme.json
+-> ~/.config/nythera/palettes/MyScheme.json
 ```
 
 ## Palette JSON
 
-Each palette can provide `dark` and `light` variants. If `light` is omitted, Noctalia uses the dark variant for both modes.
+Each palette can provide `dark` and `light` variants. If `light` is omitted, Nythera uses the dark variant for both modes.
 
-The top-level `version` names the palette format. The current format is `2`, where every key is the name of the color role or terminal color it sets. A file without `version` is read as format 1, which used `m`-prefixed camelCase keys (`mOnPrimary`, terminal `selectionFg`) and called `surface_container` and `outline_variant` `mSurfaceVariant` and `mOutline`; older palette files and v4 color schemes keep working unchanged. Noctalia rejects a palette whose `version` is newer than it supports. `noctalia theme --theme-json` also accepts its own generated token maps; it treats a file as a palette when it has a `version`, or, for format 1, when its variants contain `mPrimary`.
+The top-level `version` names the palette format. The current format is `2`, where every key is the name of the color role or terminal color it sets. A file without `version` is read as format 1, which used `m`-prefixed camelCase keys (`mOnPrimary`, terminal `selectionFg`) and called `surface_container` and `outline_variant` `mSurfaceVariant` and `mOutline`; older palette files and v4 color schemes keep working unchanged. Nythera rejects a palette whose `version` is newer than it supports. `nythera theme --theme-json` also accepts its own generated token maps; it treats a file as a palette when it has a `version`, or, for format 1, when its variants contain `mPrimary`.
 
 ```json
 {

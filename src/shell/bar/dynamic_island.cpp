@@ -44,7 +44,7 @@ LayerSurfaceConfig DynamicIsland::surfaceConfig(const BarConfig& c, int outputWi
   const int width = side ? std::min(strip, outputWidth - gap) : outputWidth;
   const int height = side ? outputHeight : std::min(strip, outputHeight - gap);
   return {
-      .nameSpace = "noctalia-bar-dynamic-" + c.name,
+      .nameSpace = "nythera-bar-dynamic-" + c.name,
       .layer = layerShellLayerFromConfig(c.layer),
       .anchor = side ? (right ? LayerShellAnchor::Right : LayerShellAnchor::Left)
                      : (bottom ? LayerShellAnchor::Bottom : LayerShellAnchor::Top),

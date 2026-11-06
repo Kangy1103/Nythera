@@ -62,7 +62,7 @@ namespace {
     const float baseRadius = Style::radiusMd * (iconSize / kNotificationIconReferenceSize);
     return std::min(iconSize * 0.5F, Style::scaledRadius(baseRadius, localScale));
   }
-  constexpr std::string_view kNoctaliaGlyphIconPrefix = "noctalia-glyph:";
+  constexpr std::string_view kNytheraGlyphIconPrefix = "nythera-glyph:";
   constexpr float kIconTextGap = Style::spaceSm;
   constexpr float kActionGap = Style::spaceXs;
   constexpr float kActionRowGap = Style::spaceSm;
@@ -535,7 +535,7 @@ namespace {
   }
 
   std::filesystem::path remoteIconCachePath(std::string_view url) {
-    const std::filesystem::path cacheDir = std::filesystem::path("/tmp") / "noctalia-notification-icons";
+    const std::filesystem::path cacheDir = std::filesystem::path("/tmp") / "nythera-notification-icons";
     const std::size_t hash = std::hash<std::string_view>{}(url);
     return cacheDir / (std::to_string(hash) + ".img");
   }
@@ -2213,7 +2213,7 @@ void NotificationToast::ensureSurfaces() {
     inst->output = output.output;
 
     auto surfaceConfig = LayerSurfaceConfig{
-        .nameSpace = "noctalia-notification",
+        .nameSpace = "nythera-notification",
         .layer = layer == "overlay" ? LayerShellLayer::Overlay : LayerShellLayer::Top,
         .anchor = anchor,
         .width = surfaceWidth,
@@ -2500,10 +2500,10 @@ InputArea* NotificationToast::buildCard(
   bool iconAssigned = false;
   if (entry.icon.has_value()) {
     const std::string& rawIcon = *entry.icon;
-    if (rawIcon.size() > kNoctaliaGlyphIconPrefix.size()
-        && std::string_view(rawIcon.data(), kNoctaliaGlyphIconPrefix.size()) == kNoctaliaGlyphIconPrefix) {
+    if (rawIcon.size() > kNytheraGlyphIconPrefix.size()
+        && std::string_view(rawIcon.data(), kNytheraGlyphIconPrefix.size()) == kNytheraGlyphIconPrefix) {
       const std::string_view glyphName(
-          rawIcon.data() + kNoctaliaGlyphIconPrefix.size(), rawIcon.size() - kNoctaliaGlyphIconPrefix.size()
+          rawIcon.data() + kNytheraGlyphIconPrefix.size(), rawIcon.size() - kNytheraGlyphIconPrefix.size()
       );
       if (!glyphName.empty()) {
         iconSlot->addChild(
@@ -3100,8 +3100,8 @@ std::string NotificationToast::resolveNotificationIconPath(const PopupEntry& ent
   if (!entry.icon.has_value() || entry.icon->empty()) {
     return {};
   }
-  if (entry.icon->size() > kNoctaliaGlyphIconPrefix.size()
-      && std::string_view(entry.icon->data(), kNoctaliaGlyphIconPrefix.size()) == kNoctaliaGlyphIconPrefix) {
+  if (entry.icon->size() > kNytheraGlyphIconPrefix.size()
+      && std::string_view(entry.icon->data(), kNytheraGlyphIconPrefix.size()) == kNytheraGlyphIconPrefix) {
     return {};
   }
 

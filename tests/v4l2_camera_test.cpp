@@ -32,7 +32,7 @@ int main() {
   TEST_CHECK(!v4l2CameraSameApp("", "firefox"));
   TEST_CHECK(!v4l2CameraSameApp("Firefox", "chromium"));
 
-  std::string pattern = (fs::temp_directory_path() / "noctalia-v4l2-XXXXXX").string();
+  std::string pattern = (fs::temp_directory_path() / "nythera-v4l2-XXXXXX").string();
   const char* result = ::mkdtemp(pattern.data());
   TEST_CHECK(result != nullptr);
   const fs::path root(result);

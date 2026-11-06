@@ -37,7 +37,7 @@ namespace greeter {
 
   using SyncCompletion = std::function<void(bool success)>;
 
-  // True when noctalia-greeter and the privileged apply helper are installed.
+  // True when nythera-greeter and the privileged apply helper are installed.
   [[nodiscard]] bool appearanceSyncAvailable(const ShellGreeterSyncConfig& greeterSync) noexcept;
 
   // Negotiates the installed helper protocol before staging. Current helpers receive

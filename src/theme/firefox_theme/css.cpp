@@ -7,7 +7,7 @@
 #include <fstream>
 #include <sstream>
 
-namespace noctalia::theme::firefox_theme::css {
+namespace nythera::theme::firefox_theme::css {
   namespace {
 
     [[nodiscard]] std::string withCssExtension(std::string_view name) {
@@ -219,4 +219,4 @@ namespace noctalia::theme::firefox_theme::css {
     return true;
   }
 
-} // namespace noctalia::theme::firefox_theme::css
+} // namespace nythera::theme::firefox_theme::css

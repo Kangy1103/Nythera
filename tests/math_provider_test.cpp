@@ -37,7 +37,7 @@ namespace {
 
 int main() {
   // Keep libqalculate away from the real definitions and exchange rates.
-  const fs::path root = fs::temp_directory_path() / ("noctalia-math-provider-" + std::to_string(getpid()));
+  const fs::path root = fs::temp_directory_path() / ("nythera-math-provider-" + std::to_string(getpid()));
   const fs::path definitions = root / "definitions";
   const fs::path marker = root / "command-ran";
   fs::create_directories(root);
@@ -53,22 +53,22 @@ int main() {
   TEST_CHECK(!commandRuns(provider, marker));
 
   // A definitions directory created after startup is picked up on the next open.
-  TEST_CHECK(firstTitle(provider, "noctaliaprobe*2") != "= 480");
+  TEST_CHECK(firstTitle(provider, "nytheraprobe*2") != "= 480");
   fs::create_directories(definitions);
-  writeVariable(definitions, "noctaliaprobe", "240");
+  writeVariable(definitions, "nytheraprobe", "240");
   provider.onLauncherOpened();
-  TEST_CHECK(firstTitle(provider, "noctaliaprobe*2") == "= 480");
+  TEST_CHECK(firstTitle(provider, "nytheraprobe*2") == "= 480");
   TEST_CHECK(!commandRuns(provider, marker));
 
   // Edits are picked up through the watch.
-  writeVariable(definitions, "noctaliaprobe", "100");
+  writeVariable(definitions, "nytheraprobe", "100");
   provider.onLauncherOpened();
-  TEST_CHECK(firstTitle(provider, "noctaliaprobe*2") == "= 200");
+  TEST_CHECK(firstTitle(provider, "nytheraprobe*2") == "= 200");
 
   // Removed definitions disappear rather than lingering from the previous load.
   fs::remove(definitions / "variables.xml");
   provider.onLauncherOpened();
-  TEST_CHECK(firstTitle(provider, "noctaliaprobe*2") != "= 200");
+  TEST_CHECK(firstTitle(provider, "nytheraprobe*2") != "= 200");
   TEST_CHECK(!commandRuns(provider, marker));
 
   std::error_code ec;

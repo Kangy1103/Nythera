@@ -530,8 +530,8 @@
       "battery-device": "Amûrê betariyê",
       "battery-low-title": "Betarî kêm e",
       "calendar": "Salname",
-      "greeter-sync": "Silavkarê Noctalia",
-      "keybind-app": "Noctalia"
+      "greeter-sync": "Silavkarê Nythera",
+      "keybind-app": "Nythera"
     }
   },
   "osd": {
@@ -935,7 +935,7 @@
         },
         "kind-label": "Kind",
         "location-placeholder-git": "https://github.com/me/noctalia-plugins",
-        "location-placeholder-path": "~/dev/noctalia-plugins",
+        "location-placeholder-path": "~/dev/nythera-plugins",
         "name-label": "Çavkaniya NB",
         "remove": "Çavkaniyê rake",
         "save": "Tomar bike",
@@ -943,7 +943,7 @@
         "update": "Rojane bike"
       },
       "store": {
-        "add": "Tevlî Noctalia bike",
+        "add": "Tevlî Nythera bike",
         "categories": "Beş",
         "category-all": "Hemû",
         "title": "Markêta pêvekan"

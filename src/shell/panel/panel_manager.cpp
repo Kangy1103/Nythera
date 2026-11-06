@@ -82,7 +82,7 @@ namespace {
   }
 
   bool blurTraceEnabled() {
-    static const bool enabled = SysUtils::isEnvFlagOn("NOCTALIA_BLUR_TRACE");
+    static const bool enabled = SysUtils::isEnvFlagOn("NYTHERA_BLUR_TRACE");
     return enabled;
   }
 
@@ -944,7 +944,7 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
   }
 
   auto surfaceConfig = LayerSurfaceConfig{
-      .nameSpace = "noctalia-panel",
+      .nameSpace = "nythera-panel",
       .layer = floatingPanelLayer,
       .anchor = standaloneAnchor,
       .width = requestedSurfaceWidth,
@@ -1239,7 +1239,7 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
     }
 
     auto attachedConfig = LayerSurfaceConfig{
-        .nameSpace = "noctalia-attached-panel",
+        .nameSpace = "nythera-attached-panel",
         .layer = panelLayer,
         .anchor = attachedAnchor,
         .width = surfaceWidth,
@@ -3263,7 +3263,7 @@ void PanelManager::registerIpc(IpcService& ipc) {
   };
 
   ipc.bind(
-      noctalia::cli::msg::panelToggle,
+      nythera::cli::msg::panelToggle,
       [this, parseOpenArgs, unknownPanelError](const std::string& args) -> std::string {
         std::string panelId;
         std::string context;
@@ -3284,7 +3284,7 @@ void PanelManager::registerIpc(IpcService& ipc) {
   );
 
   ipc.bind(
-      noctalia::cli::msg::panelOpen, [this, parseOpenArgs, unknownPanelError](const std::string& args) -> std::string {
+      nythera::cli::msg::panelOpen, [this, parseOpenArgs, unknownPanelError](const std::string& args) -> std::string {
         std::string panelId;
         std::string context;
         if (auto error = parseOpenArgs(args, "panel-open", panelId, context)) {
@@ -3308,7 +3308,7 @@ void PanelManager::registerIpc(IpcService& ipc) {
       }
   );
 
-  ipc.bind(noctalia::cli::msg::panelClose, [this, unknownPanelError](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::panelClose, [this, unknownPanelError](const std::string& args) -> std::string {
     const std::string panelId = StringUtils::trim(args);
     if (!panelId.empty() && StringUtils::splitWhitespace(panelId).size() != 1) {
       return "error: panel-close accepts at most one panel id\n";
@@ -3334,13 +3334,13 @@ void PanelManager::registerIpc(IpcService& ipc) {
     return std::format("error: {} accepts no arguments\n", command);
   };
 
-  ipc.bind(noctalia::cli::msg::settingsOpen, [this](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::settingsOpen, [this](const std::string& args) -> std::string {
     openSettingsWindow(std::string(StringUtils::trimLeftView(args)));
     return "ok\n";
   });
 
-  ipc.bind(noctalia::cli::msg::settingsOpenWidget, [this, &ipc](const std::string& args) -> std::string {
-    const auto parts = noctalia::ipc::splitWords(args);
+  ipc.bind(nythera::cli::msg::settingsOpenWidget, [this, &ipc](const std::string& args) -> std::string {
+    const auto parts = nythera::ipc::splitWords(args);
     std::string barName;
     std::string widgetName;
     if (parts.size() == 2) {
@@ -3368,10 +3368,10 @@ void PanelManager::registerIpc(IpcService& ipc) {
     return "ok\n";
   });
 
-  ipc.bind(noctalia::cli::msg::settingsOpenPlugin, [this](const std::string& args) -> std::string {
-    const auto parts = noctalia::ipc::splitWords(args);
+  ipc.bind(nythera::cli::msg::settingsOpenPlugin, [this](const std::string& args) -> std::string {
+    const auto parts = nythera::ipc::splitWords(args);
     if (parts.size() != 1) {
-      return "error: settings-open-plugin takes <plugin-id> (e.g. noctalia/notes)\n";
+      return "error: settings-open-plugin takes <plugin-id> (e.g. nythera/notes)\n";
     }
     const std::string& pluginId = parts[0];
     if (!scripting::isValidPluginId(pluginId)) {
@@ -3387,7 +3387,7 @@ void PanelManager::registerIpc(IpcService& ipc) {
     return "ok\n";
   });
 
-  ipc.bind(noctalia::cli::msg::settingsClose, [this, rejectSettingsArgs](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::settingsClose, [this, rejectSettingsArgs](const std::string& args) -> std::string {
     if (auto error = rejectSettingsArgs(args, "settings-close")) {
       return *error;
     }
@@ -3395,7 +3395,7 @@ void PanelManager::registerIpc(IpcService& ipc) {
     return "ok\n";
   });
 
-  ipc.bind(noctalia::cli::msg::settingsToggle, [this](const std::string& args) -> std::string {
+  ipc.bind(nythera::cli::msg::settingsToggle, [this](const std::string& args) -> std::string {
     toggleSettingsWindow(std::string(StringUtils::trimLeftView(args)));
     return "ok\n";
   });

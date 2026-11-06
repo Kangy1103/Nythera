@@ -8,7 +8,7 @@ sidebar:
 
 import PluginApiBadge from '../../../../../components/PluginApiBadge.astro';
 
-Desktop widgets, panels, and (optionally) bar widgets do not have to patch a fixed control. They can describe their UI as a retained `ui.*` tree; Noctalia diffs each render against the previous tree and updates native controls in place.
+Desktop widgets, panels, and (optionally) bar widgets do not have to patch a fixed control. They can describe their UI as a retained `ui.*` tree; Nythera diffs each render against the previous tree and updates native controls in place.
 
 ## `desktopWidget.*` - declarative desktop widget UI {#desktopwidget--declarative-desktop-widget-ui}
 
@@ -17,7 +17,7 @@ A desktop widget hands its tree to `desktopWidget.render(tree)`. Build trees wit
 `render(tree)` · `setWantsSecondTicks(bool)` · `setNeedsFrameTick(bool)`
 
 ```lua
-local color = noctalia.getConfig("color")
+local color = nythera.getConfig("color")
 
 function update()
   desktopWidget.setWantsSecondTicks(true) -- tick update() on second boundaries
@@ -30,7 +30,7 @@ function update()
 end
 
 function ping()
-  noctalia.notify("Desktop widget", "button clicked")
+  nythera.notify("Desktop widget", "button clicked")
 end
 ```
 
@@ -44,7 +44,7 @@ The available controls and their props (sizes are logical px, scaled with the su
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ui.column` / `ui.row` | `gap`, `padding`, `paddingH`, `paddingV`, `align` (`start`/`center`/`end`/`stretch`), `justify` (`start`/`center`/`end`/`space_between`), `fill`, `radius`, `border`, `borderWidth`, `minWidth`, `minHeight`, `onClick`, `onHover`, `tooltip`                          |
 | `ui.scroll`            | a vertically scrolling container; same layout props as a column plus `fill`, `radius`, `border`, `borderWidth`, `stickToBottom` (bool), `onScroll`, `scrollToBottomRev` (number - see below), `revealKey` (string - see below)                                         |
-| `ui.label`             | `text`, `fontSize`, `color`, `fontWeight` (`thin`…`heavy`), `fontFamily` (a family name; load a file with `noctalia.loadFont`), `baseline` (`text`/`textFixedHeight`/`inkCentered`/`pictographic`), `maxWidth`, `maxLines`, `textAlign`                                |
+| `ui.label`             | `text`, `fontSize`, `color`, `fontWeight` (`thin`…`heavy`), `fontFamily` (a family name; load a file with `nythera.loadFont`), `baseline` (`text`/`textFixedHeight`/`inkCentered`/`pictographic`), `maxWidth`, `maxLines`, `textAlign`                                |
 | `ui.markdown`          | `text` (markdown source - see below), `width`, `height`                                                                                                                                                                                                                |
 | `ui.glyph`             | `name` (Tabler/Nerd-Font glyph), `size`, `color`                                                                                                                                                                                                                       |
 | `ui.image`             | `path` (plugin-relative, `~`, or absolute), `width`, `height`, `radius`, `fit` (`contain`/`cover`/`stretch`), `border`, `borderWidth`, `onClick`, `onHover`, `tooltip`                                                                                                 |
@@ -133,7 +133,7 @@ Every control also accepts `width`, `height`, `flexGrow`, `opacity`, and `visibl
 
 - **Identity**: give list children a `key` prop so reordering reuses the same native controls.
 
-- **Images**: `ui.image` loads **local files only** - download remote previews with `noctalia.download(url, dest, cb)` first, then pass the saved path.
+- **Images**: `ui.image` loads **local files only** - download remote previews with `nythera.download(url, dest, cb)` first, then pass the saved path.
 
 - **Glyph-only buttons**: when only `glyph` is set, any previous `text` is cleared so retained buttons do not keep stale labels across re-renders.
 
@@ -141,7 +141,7 @@ Every control also accepts `width`, `height`, `flexGrow`, `opacity`, and `visibl
 
 - **Position is host-owned**: the user places, sizes, and rotates the tile in the desktop-widgets editor; the script only renders content and reads its declared settings.
 
-The reference implementation is the official `noctalia/timer` plugin - a countdown timer with start/pause/reset buttons and a progress bar.
+The reference implementation is the official `nythera/timer` plugin - a countdown timer with start/pause/reset buttons and a progress bar.
 
 ## `barWidget.render` - declarative bar widget UI {#barwidgetrender--declarative-bar-widget-ui}
 
@@ -165,9 +165,9 @@ Bar-specific constraints:
 - **Wheel**: a slider in a bar widget consumes vertical wheel events over it and steps its value, so the wheel no longer reaches the widget's own scroll handling while the pointer is over a slider. Scroll gestures that start elsewhere keep their original target.
 - **Clicks compose**: an inline control consumes its own clicks; the widget-level `onClick`/`onRightClick` still fire for the rest of the capsule (and its padding).
 - **Drag and drop works** (<PluginApiBadge feature="bar-drag-and-drop" />): `ui.dragSource` / `ui.dropZone` behave as in panels, with the ghost confined to the widget's extent - see [Drag and drop](#drag-and-drop-panels-only).
-- Ticks stay on `noctalia.setUpdateInterval` - there is no frame-tick API in the bar.
+- Ticks stay on `nythera.setUpdateInterval` - there is no frame-tick API in the bar.
 
-The `declarative` widget in the official `noctalia/example` plugin is the reference implementation.
+The `declarative` widget in the official `nythera/example` plugin is the reference implementation.
 
 ## `panel.*` - declarative panel UI {#panel--declarative-panel-ui}
 
@@ -248,7 +248,7 @@ By default a panel takes keyboard focus when the user clicks it (`keyboard_focus
 
 ### Persistent panels
 
-Normally the shell keeps one panel open at a time: opening the control center closes yours. A panel with `persistent = true` lives outside that slot, so it stays on screen until an explicit toggle, `panel.close()`, or `noctalia ipc panel-close <id>` dismisses it. Several persistent panels can be open at once, alongside a normal panel. Requires <PluginApiBadge feature="persistent-panel" />.
+Normally the shell keeps one panel open at a time: opening the control center closes yours. A panel with `persistent = true` lives outside that slot, so it stays on screen until an explicit toggle, `panel.close()`, or `nythera ipc panel-close <id>` dismisses it. Several persistent panels can be open at once, alongside a normal panel. Requires <PluginApiBadge feature="persistent-panel" />.
 
 Persistent panels trade away the features that only make sense for a transient pop-up:
 
@@ -274,7 +274,7 @@ Declare defaults on the `[[panel]]` table; users override through the plugin set
 
 **Layer** controls the floating surface's layer-shell layer. `top` keeps the panel under fullscreen windows; `overlay` keeps it above them, which is what an on-screen keyboard or heads-up panel needs. An attached panel ignores this setting and sits at its host bar's configured layer.
 
-Official defaults: `noctalia/example:panel` ships `floating` + `center`; `noctalia/wallhaven:browser` ships `attached` + `auto`.
+Official defaults: `nythera/example:panel` ships `floating` + `center`; `nythera/wallhaven:browser` ships `attached` + `auto`.
 
 ### Handling keys directly
 
@@ -297,14 +297,14 @@ function onKey(chord, pressed)
 end
 ```
 
-`chord` is the exact string from the manifest, so match on what you declared rather than on a key name the host invented. Chord syntax is the same as elsewhere in Noctalia (`space`, `ctrl+r`, `shift+Return`).
+`chord` is the exact string from the manifest, so match on what you declared rather than on a key name the host invented. Chord syntax is the same as elsewhere in Nythera (`space`, `ctrl+r`, `shift+Return`).
 
 Constraints worth knowing before designing around it:
 
 - **Declared chords only.** The panel never receives keys it did not list. This keeps a panel from observing everything a user types into its own fields, and keeps the event rate down.
 - **A focused text input wins first.** If a `ui.input` has focus, plain printable keys type into it and never reach `onKey`, so a `capture_keys = ["space"]` panel with a text field still gets spaces typed normally.
-- **Escape always dismisses.** The panel-close action stays with the host and cannot be captured, so a panel can never make itself impossible to close from the keyboard. This tracks the user's own [Cancel keybind](/noctalia/configuration/shell/#keybinds), so rebinding it keeps working.
-- **A captured chord outranks the shell navigation keybinds, inside that panel only.** Capture is checked before the keybind actions in [`[keybinds]`](/noctalia/configuration/shell/#keybinds) are applied, so `capture_keys = ["space"]` means space no longer triggers Validate on a focused control while that panel is up. Cancel is the one exception. Nothing changes for other panels or the rest of the shell.
+- **Escape always dismisses.** The panel-close action stays with the host and cannot be captured, so a panel can never make itself impossible to close from the keyboard. This tracks the user's own [Cancel keybind](/nythera/configuration/shell/#keybinds), so rebinding it keeps working.
+- **A captured chord outranks the shell navigation keybinds, inside that panel only.** Capture is checked before the keybind actions in [`[keybinds]`](/nythera/configuration/shell/#keybinds) are applied, so `capture_keys = ["space"]` means space no longer triggers Validate on a focused control while that panel is up. Cancel is the one exception. Nothing changes for other panels or the rest of the shell.
 - **Capturing is declared, not decided.** The script runs off the main thread, so it cannot answer "did you consume this?" in time. Listing a chord *is* the decision to consume it. A chord you list but do not handle in `onKey` is left to the host rather than swallowed.
 - **`keyboard_focus` must not be `none`.** A panel that never takes focus never receives a key, so the combination is rejected at parse time.
 - **Key repeat is filtered.** Holding a captured chord produces one `onKey(chord, true)` and one `onKey(chord, false)`, not a stream of presses, so hold-to-act works as written.
@@ -336,7 +336,7 @@ persistent = true
 ```
 
 ```toml
-[plugin_settings."noctalia/wallhaven"]
+[plugin_settings."nythera/wallhaven"]
 browser_placement = "floating"
 browser_position = "bottom_left"
 ```
@@ -359,17 +359,17 @@ function onToggle(value) enabled = value == "true"; render() end
 function onCloseClicked() panel.close() end
 ```
 
-From a widget or shortcut script, toggle a panel by its full entry id with `noctalia.togglePanel("author/plugin:panel")`. The same panel can also be opened, closed, or toggled externally over IPC:
+From a widget or shortcut script, toggle a panel by its full entry id with `nythera.togglePanel("author/plugin:panel")`. The same panel can also be opened, closed, or toggled externally over IPC:
 
 ```sh
-noctalia msg panel-toggle noctalia/example:panel
+nythera msg panel-toggle nythera/example:panel
 ```
 
-The reference implementation is the `panel` entry of the official `noctalia/example` plugin - a settings-style panel exercising every interactive control. `noctalia/wallhaven:browser` is a network-backed panel (thumbnail grid, filters, download + apply via `noctalia.wallpaperDirectory()` and `noctalia.setWallpaper()`).
+The reference implementation is the `panel` entry of the official `nythera/example` plugin - a settings-style panel exercising every interactive control. `nythera/wallhaven:browser` is a network-backed panel (thumbnail grid, filters, download + apply via `nythera.wallpaperDirectory()` and `nythera.setWallpaper()`).
 
 ## `layer.*` - declarative layer UI {#layer--declarative-layer-ui}
 
-A [`[[layer]]` entry](/noctalia/plugins/development/entries/#layer-surfaces) describes its UI with the same `ui.*` tree as a desktop widget or panel. Requires <PluginApiBadge feature="layer-entry" />.
+A [`[[layer]]` entry](/nythera/plugins/development/entries/#layer-surfaces) describes its UI with the same `ui.*` tree as a desktop widget or panel. Requires <PluginApiBadge feature="layer-entry" />.
 
 `render(tree)` · `setNeedsFrameTick(bool)` · `outputName()`
 
@@ -378,12 +378,12 @@ layer.render(ui.column({ fill = "#000000", flexGrow = 1 }, {}))
 ```
 
 - **Per output**: each shown output runs its own instance. `layer.outputName()` returns the connector of the output this instance draws on, or `nil`.
-- **Ticks**: `update()` runs on the `noctalia.setUpdateInterval` interval (default 1000 ms). `setNeedsFrameTick(true)` delivers `onFrameTick(deltaMs)` every frame while the layer is shown. As for desktop widgets, `deltaMs` arrives as a string-formatted number; use `tonumber`.
+- **Ticks**: `update()` runs on the `nythera.setUpdateInterval` interval (default 1000 ms). `setNeedsFrameTick(true)` delivers `onFrameTick(deltaMs)` every frame while the layer is shown. As for desktop widgets, `deltaMs` arrives as a string-formatted number; use `tonumber`.
 - **Input**: pointer and keyboard input drive controls like in a panel, and keys arrive only while the layer holds keyboard focus (see the `keyboard` manifest key).
 
 ## Color picker
 
-`ui.colorPicker` embeds the shell's color picker: a saturation/brightness plane, a hue strip, and text fields, with corners that follow the shell's corner radius setting (requires <PluginApiBadge feature="color-picker" />). To ask for a color in a separate dialog instead, use `noctalia.openColorPicker`.
+`ui.colorPicker` embeds the shell's color picker: a saturation/brightness plane, a hue strip, and text fields, with corners that follow the shell's corner radius setting (requires <PluginApiBadge feature="color-picker" />). To ask for a color in a separate dialog instead, use `nythera.openColorPicker`.
 
 ```lua
 ui.colorPicker({
@@ -403,11 +403,11 @@ ui.colorPicker({
 
 ## Pixel streams
 
-`ui.pixelStream` shows live frames produced by a companion process the plugin runs, for example a phone screen mirror or a remote preview (requires <PluginApiBadge feature="pixel-stream" />). The companion owns capture, decoding, audio, and any device input; Noctalia only displays its pixels and reports what the user does over them. Frame data never passes through the plugin script.
+`ui.pixelStream` shows live frames produced by a companion process the plugin runs, for example a phone screen mirror or a remote preview (requires <PluginApiBadge feature="pixel-stream" />). The companion owns capture, decoding, audio, and any device input; Nythera only displays its pixels and reports what the user does over them. Frame data never passes through the plugin script.
 
 ```lua
 ui.pixelStream({
-  key = "screen", path = noctalia.pluginDataDir() .. "/screen.sock", width = 320, height = 640, radius = 12,
+  key = "screen", path = nythera.pluginDataDir() .. "/screen.sock", width = 320, height = 640, radius = 12,
   onPointerDown = function(x, y) sendTouch("down", x, y) end,
   onPointerMove = function(x, y) lastX, lastY = x, y; if touching then sendTouch("move", x, y) end end,
   onPointerUp = function(x, y) sendTouch("up", x, y) end,
@@ -418,7 +418,7 @@ ui.pixelStream({
 })
 ```
 
-The frame is fitted inside `width` × `height` with its aspect ratio kept; supply both. Until the first frame arrives, and after `path` changes, the control is empty. When the companion disconnects, the last frame stays on screen and Noctalia reconnects every second.
+The frame is fitted inside `width` × `height` with its aspect ratio kept; supply both. Until the first frame arrives, and after `path` changes, the control is empty. When the companion disconnects, the last frame stays on screen and Nythera reconnects every second.
 
 **Pointer.** Positions are strings from `"0.0000"` to `"1.0000"`, relative to the displayed frame (letterboxing excluded) with `0,0` at the top-left.
 
@@ -435,20 +435,20 @@ The frame is fitted inside `width` × `height` with its aspect ratio kept; suppl
 
 ### Companion protocol
 
-The companion listens on a filesystem Unix socket of type `SOCK_SEQPACKET` at `path`, ideally inside a directory only the user can access. Noctalia connects while the control exists, accepts only a peer running as the same user, and closes the connection when the control is removed. Noctalia does not start or stop the companion; manage it from the plugin, for example with the panel lifecycle callbacks.
+The companion listens on a filesystem Unix socket of type `SOCK_SEQPACKET` at `path`, ideally inside a directory only the user can access. Nythera connects while the control exists, accepts only a peer running as the same user, and closes the connection when the control is removed. Nythera does not start or stop the companion; manage it from the plugin, for example with the panel lifecycle callbacks.
 
 Every message is a sequence of little-endian unsigned 32-bit fields:
 
 | Direction            | Message   | Fields                 | Meaning                                                                                                                           |
 | -------------------- | --------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Noctalia → companion | `HELLO`   | `1`, version (`1`)     | First message on every connection. Close the connection if you do not speak this version.                                         |
-| Noctalia → companion | `REQUEST` | `2`, `0`               | Noctalia is ready for the next frame and no longer reads the buffer of the previous `FRAME`. The first `REQUEST` follows `HELLO`. |
-| companion → Noctalia | `BUFFER`  | `1`, id, width, height | Attaches shared buffer `id` (0 to 3). Carries exactly one file descriptor (`SCM_RIGHTS`).                                         |
-| companion → Noctalia | `FRAME`   | `2`, id                | Buffer `id` holds the frame to show. Only valid as the answer to a `REQUEST`.                                                     |
+| Nythera → companion | `HELLO`   | `1`, version (`1`)     | First message on every connection. Close the connection if you do not speak this version.                                         |
+| Nythera → companion | `REQUEST` | `2`, `0`               | Nythera is ready for the next frame and no longer reads the buffer of the previous `FRAME`. The first `REQUEST` follows `HELLO`. |
+| companion → Nythera | `BUFFER`  | `1`, id, width, height | Attaches shared buffer `id` (0 to 3). Carries exactly one file descriptor (`SCM_RIGHTS`).                                         |
+| companion → Nythera | `FRAME`   | `2`, id                | Buffer `id` holds the frame to show. Only valid as the answer to a `REQUEST`.                                                     |
 
 A buffer is a `memfd` holding `width × height` RGBA pixels, 4 bytes each (red, green, blue, alpha), rows top to bottom with no padding. It must be at least that large and sealed against shrinking (`MFD_ALLOW_SEALING`, then `F_ADD_SEALS` with `F_SEAL_SHRINK`). Width and height are 1 to 4096, at most 4,194,304 pixels. Pixels should be opaque (alpha 255). A buffer can be replaced by sending `BUFFER` with the same id again, which is how the frame size changes.
 
-There is at most one outstanding `REQUEST`. Answer it when a frame newer than the last one sent exists, and immediately on a new connection, so a reconnecting shell gets the current picture. Between sending `FRAME` for a buffer and receiving the next `REQUEST`, do not write to or replace that buffer; render into another one instead (two buffers are enough). Noctalia sends `REQUEST` after it has uploaded a frame for display, so the stream is paced by the shell and pauses while the control is not drawn: render only the latest frame and drop older ones rather than queueing them.
+There is at most one outstanding `REQUEST`. Answer it when a frame newer than the last one sent exists, and immediately on a new connection, so a reconnecting shell gets the current picture. Between sending `FRAME` for a buffer and receiving the next `REQUEST`, do not write to or replace that buffer; render into another one instead (two buffers are enough). Nythera sends `REQUEST` after it has uploaded a frame for display, so the stream is paced by the shell and pauses while the control is not drawn: render only the latest frame and drop older ones rather than queueing them.
 
 Any malformed or out-of-order message closes the connection, followed by a reconnect a second later.
 

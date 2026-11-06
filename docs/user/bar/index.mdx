@@ -1,6 +1,6 @@
 ---
 title: Bar
-description: Add and customize Noctalia bars, choose their widgets, and adjust them per monitor.
+description: Add and customize Nythera bars, choose their widgets, and adjust them per monitor.
 sidebar:
   order: 2
 ---
@@ -82,7 +82,7 @@ For an inset bar (`margin_ends > 0`), the two corners touching the screen edge b
 
 Multiple `[bar.*]` entries are supported - each is independently configured and rendered on all monitors.
 
-`[bar].order` controls the order Noctalia creates bar layer-shell surfaces. This matters only for bars with `reserve_space = true`, and the compositor still owns the final exclusive-zone arrangement. Names omitted from `order` are appended after the listed names.
+`[bar].order` controls the order Nythera creates bar layer-shell surfaces. This matters only for bars with `reserve_space = true`, and the compositor still owns the final exclusive-zone arrangement. Names omitted from `order` are appended after the listed names.
 
 ### Dead zone actions
 
@@ -98,7 +98,7 @@ back = "media previous"
 forward = "media next"
 ```
 
-All nine gestures are available, and an action is an IPC command, `exec <command line>`, or `none` - see [Widget Actions](/noctalia/bar/actions/) for the full vocabulary. Panel actions anchor at the pointer, since there is no widget to anchor to.
+All nine gestures are available, and an action is an IPC command, `exec <command line>`, or `none` - see [Widget Actions](/nythera/bar/actions/) for the full vocabulary. Panel actions anchor at the pointer, since there is no widget to anchor to.
 
 Right-click opens Control Center unless you bind `right` to something else. While an attached panel is open, right-click anywhere on the bar still toggles Control Center unless the click lands in the dead zone and `right` is bound.
 
@@ -171,7 +171,7 @@ Select **Bar → General → Surface → Dynamic Island** (`surface_mode = "dyna
 
 #### Compact feedback and native tools
 
-The island supplies compact event feedback. **Hovering opens the actual registered Noctalia tool directly**, growing out of the island; there is no intermediate preview card or duplicate expanded player/audio/notification UI. Clicking also opens the corresponding native tool. The resting clock opens Dashboard/Home even when a media player is available.
+The island supplies compact event feedback. **Hovering opens the actual registered Nythera tool directly**, growing out of the island; there is no intermediate preview card or duplicate expanded player/audio/notification UI. Clicking also opens the corresponding native tool. The resting clock opens Dashboard/Home even when a media player is available.
 
 | Compact state | Content | Native destination on hover/click |
 | --- | --- | --- |
@@ -187,7 +187,7 @@ The existing `PanelManager` opens its registered `ControlCenterPanel` with the r
 
 During expansion, the existing native panel surface extends back through the island neck and owns the complete background and theme-driven perimeter. The shared frame excludes that ownership rectangle from its paint and client blur regions. The native host reads the live output contour and updates only its own contribution, preserving adjoining bars. With Screen Wrap, both use the same frame contour; without it, one rounded native background covers neck and tool. Native content and controls remain in their existing panel host. This prevents live backdrop blur from sampling a separately tinted island and producing a dark band at the join. Closing returns background ownership to the compact island. All four edges are supported; no full-screen panel buffer is introduced.
 
-The island and Screen Wrap use the native `noctalia-bar-*` surface namespace so existing compositor layer-effect rules cover them. These are compatibility identifiers, not project branding. A later Nythera identifier migration must update matching external rules at the same time. On the current Umbriel session, blur is supplied by those rules because the client background-effect protocol is not advertised. Solid/Soft/Glass select the shell's opacity/card treatment; they cannot enable compositor blur on an unmatched layer.
+The island and Screen Wrap use the native `nythera-bar-*` surface namespace so existing compositor layer-effect rules cover them. These are compatibility identifiers, not project branding. A later Nythera identifier migration must update matching external rules at the same time. On the current Umbriel session, blur is supplied by those rules because the client background-effect protocol is not advertised. Solid/Soft/Glass select the shell's opacity/card treatment; they cannot enable compositor blur on an unmatched layer.
 
 **Panels → Effects → Transparency** remains the existing Solid/Soft/Glass control. It now controls the outer background of tools opened from Dynamic Island as well as their native card translucency. The island blends to that same opacity during expansion. Choose Glass for both Bar and Panels for matching 55% outer backgrounds; internal control/card surfaces retain their native contrast. Ordinary attached panels retain their existing bar-opacity behaviour.
 
@@ -210,7 +210,7 @@ Explicit `call.ongoing` metadata is labelled as an ongoing call. It does not inf
 
 | Event | Trigger |
 | --- | --- |
-| Volume / microphone | Existing Noctalia audio feedback: default-device level, mute or route changes, including its feedback commands. Existing suppression/deduplication remains. |
+| Volume / microphone | Existing Nythera audio feedback: default-device level, mute or route changes, including its feedback commands. Existing suppression/deduplication remains. |
 | Privacy | Existing filtered microphone/camera/screen-capture OSD transitions; activity badges use current filtered PipeWire captures. |
 | Device | Existing Wi-Fi, Bluetooth and power-profile OSD feedback. |
 | Brightness | A changed controllable-display brightness percentage, or its feedback command. |
@@ -249,11 +249,11 @@ dynamic_snooze_seconds = 300
 The separate custom Clock & timers page has been removed with the duplicate expanded views. The shared session controller and its existing commands remain available for configured widget actions/keybinds:
 
 ```sh
-noctalia msg island-activity timer-start 300
-noctalia msg island-activity timer-cancel
-noctalia msg island-activity alarm-arm 08:00
-noctalia msg island-activity alarm-snooze
-noctalia msg island-activity alarm-dismiss
+nythera msg island-activity timer-start 300
+nythera msg island-activity timer-cancel
+nythera msg island-activity alarm-arm 08:00
+nythera msg island-activity alarm-snooze
+nythera msg island-activity alarm-dismiss
 ```
 
 Running/finished timers have a compact stop control. Ringing alarms have compact snooze and close controls. Calls use a **green phone** for a supplied accept/answer action, a **red phone** for a supplied decline/reject/hang-up action, and an X for dismissal; there is no duplicate Dismiss button or unsupported fake call control.
@@ -262,7 +262,7 @@ Timers/alarms survive bar/config rebuilds, not shell restarts. They do not wake 
 
 Call integration remains notification-backed. It cannot infer real ongoing state, answer/hang-up support or reliable termination without source-provided metadata/actions. Non-English known-app notices need explicit metadata for reliable classification. Native tools can take keyboard focus when opened.
 
-`noctalia msg bar-island-toggle [bar-name] [monitor-selector]` opens/closes the corresponding native tool. Manual hide/show remains supported; automatic/smart hiding is not applied to Dynamic Island. The bar's thickness remains reserved if requested, with native tool content overlaying windows. The island uses a narrow edge strip; the normal native host owns the tool surface. This does not require a full-screen transparent island buffer.
+`nythera msg bar-island-toggle [bar-name] [monitor-selector]` opens/closes the corresponding native tool. Manual hide/show remains supported; automatic/smart hiding is not applied to Dynamic Island. The bar's thickness remains reserved if requested, with native tool content overlaying windows. The island uses a narrow edge strip; the normal native host owns the tool surface. This does not require a full-screen transparent island buffer.
 
 ### Screen wrap
 
@@ -349,8 +349,8 @@ The IPC `bar-layer-set <top|overlay> [bar-name] [monitor-selector]` switches the
 
 ```kdl
 binds {
-    Mod+B { spawn-sh "noctalia msg bar-layer-set overlay"; }
-    Mod+Shift+B { spawn-sh "noctalia msg bar-layer-set top"; }
+    Mod+B { spawn-sh "nythera msg bar-layer-set overlay"; }
+    Mod+Shift+B { spawn-sh "nythera msg bar-layer-set top"; }
 }
 ```
 

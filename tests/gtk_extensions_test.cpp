@@ -8,9 +8,9 @@
 
 namespace {
 
-  using namespace noctalia::theme;
+  using namespace nythera::theme;
 
-  const std::filesystem::path kRoot = std::filesystem::temp_directory_path() / "noctalia_gtk_extensions_test";
+  const std::filesystem::path kRoot = std::filesystem::temp_directory_path() / "nythera_gtk_extensions_test";
   const std::filesystem::path kGtk3 = kRoot / "gtk-3.0";
   const std::filesystem::path kGtk4 = kRoot / "gtk-4.0";
 
@@ -55,11 +55,11 @@ namespace {
     TEST_CHECK(files.size() == 2);
     TEST_CHECK(
         root["templates"]["gtk3"]["output_path"].value_or(std::string{})
-        == (kGtk3 / "noctalia-extensions" / "thunar.gtk3.css").string()
+        == (kGtk3 / "nythera-extensions" / "thunar.gtk3.css").string()
     );
     TEST_CHECK(
         root["templates"]["gtk4"]["output_path"].value_or(std::string{})
-        == (kGtk4 / "noctalia-extensions" / "thunar.gtk4.css").string()
+        == (kGtk4 / "nythera-extensions" / "thunar.gtk4.css").string()
     );
     // An extension may not run hooks or pick an unknown toolkit.
     TEST_CHECK(!root["templates"]["hooked"]);
@@ -82,27 +82,27 @@ namespace {
   void test_index_exists_before_any_extension_renders() {
     std::filesystem::remove_all(kGtk3);
     TEST_CHECK(ensureGtkExtensionIndex(kGtk3));
-    TEST_CHECK(readFile(kGtk3 / "noctalia-extensions.css").find("@import") == std::string::npos);
+    TEST_CHECK(readFile(kGtk3 / "nythera-extensions.css").find("@import") == std::string::npos);
   }
 
   void test_sync_imports_only_existing_files_and_prunes_stale_ones() {
     std::filesystem::remove_all(kGtk3);
-    writeFile(kGtk3 / "noctalia-extensions" / "thunar.gtk3.css", ".thunar {}\n");
-    writeFile(kGtk3 / "noctalia-extensions" / "disabled.gtk3.css", ".disabled {}\n");
+    writeFile(kGtk3 / "nythera-extensions" / "thunar.gtk3.css", ".thunar {}\n");
+    writeFile(kGtk3 / "nythera-extensions" / "disabled.gtk3.css", ".disabled {}\n");
 
     TEST_CHECK(syncGtkExtensions(kGtk3, {"thunar.gtk3.css", "missing.gtk3.css"}));
 
-    const std::string index = readFile(kGtk3 / "noctalia-extensions.css");
-    TEST_CHECK(index.find("@import url(\"noctalia-extensions/thunar.gtk3.css\");") != std::string::npos);
+    const std::string index = readFile(kGtk3 / "nythera-extensions.css");
+    TEST_CHECK(index.find("@import url(\"nythera-extensions/thunar.gtk3.css\");") != std::string::npos);
     TEST_CHECK(index.find("missing") == std::string::npos);
     TEST_CHECK(index.find("disabled") == std::string::npos);
-    TEST_CHECK(std::filesystem::exists(kGtk3 / "noctalia-extensions" / "thunar.gtk3.css"));
-    TEST_CHECK(!std::filesystem::exists(kGtk3 / "noctalia-extensions" / "disabled.gtk3.css"));
+    TEST_CHECK(std::filesystem::exists(kGtk3 / "nythera-extensions" / "thunar.gtk3.css"));
+    TEST_CHECK(!std::filesystem::exists(kGtk3 / "nythera-extensions" / "disabled.gtk3.css"));
 
     // Disabling the last extension empties the index and removes its file.
     TEST_CHECK(syncGtkExtensions(kGtk3, {}));
-    TEST_CHECK(readFile(kGtk3 / "noctalia-extensions.css").find("@import") == std::string::npos);
-    TEST_CHECK(!std::filesystem::exists(kGtk3 / "noctalia-extensions" / "thunar.gtk3.css"));
+    TEST_CHECK(readFile(kGtk3 / "nythera-extensions.css").find("@import") == std::string::npos);
+    TEST_CHECK(!std::filesystem::exists(kGtk3 / "nythera-extensions" / "thunar.gtk3.css"));
   }
 
 } // namespace

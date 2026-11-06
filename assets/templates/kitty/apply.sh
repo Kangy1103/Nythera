@@ -3,8 +3,8 @@ set -euo pipefail
 
 kitty_config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/kitty"
 config_file="$kitty_config_dir/kitty.conf"
-theme_file="$kitty_config_dir/themes/noctalia.conf"
-include_line='include themes/noctalia.conf'
+theme_file="$kitty_config_dir/themes/nythera.conf"
+include_line='include themes/nythera.conf'
 
 # kitty loads only the first kitty.conf it finds, so a new user file would hide one in XDG_CONFIG_DIRS.
 find_system_config() {
@@ -20,7 +20,7 @@ find_system_config() {
 }
 
 if [ ! -f "$config_file" ] && system_config="$(find_system_config)"; then
-    echo "Warning: not creating $config_file because it would hide $system_config; add 'include $theme_file' to your kitty config to apply the Noctalia theme" >&2
+    echo "Warning: not creating $config_file because it would hide $system_config; add 'include $theme_file' to your kitty config to apply the Nythera theme" >&2
     exit 0
 fi
 

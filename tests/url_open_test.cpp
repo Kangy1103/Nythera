@@ -34,7 +34,7 @@ namespace {
 } // namespace
 
 int main() {
-  const auto root = std::filesystem::temp_directory_path() / ("noctalia-url-open-" + std::to_string(::getpid()));
+  const auto root = std::filesystem::temp_directory_path() / ("nythera-url-open-" + std::to_string(::getpid()));
   std::filesystem::create_directories(root / "data/applications");
   std::filesystem::create_directories(root / "config");
   ::setenv("XDG_DATA_HOME", (root / "data").c_str(), 1);
@@ -56,7 +56,7 @@ int main() {
         << "'\n";
   }
   {
-    std::ofstream file(root / "data/applications/noctalia-url-test.desktop");
+    std::ofstream file(root / "data/applications/nythera-url-test.desktop");
     file
         << "[Desktop Entry]\nType=Application\nName=URL test browser\nExec=/bin/sh "
         << script.string()
@@ -64,7 +64,7 @@ int main() {
   }
   {
     std::ofstream file(root / "config/mimeapps.list");
-    file << "[Default Applications]\nx-scheme-handler/https=noctalia-url-test.desktop\n";
+    file << "[Default Applications]\nx-scheme-handler/https=nythera-url-test.desktop\n";
   }
 
   auto connection = sdbus::createSessionBusConnection(sdbus::ServiceName{"org.freedesktop.portal.Desktop"});
@@ -88,7 +88,7 @@ int main() {
   connection->enterEventLoopAsync();
 
   // An unregistered scheme exercises GIO's portal route on the private test bus.
-  const std::string portalUri = "noctalia-url-test://template/readme";
+  const std::string portalUri = "nythera-url-test://template/readme";
   TEST_CHECK(net::openInBrowser(portalUri, "portal-token"));
   TEST_CHECK(waitUntil([&] {
     std::scoped_lock lock(mutex);

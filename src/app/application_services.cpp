@@ -194,7 +194,7 @@ void Application::syncNotificationDaemon() {
         m_notificationPollSource.setDbusService(nullptr);
         m_notificationDaemonInitFailed = true;
         m_notificationManager.addInternal(
-            "Noctalia", i18n::tr("notifications.internal.dbus-disabled"), kdeError.what(), Urgency::Low
+            "Nythera", i18n::tr("notifications.internal.dbus-disabled"), kdeError.what(), Urgency::Low
         );
         return;
       }
@@ -205,7 +205,7 @@ void Application::syncNotificationDaemon() {
     m_notificationPollSource.setDbusService(nullptr);
     m_notificationDaemonInitFailed = true;
     m_notificationManager.addInternal(
-        "Noctalia", i18n::tr("notifications.internal.dbus-disabled"), ownerError.what(), Urgency::Low
+        "Nythera", i18n::tr("notifications.internal.dbus-disabled"), ownerError.what(), Urgency::Low
     );
   }
 }
@@ -404,7 +404,7 @@ void Application::syncPolkitAgent() {
       DeferredCall::callLater([this, error] {
         if (polkit_session::isNoSessionForPidError(error)) {
           notify::error(
-              "Noctalia", i18n::tr("notifications.internal.polkit-agent"),
+              "Nythera", i18n::tr("notifications.internal.polkit-agent"),
               i18n::tr("notifications.internal.polkit-no-session")
           );
         }
@@ -518,7 +518,7 @@ void Application::initServices() {
   // can now be reported with a translated message.
   if (m_earlySessionBusError.has_value()) {
     m_notificationManager.addInternal(
-        "Noctalia", i18n::tr("notifications.internal.session-bus-unavailable"), *m_earlySessionBusError, Urgency::Low
+        "Nythera", i18n::tr("notifications.internal.session-bus-unavailable"), *m_earlySessionBusError, Urgency::Low
     );
     m_earlySessionBusError.reset();
   }
@@ -622,7 +622,7 @@ void Application::initStyleThemeAndWayland() {
 
   // Apply theme before any UI constructs palette-dependent scene nodes.
   auto syncScriptApiWallpaperDirectory = [this] {
-    // Wallpapers are a shell surface, so they follow Noctalia's own mode.
+    // Wallpapers are a shell surface, so they follow Nythera's own mode.
     const ThemeMode mode = m_themeService.isLightMode() ? ThemeMode::Light : ThemeMode::Dark;
     m_scriptApi.setWallpaperDirectory(
         wallpaper::resolveGlobalWallpaperDirectory(m_configService.config().wallpaper, mode)
@@ -634,7 +634,7 @@ void Application::initStyleThemeAndWayland() {
     m_scriptApi.setDateFormat(m_configService.config().shell.dateFormat);
   };
 
-  // Publish the connected outputs to plugin scripts (noctalia.outputs()), refreshed on every
+  // Publish the connected outputs to plugin scripts (nythera.outputs()), refreshed on every
   // output change so the worker-thread binding reads a race-free copy.
   m_syncScriptApiOutputs = [this] {
     std::vector<scripting::ScriptOutputInfo> infos;
@@ -729,9 +729,9 @@ void Application::initStyleThemeAndWayland() {
   });
 
   m_themeService.setResolvedCallback([this, lastResolvedThemeMode = std::optional<std::string>{},
-                                      lastGeneratedPalette = std::optional<noctalia::theme::GeneratedPalette>{},
+                                      lastGeneratedPalette = std::optional<nythera::theme::GeneratedPalette>{},
                                       syncScriptApiWallpaperDirectory](
-                                         const noctalia::theme::GeneratedPalette& generated, std::string_view mode
+                                         const nythera::theme::GeneratedPalette& generated, std::string_view mode
                                      ) mutable {
     const std::string resolvedMode(mode);
     const std::string configuredMode(enumToKey(kThemeModes, m_themeService.configuredMode()));
@@ -746,9 +746,9 @@ void Application::initStyleThemeAndWayland() {
     if (previousMode.has_value() && *previousMode != resolvedMode) {
       m_hookManager.fire(
           HookKind::ThemeModeChanged,
-          {{"NOCTALIA_THEME_MODE", resolvedMode},
-           {"NOCTALIA_THEME_MODE_PREVIOUS", *previousMode},
-           {"NOCTALIA_THEME_MODE_CONFIGURED", configuredMode}}
+          {{"NYTHERA_THEME_MODE", resolvedMode},
+           {"NYTHERA_THEME_MODE_PREVIOUS", *previousMode},
+           {"NYTHERA_THEME_MODE_CONFIGURED", configuredMode}}
       );
     }
   });
@@ -990,7 +990,7 @@ void Application::initAuxServicesAndHooks() {
     scheduleGreeterAutoSync();
     const auto fireWallpaperChangedHook = [this](const std::string& path, const std::string& connector) {
       m_hookManager.fire(
-          HookKind::WallpaperChanged, {{"NOCTALIA_WALLPAPER_PATH", path}, {"NOCTALIA_WALLPAPER_CONNECTOR", connector}}
+          HookKind::WallpaperChanged, {{"NYTHERA_WALLPAPER_PATH", path}, {"NYTHERA_WALLPAPER_CONNECTOR", connector}}
       );
     };
     if (wallpaperChanges.empty()) {
@@ -1116,7 +1116,7 @@ void Application::initSystemBusServices() {
             m_screenTimeService.setSuspendPaused(true);
             // The readiness hook releases the delay inhibit after the revealed lock frames are acknowledged.
             if (m_skipLockOnNextSleep) {
-              // Noctalia-initiated suspend: skip lock-before-sleep (plain Suspend or already locked).
+              // Nythera-initiated suspend: skip lock-before-sleep (plain Suspend or already locked).
               m_skipLockOnNextSleep = false;
               m_releaseSleepDelayWhenLocked = false;
               if (m_logindService != nullptr) {
@@ -1629,7 +1629,7 @@ void Application::initSessionBusServices() {
   if (m_bus != nullptr) {
     try {
       m_debugService = std::make_unique<DebugService>(*m_bus, m_notificationManager);
-      kLog.info("debug service active on dev.noctalia.Debug");
+      kLog.info("debug service active on dev.nythera.Debug");
     } catch (const std::exception& e) {
       kLog.warn("debug service disabled: {}", e.what());
       m_debugService.reset();
@@ -1663,7 +1663,7 @@ void Application::initSessionBusServices() {
       m_mprisService.reset();
       m_lockScreen.setLoginBoxServices(&m_sessionActionRunner, nullptr, &m_weatherService, &m_httpClient);
       m_notificationManager.addInternal(
-          "Noctalia", i18n::tr("notifications.internal.mpris-disabled"), e.what(), Urgency::Low
+          "Nythera", i18n::tr("notifications.internal.mpris-disabled"), e.what(), Urgency::Low
       );
     }
 
@@ -1680,7 +1680,7 @@ void Application::initSessionBusServices() {
   m_weatherService.initialize();
 
   // Mirror the calendar snapshot into the script API so plugins can read it through
-  // noctalia.calendarEvents(). Same pattern as the clipboard text mirror: converted once per sync on
+  // nythera.calendarEvents(). Same pattern as the clipboard text mirror: converted once per sync on
   // the main thread, then read race-free from plugin states. Registered before initialize() so the
   // first sync is not missed.
   auto pushCalendar = [this] {

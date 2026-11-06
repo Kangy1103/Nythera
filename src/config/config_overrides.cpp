@@ -326,8 +326,8 @@ namespace {
       resolved.widgetCapsuleOpacity = std::clamp(static_cast<float>(*ovr.widgetCapsuleOpacity), 0.0F, 1.0F);
     }
     if (ovr.widgetCapsuleBorderWidth) {
-      resolved.widgetCapsuleBorderWidth = noctalia::config::schema::applyRange(
-          *ovr.widgetCapsuleBorderWidth, noctalia::config::schema::kBarCapsuleBorderWidthRange
+      resolved.widgetCapsuleBorderWidth = nythera::config::schema::applyRange(
+          *ovr.widgetCapsuleBorderWidth, nythera::config::schema::kBarCapsuleBorderWidthRange
       );
     }
     if (ovr.hoverHighlight) {
@@ -1125,19 +1125,19 @@ bool ConfigService::setThemeColorScheme(PaletteSource source, std::string_view v
 
   switch (source) {
   case PaletteSource::Builtin:
-    if (noctalia::theme::findBuiltinPalette(value) == nullptr) {
+    if (nythera::theme::findBuiltinPalette(value) == nullptr) {
       return false;
     }
     break;
   case PaletteSource::Wallpaper:
-    if (!noctalia::theme::schemeFromString(value)) {
+    if (!nythera::theme::schemeFromString(value)) {
       return false;
     }
     break;
   case PaletteSource::Community:
     break;
   case PaletteSource::Custom:
-    if (!std::filesystem::exists(noctalia::theme::customPalettePath(value))) {
+    if (!std::filesystem::exists(nythera::theme::customPalettePath(value))) {
       return false;
     }
     break;
@@ -1293,7 +1293,7 @@ bool ConfigService::markSetupWizardCompleted() {
   // The bundled wallpaper is served via firstRunWallpaperPath() until setup
   // completes. Persist it so finishing the wizard does not clear the desktop.
   if (!hasConfiguredWallpaper()) {
-    const auto bundled = paths::assetPath("noctalia-wallpaper.png");
+    const auto bundled = paths::assetPath("nythera-wallpaper.png");
     std::error_code ec;
     if (std::filesystem::exists(bundled, ec)) {
       setWallpaperPath(std::nullopt, bundled.string());
@@ -1452,9 +1452,9 @@ void ConfigService::reconcileCapsuleGroupOverrides(toml::table& candidate) const
 
 std::optional<Config> ConfigService::configForOverrides(const toml::table& overrides) const {
   Config parsed;
-  noctalia::config::seedBuiltinWidgets(parsed);
+  nythera::config::seedBuiltinWidgets(parsed);
 
-  auto mergeResult = noctalia::config::mergeConfigWithIncludes(m_configDir);
+  auto mergeResult = nythera::config::mergeConfigWithIncludes(m_configDir);
   toml::table merged = std::move(mergeResult.merged);
   if (!mergeResult.firstError.empty()) {
     kLog.warn(
@@ -1464,11 +1464,11 @@ std::optional<Config> ConfigService::configForOverrides(const toml::table& overr
   }
 
   toml::table effectiveOverrides = overrides;
-  noctalia::config::schema::Diagnostics migrationDiag;
+  nythera::config::schema::Diagnostics migrationDiag;
   if (!effectiveOverrides.empty()) {
-    const auto storedVersion = noctalia::config::storedConfigVersion(effectiveOverrides, migrationDiag);
+    const auto storedVersion = nythera::config::storedConfigVersion(effectiveOverrides, migrationDiag);
     if (storedVersion.has_value()) {
-      (void)noctalia::config::applyPendingConfigMigrations(effectiveOverrides, merged, *storedVersion, migrationDiag);
+      (void)nythera::config::applyPendingConfigMigrations(effectiveOverrides, merged, *storedVersion, migrationDiag);
     }
   }
   if (migrationDiag.hasErrors()) {
@@ -1476,9 +1476,9 @@ std::optional<Config> ConfigService::configForOverrides(const toml::table& overr
     return std::nullopt;
   }
   deepMerge(merged, effectiveOverrides);
-  merged.erase(noctalia::config::kConfigVersionKey);
-  noctalia::config::LegacyConfigIssues issues;
-  noctalia::config::normalizeLegacyConfig(merged, issues, &effectiveOverrides);
+  merged.erase(nythera::config::kConfigVersionKey);
+  nythera::config::LegacyConfigIssues issues;
+  nythera::config::normalizeLegacyConfig(merged, issues, &effectiveOverrides);
   if (mergeResult.loadedFiles.empty() && overrides.empty()) {
     parsed.idle.behaviors = defaultIdleBehaviors();
     parsed.bars.push_back(BarConfig{});
@@ -1496,11 +1496,11 @@ std::optional<Config> ConfigService::configForOverrides(const toml::table& overr
   return parsed;
 }
 
-noctalia::config::schema::Diagnostics ConfigService::diagnosticsForOverrides(const toml::table& overrides) const {
-  auto mergeResult = noctalia::config::mergeConfigWithIncludes(m_configDir);
+nythera::config::schema::Diagnostics ConfigService::diagnosticsForOverrides(const toml::table& overrides) const {
+  auto mergeResult = nythera::config::mergeConfigWithIncludes(m_configDir);
   toml::table merged = std::move(mergeResult.merged);
-  noctalia::config::ConfigOriginIndex origins = std::move(mergeResult.origins);
-  noctalia::config::schema::Diagnostics diagnostics;
+  nythera::config::ConfigOriginIndex origins = std::move(mergeResult.origins);
+  nythera::config::schema::Diagnostics diagnostics;
   if (!mergeResult.firstError.empty()) {
     diagnostics.fatalAt(std::move(mergeResult.firstErrorOrigin), "syntax", mergeResult.firstError, "config.syntax");
   }
@@ -1510,21 +1510,21 @@ noctalia::config::schema::Diagnostics ConfigService::diagnosticsForOverrides(con
     origins.record(std::filesystem::path(m_overridesPath), overrides);
   }
   if (!effectiveOverrides.empty()) {
-    const auto storedVersion = noctalia::config::storedConfigVersion(effectiveOverrides, diagnostics);
+    const auto storedVersion = nythera::config::storedConfigVersion(effectiveOverrides, diagnostics);
     if (storedVersion.has_value()) {
-      (void)noctalia::config::applyPendingConfigMigrations(effectiveOverrides, merged, *storedVersion, diagnostics);
+      (void)nythera::config::applyPendingConfigMigrations(effectiveOverrides, merged, *storedVersion, diagnostics);
     }
   }
   deepMerge(merged, effectiveOverrides);
-  merged.erase(noctalia::config::kConfigVersionKey);
-  noctalia::config::LegacyConfigIssues issues;
-  noctalia::config::normalizeLegacyConfig(merged, issues, &effectiveOverrides);
+  merged.erase(nythera::config::kConfigVersionKey);
+  nythera::config::LegacyConfigIssues issues;
+  nythera::config::normalizeLegacyConfig(merged, issues, &effectiveOverrides);
   for (const auto& issue : issues) {
     diagnostics.warn(issue.path, issue.message, "config.legacy");
   }
   origins.annotate(diagnostics);
 
-  auto semantic = noctalia::config::validateMergedConfig(merged, origins);
+  auto semantic = nythera::config::validateMergedConfig(merged, origins);
   diagnostics.entries.insert(
       diagnostics.entries.end(), std::make_move_iterator(semantic.entries.begin()),
       std::make_move_iterator(semantic.entries.end())
@@ -1533,7 +1533,7 @@ noctalia::config::schema::Diagnostics ConfigService::diagnosticsForOverrides(con
 }
 
 bool ConfigService::validateOverrideMutation(const toml::table& candidateOverrides, const OverrideDiagnostics& known) {
-  using noctalia::config::schema::Diagnostics;
+  using nythera::config::schema::Diagnostics;
   m_lastMutationError.clear();
   if (!m_overridesParseError.empty()) {
     m_lastMutationError = m_overridesParseError.flatten(m_configDir);
@@ -1967,7 +1967,7 @@ bool ConfigService::validateOverride(
   const auto candidateDiagnostics = diagnosticsForOverrides(candidate);
   const std::string settingPath = overrideCacheKey(path);
   const auto fieldError = std::ranges::find_if(candidateDiagnostics.entries, [&](const auto& entry) {
-    return entry.severity == noctalia::config::schema::Diagnostics::Severity::Error && entry.path == settingPath;
+    return entry.severity == nythera::config::schema::Diagnostics::Severity::Error && entry.path == settingPath;
   });
   if (fieldError != candidateDiagnostics.entries.end()) {
     m_lastMutationError = fieldError->describeShort(m_configDir);
@@ -2262,7 +2262,7 @@ std::string ConfigService::firstRunWallpaperPath() const {
   if (hasConfiguredWallpaper()) {
     return {};
   }
-  const auto path = paths::assetPath("noctalia-wallpaper.png");
+  const auto path = paths::assetPath("nythera-wallpaper.png");
   std::error_code ec;
   if (!std::filesystem::exists(path, ec)) {
     return {};

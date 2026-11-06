@@ -5,10 +5,10 @@
 #include <source_location>
 
 #ifdef NDEBUG
-#error "Noctalia test targets must be compiled without NDEBUG"
+#error "Nythera test targets must be compiled without NDEBUG"
 #endif
 
-namespace noctalia::test {
+namespace nythera::test {
 
   [[noreturn]] inline void
   failCheck(const char* expression, std::source_location location = std::source_location::current()) {
@@ -18,11 +18,11 @@ namespace noctalia::test {
     std::exit(EXIT_FAILURE);
   }
 
-} // namespace noctalia::test
+} // namespace nythera::test
 
 #define TEST_CHECK(expression)                                                                                         \
   do {                                                                                                                 \
     if (!(expression)) {                                                                                               \
-      ::noctalia::test::failCheck(#expression);                                                                        \
+      ::nythera::test::failCheck(#expression);                                                                        \
     }                                                                                                                  \
   } while (false)

@@ -24,13 +24,13 @@
 #include <unordered_set>
 #include <utility>
 
-namespace noctalia::theme {
+namespace nythera::theme {
 
   namespace {
 
     constexpr Logger kLog("community_templates");
     constexpr std::string_view kCatalogUrl = "https://api.noctalia.dev/templates";
-    constexpr std::string_view kCacheMetadataFilename = ".noctalia-cache.json";
+    constexpr std::string_view kCacheMetadataFilename = ".nythera-cache.json";
 
     std::string templateReadmeUrl(std::string_view id) {
       return std::format("https://github.com/noctalia-dev/community-templates/blob/main/{}/README.md", id);
@@ -917,7 +917,7 @@ namespace noctalia::theme {
     const std::string state = FileUtils::stateDir();
     if (!state.empty())
       return std::filesystem::path(state) / "community-templates";
-    return std::filesystem::path("/tmp") / "noctalia" / "community-templates";
+    return std::filesystem::path("/tmp") / "nythera" / "community-templates";
   }
 
   std::filesystem::path communityTemplateDir(std::string_view id) {
@@ -934,4 +934,4 @@ namespace noctalia::theme {
     });
   }
 
-} // namespace noctalia::theme
+} // namespace nythera::theme

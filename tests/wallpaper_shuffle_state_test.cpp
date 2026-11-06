@@ -24,7 +24,7 @@ int main() {
   namespace fs = std::filesystem;
 
   const fs::path tempDir = fs::temp_directory_path()
-      / ("noctalia-wallpaper-shuffle-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+      / ("nythera-wallpaper-shuffle-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
   const fs::path statePath = tempDir / "wallpaper_shuffle.json";
   const std::vector<std::string> candidates{"a.jpg", "b.jpg", "c.jpg"};
 

@@ -335,7 +335,7 @@ UPowerService::UPowerService(SystemBus& bus) : m_bus(bus) {
     rescanDevices();
   });
 
-  if (SysUtils::isEnvFlagOn("NOCTALIA_DUMMY_BATTERY")) {
+  if (SysUtils::isEnvFlagOn("NYTHERA_DUMMY_BATTERY")) {
     m_dummyDevice = makeDummyBatteryDevice();
     kLog.info("dummy battery enabled ({:.0F}% discharging)", m_dummyDevice->state.percentage);
   }

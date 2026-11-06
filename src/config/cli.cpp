@@ -5,8 +5,10 @@
 #include "cli/schema_config.h"
 #include "config/config_service.h"
 #include "config/config_validate.h"
+#include "config/legacy_profile_migration.h"
 #include "core/log.h"
 #include "core/toml.h" // IWYU pragma: keep
+#include "security/secret_store.h"
 #include "shell/settings/settings_registry.h"
 #include "util/file_utils.h"
 #include "util/string_utils.h"
@@ -26,7 +28,7 @@
 #include <unistd.h>
 #include <vector>
 
-namespace noctalia::config {
+namespace nythera::config {
   namespace {
 
     struct ReplayOptions {
@@ -76,7 +78,7 @@ namespace noctalia::config {
 
     int runSettingsCount(int argc, char* argv[]) {
       auto parsed = cli::parseOrReport(
-          cli::kConfigSettingsCountCmd, "noctalia config settings-count",
+          cli::kConfigSettingsCountCmd, "nythera config settings-count",
           std::span<char* const>{argv + 3, static_cast<std::size_t>(argc - 3)}
       );
       if (!parsed)
@@ -208,8 +210,8 @@ namespace noctalia::config {
 
       const std::filesystem::path configHome = target / "config-home";
       const std::filesystem::path stateHome = target / "state-home";
-      const std::filesystem::path configDir = configHome / "noctalia";
-      const std::filesystem::path stateDir = stateHome / "noctalia";
+      const std::filesystem::path configDir = configHome / "nythera";
+      const std::filesystem::path stateDir = stateHome / "nythera";
 
       if (options.force) {
         std::error_code ec;
@@ -312,7 +314,7 @@ namespace noctalia::config {
       std::println();
       std::println("Run with:");
       std::println(
-          "  NOCTALIA_CONFIG_HOME={} NOCTALIA_STATE_HOME={} {}", StringUtils::shellQuote(configHome.string()),
+          "  NYTHERA_CONFIG_HOME={} NYTHERA_STATE_HOME={} {}", StringUtils::shellQuote(configHome.string()),
           StringUtils::shellQuote(stateHome.string()), StringUtils::shellQuote(argv0)
       );
       return 0;
@@ -327,7 +329,7 @@ namespace noctalia::config {
 
     int runValidate(int argc, char* argv[]) {
       auto parsed = cli::parseOrReport(
-          cli::kConfigValidateCmd, "noctalia config validate",
+          cli::kConfigValidateCmd, "nythera config validate",
           std::span<char* const>{argv + 3, static_cast<std::size_t>(argc - 3)}
       );
       if (!parsed)
@@ -403,7 +405,7 @@ namespace noctalia::config {
 
     int runExport(int argc, char* argv[]) {
       auto parsed = cli::parseOrReport(
-          cli::kConfigExportCmd, "noctalia config export",
+          cli::kConfigExportCmd, "nythera config export",
           std::span<char* const>{argv + 3, static_cast<std::size_t>(argc - 3)}
       );
       if (!parsed)
@@ -413,7 +415,7 @@ namespace noctalia::config {
       const std::string_view mode =
           parsed->positionals.empty() ? std::string_view{"merged"} : parsed->positionals.front();
       const auto credentials =
-          noctalia::config::credentialExportModeFromString(parsed->valueOr("--credentials", "keep"));
+          nythera::config::credentialExportModeFromString(parsed->valueOr("--credentials", "keep"));
       if (!credentials) {
         std::println(stderr, "error: expected --credentials keep, omit, or blank");
         return 1;
@@ -449,10 +451,82 @@ namespace noctalia::config {
 
   int runCli(int argc, char* argv[]) {
     if (argc < 3 || std::strcmp(argv[2], "--help") == 0 || std::strcmp(argv[2], "-h") == 0) {
-      std::print("{}", cli::renderHelp(cli::kConfigCmd, "noctalia config"));
+      std::print("{}", cli::renderHelp(cli::kConfigCmd, "nythera config"));
       return argc < 3 ? 1 : 0;
     }
 
+    if (std::strcmp(argv[2], "migrate-legacy") == 0) {
+      auto parsed = cli::parseOrReport(
+          cli::kConfigMigrateLegacyCmd, "nythera config migrate-legacy",
+          std::span<char* const>{argv + 3, static_cast<std::size_t>(argc - 3)}
+      );
+      if (!parsed)
+        return 1;
+      if (parsed->helpRequested)
+        return 0;
+      const auto base = [](const char* env, const char* fallback) {
+        if (const char* value = std::getenv(env); value && *value)
+          return std::filesystem::path(value);
+        const char* home = std::getenv("HOME");
+        return home && *home ? std::filesystem::path(home) / fallback : std::filesystem::path{};
+      };
+      std::vector<legacy_profile::Tree> trees;
+      const std::pair<const char*, const char*> roots[] = {
+          {"XDG_CONFIG_HOME", ".config"},
+          {"XDG_STATE_HOME", ".local/state"},
+          {"XDG_DATA_HOME", ".local/share"},
+          {"XDG_CACHE_HOME", ".cache"}
+      };
+      const char* flags[] = {"--source-config", "--source-state", "--source-data", "--source-cache"};
+      const std::string targets[] = {
+          FileUtils::configDir(), FileUtils::stateDir(), FileUtils::dataDir(),
+          (base("XDG_CACHE_HOME", ".cache") / "nythera").string()
+      };
+      for (std::size_t i = 0; i < 4; ++i) {
+        const auto root = base(roots[i].first, roots[i].second);
+        if (root.empty() || targets[i].empty()) {
+          std::println(stderr, "Cannot resolve XDG roots");
+          return 1;
+        }
+        const auto selected = parsed->value(flags[i]);
+        trees.push_back(
+            {selected.empty() ? root / "cyberpunk-shell" / "noctalia" : std::filesystem::path(selected), targets[i]}
+        );
+      }
+      const auto result =
+          legacy_profile::migrate(trees, [](const std::string& message) { std::println(stderr, "{}", message); });
+      if (parsed->has("--include-keyring")) {
+        if (!std::filesystem::is_directory(trees[0].source)) {
+          std::println(stderr, "Refusing keyring migration without a selected legacy configuration profile");
+          return 1;
+        }
+        std::vector<security::SecretId> ids{{"storage", "encrypted-state", "master-key"}};
+        const auto collectAccounts = [&ids](const std::filesystem::path& file) {
+          try {
+            const auto table = toml::parse_file(file.string());
+            if (const auto* accounts = table["calendar"]["account"].as_table()) {
+              for (const auto& [key, value] : *accounts) {
+                ids.push_back({"calendar", std::string(key.str()), "password"});
+                ids.push_back({"calendar", std::string(key.str()), "refresh-token"});
+              }
+            }
+          } catch (const toml::parse_error&) { /* Non-config TOML is irrelevant to account selection. */
+          }
+        };
+        std::error_code ec;
+        for (std::filesystem::recursive_directory_iterator it(trees[0].source, ec), end; !ec && it != end;
+             it.increment(ec))
+          if (it->is_regular_file() && it->path().extension() == ".toml")
+            collectAccounts(it->path());
+        collectAccounts(trees[1].source / "settings.toml");
+        if (!security::migrateLegacySecrets(ids, [](const std::string& message) {
+              std::println(stderr, "{}", message);
+            }))
+          return 1;
+      }
+      std::println("Copied {}; preserved {}; failed {}", result.copied, result.preserved, result.failed);
+      return result.failed == 0 ? 0 : 1;
+    }
     if (std::strcmp(argv[2], "validate") == 0)
       return runValidate(argc, argv);
     if (std::strcmp(argv[2], "export") == 0)
@@ -461,7 +535,7 @@ namespace noctalia::config {
       return runSettingsCount(argc, argv);
     if (std::strcmp(argv[2], "replay-report") == 0) {
       auto parsed = cli::parseOrReport(
-          cli::kConfigReplayReportCmd, "noctalia config replay-report",
+          cli::kConfigReplayReportCmd, "nythera config replay-report",
           std::span<char* const>{argv + 3, static_cast<std::size_t>(argc - 3)}
       );
       if (!parsed)
@@ -478,8 +552,8 @@ namespace noctalia::config {
     }
 
     std::println(stderr, "error: unknown command: {}", argv[2]);
-    std::println(stderr, "Run 'noctalia config --help' for usage.");
+    std::println(stderr, "Run 'nythera config --help' for usage.");
     return 1;
   }
 
-} // namespace noctalia::config
+} // namespace nythera::config

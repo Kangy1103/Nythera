@@ -116,7 +116,7 @@ void TelemetryService::maybeSend(
 
   nlohmann::json payload = {
       {"instanceId", instanceId},
-      {"version", std::string("v") + NOCTALIA_VERSION},
+      {"version", std::string("v") + NYTHERA_VERSION},
       {"compositor", compositorLabel()},
       {"os", distroLabel()},
       {"ramGb", memoryTotalGb()},

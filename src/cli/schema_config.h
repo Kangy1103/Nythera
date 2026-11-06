@@ -5,7 +5,7 @@
 #include <array>
 #include <string_view>
 
-namespace noctalia::cli {
+namespace nythera::cli {
 
   inline constexpr std::array kConfigValidatePositionals{
       Positional{"path", "Config file or directory; defaults to the active config", {}, false, false, false},
@@ -89,8 +89,8 @@ namespace noctalia::cli {
   inline constexpr Command kConfigReplayReportCmd{
       "replay-report",
       "Reconstruct config and state from a support report",
-      "Reconstruct config-home/noctalia and state-home/noctalia from a support report.\n\n"
-      "With --flattened, reconstruct a single config-home/noctalia/config.toml from the report's merged config.",
+      "Reconstruct config-home/nythera and state-home/nythera from a support report.\n\n"
+      "With --flattened, reconstruct a single config-home/nythera/config.toml from the report's merged config.",
       {},
       kConfigReplayFlags,
       kConfigReplayPositionals,
@@ -98,7 +98,21 @@ namespace noctalia::cli {
       false,
   };
 
+  inline constexpr Flag kConfigMigrateFlags[] = {
+      {"--include-keyring", "", "", "Copy encrypted-state key and selected calendar credentials; may unlock the keyring", {}, {}},
+      {"--source-config", "", "PATH", "Explicit legacy configuration directory", {}, {}},
+      {"--source-state", "", "PATH", "Explicit legacy state directory", {}, {}},
+      {"--source-data", "", "PATH", "Explicit legacy data directory", {}, {}},
+      {"--source-cache", "", "PATH", "Explicit legacy cache directory", {}, {}},
+  };
+  inline constexpr Command kConfigMigrateLegacyCmd{
+      "migrate-legacy", "Copy the isolated legacy fork profile into Nythera",
+      "Copies cyberpunk-shell/noctalia under each XDG root by default. Never selects packaged Noctalia automatically.\n"
+      "Existing destination files and original sources are preserved. Explicit source directories may be selected.",
+      {}, kConfigMigrateFlags, {}, {}, false,
+  };
   inline constexpr std::array kConfigSubcommands{
+      kConfigMigrateLegacyCmd,
       kConfigExportCmd,
       kConfigReplayReportCmd,
       kConfigSettingsCountCmd,
@@ -108,4 +122,4 @@ namespace noctalia::cli {
       "config", "Validate config and support/replay helpers", {}, {}, {}, {}, kConfigSubcommands, false,
   };
 
-} // namespace noctalia::cli
+} // namespace nythera::cli

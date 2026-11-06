@@ -1,6 +1,6 @@
 ---
 title: Plugin Development
-description: Build a Noctalia plugin with a plugin.toml manifest and isolated Luau entry scripts.
+description: Build a Nythera plugin with a plugin.toml manifest and isolated Luau entry scripts.
 sidebar:
   label: Overview
   order: 1
@@ -22,12 +22,12 @@ The fastest way to learn the shape is the [official-plugins repo](https://github
 
 | Page                                                             | Use it for                                                                        |
 | ---------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| [Manifest & Settings](/noctalia/plugins/development/manifest/)   | `plugin.toml`, entry declarations, and typed settings schemas                     |
-| [Entry Scripts](/noctalia/plugins/development/entries/)          | Luau lifecycle functions and APIs for widgets, shortcuts, and launcher providers  |
-| [Declarative UI](/noctalia/plugins/development/declarative-ui/)  | `desktopWidget.*`, `panel.*`, `layer.*`, and the shared `ui.*` control vocabulary |
-| [Runtime API](/noctalia/plugins/development/runtime-api/)        | `noctalia.*` host capabilities and shared plugin state                            |
-| [Plugin API Versions](/noctalia/plugins/development/plugin-api/) | Compatibility levels and the capabilities introduced by each version              |
-| [Workflow & Publishing](/noctalia/plugins/development/workflow/) | Local development, IPC testing, source repos, and catalog metadata                |
+| [Manifest & Settings](/nythera/plugins/development/manifest/)   | `plugin.toml`, entry declarations, and typed settings schemas                     |
+| [Entry Scripts](/nythera/plugins/development/entries/)          | Luau lifecycle functions and APIs for widgets, shortcuts, and launcher providers  |
+| [Declarative UI](/nythera/plugins/development/declarative-ui/)  | `desktopWidget.*`, `panel.*`, `layer.*`, and the shared `ui.*` control vocabulary |
+| [Runtime API](/nythera/plugins/development/runtime-api/)        | `nythera.*` host capabilities and shared plugin state                            |
+| [Plugin API Versions](/nythera/plugins/development/plugin-api/) | Compatibility levels and the capabilities introduced by each version              |
+| [Workflow & Publishing](/nythera/plugins/development/workflow/) | Local development, IPC testing, source repos, and catalog metadata                |
 
 ## Minimal widget
 
@@ -45,12 +45,12 @@ entry = "widget.luau"
 
 ```lua
 function update()
-  noctalia.setUpdateInterval(1000)
+  nythera.setUpdateInterval(1000)
   barWidget.setGlyph("puzzle")
   barWidget.setText("Hello")
 end
 
 function onClick()
-  noctalia.notify("Hello", "you clicked me")
+  nythera.notify("Hello", "you clicked me")
 end
 ```

@@ -120,13 +120,13 @@ namespace settings {
     void addGestureActionRows(
         Flex& panel, const BarWidgetEditorContext& ctx, const SettingEntry& entry,
         const WidgetSettingStringMap& defaults, const WidgetSettingStringMap& configured,
-        noctalia::bar::GestureMask reserved
+        nythera::bar::GestureMask reserved
     ) {
-      for (const auto gesture : noctalia::bar::allGestures()) {
+      for (const auto gesture : nythera::bar::allGestures()) {
         if (reserved.contains(gesture)) {
           continue;
         }
-        const std::string key(noctalia::bar::gestureConfigKey(gesture));
+        const std::string key(nythera::bar::gestureConfigKey(gesture));
         std::vector<std::string> path = entry.path;
         path.push_back(key);
 
@@ -135,7 +135,7 @@ namespace settings {
 
         SettingEntry rowEntry = entry;
         rowEntry.path = path;
-        rowEntry.title = i18n::tr(noctalia::bar::gestureLabelKey(gesture));
+        rowEntry.title = i18n::tr(nythera::bar::gestureLabelKey(gesture));
         rowEntry.subtitle.clear();
 
         GestureActionSetting setting{
@@ -641,8 +641,8 @@ namespace settings {
         group.foreground = *ovr->widgetCapsuleForeground;
       }
       if (ovr->widgetCapsuleBorderWidth.has_value()) {
-        group.borderWidth = noctalia::config::schema::applyRange(
-            *ovr->widgetCapsuleBorderWidth, noctalia::config::schema::kBarCapsuleBorderWidthRange
+        group.borderWidth = nythera::config::schema::applyRange(
+            *ovr->widgetCapsuleBorderWidth, nythera::config::schema::kBarCapsuleBorderWidthRange
         );
       }
       if (ovr->widgetCapsulePadding.has_value()) {
@@ -1059,7 +1059,7 @@ namespace settings {
     // override, then the bar itself. Nullopt off a bar lane or when the bar has no such key.
     std::optional<bool>
     inheritedBarBoolForLane(const Config& cfg, const std::vector<std::string>& lanePath, std::string_view key) {
-      namespace schema = noctalia::config::schema;
+      namespace schema = nythera::config::schema;
       if (lanePath.size() < 2 || lanePath[0] != "bar") {
         return std::nullopt;
       }
@@ -1686,7 +1686,7 @@ namespace settings {
             }
             auto body = ui::column({.align = FlexAlign::Stretch});
             addGestureActionRows(
-                *body, ctx, entry, defaults, configured, noctalia::bar::reservedGesturesForType(widgetType)
+                *body, ctx, entry, defaults, configured, nythera::bar::reservedGesturesForType(widgetType)
             );
             panel->addChild(makeGestureActionsSection(ctx, widgetName, std::move(body), visibleSpecs > 0));
             break;
@@ -2095,16 +2095,16 @@ namespace settings {
             std::vector<std::vector<std::string>> resetPaths;
             const auto widgetIt = ctx.config.widgets.find(widgetName);
             const WidgetConfig* widgetCfg = widgetIt != ctx.config.widgets.end() ? &widgetIt->second : nullptr;
-            const noctalia::bar::GestureMask reserved = noctalia::bar::reservedGesturesForType(widgetType);
+            const nythera::bar::GestureMask reserved = nythera::bar::reservedGesturesForType(widgetType);
             auto specs = widgetSettingSpecs(widgetType, widgetCfg, ctx.config.shell.fontFamily);
             for (const auto& spec : specs) {
               if (spec.schema.key == "actions") {
-                for (const auto gesture : noctalia::bar::allGestures()) {
+                for (const auto gesture : nythera::bar::allGestures()) {
                   if (reserved.contains(gesture)) {
                     continue;
                   }
                   std::vector<std::string> gesturePath = {
-                      "widget", widgetName, "actions", std::string(noctalia::bar::gestureConfigKey(gesture))
+                      "widget", widgetName, "actions", std::string(nythera::bar::gestureConfigKey(gesture))
                   };
                   if (ctx.configService->hasEffectiveOverride(gesturePath)) {
                     resetPaths.push_back(std::move(gesturePath));
@@ -2404,7 +2404,7 @@ namespace settings {
               }
           )
       );
-      const auto& borderWidthRange = noctalia::config::schema::kBarCapsuleBorderWidthRange;
+      const auto& borderWidthRange = nythera::config::schema::kBarCapsuleBorderWidthRange;
       ctx.makeRow(
           *panelPtr, groupEntry("border-width"),
           makeGroupSliderControl(
@@ -2484,7 +2484,7 @@ namespace settings {
                 },
             })
         );
-        const auto& accordionMsRange = noctalia::config::schema::kBarCapsuleAccordionMsRange;
+        const auto& accordionMsRange = nythera::config::schema::kBarCapsuleAccordionMsRange;
         const auto accordionMsMin = static_cast<double>(*accordionMsRange.min);
         const auto accordionMsMax = static_cast<double>(*accordionMsRange.max);
         const auto accordionMsStep = static_cast<double>(*accordionMsRange.step);

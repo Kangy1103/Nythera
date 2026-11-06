@@ -6,7 +6,7 @@
 
 namespace {
 
-  ColorSwatchPreview previewFromFixedPalette(const noctalia::theme::FixedPalette& colors) {
+  ColorSwatchPreview previewFromFixedPalette(const nythera::theme::FixedPalette& colors) {
     return ColorSwatchPreview{
         .surface = fixedColorSpec(colors.surface),
         .swatches = {
@@ -18,7 +18,7 @@ namespace {
     };
   }
 
-  ColorSwatchPreview previewFromMetadata(const noctalia::theme::AvailablePalette::PreviewMode& metadata) {
+  ColorSwatchPreview previewFromMetadata(const nythera::theme::AvailablePalette::PreviewMode& metadata) {
     ColorSwatchPreview preview;
     Color surface;
     if (tryParseHexColor(metadata.surface, surface)) {
@@ -36,11 +36,11 @@ namespace {
 
 } // namespace
 
-ColorSwatchPreview builtinPaletteSwatchPreview(const noctalia::theme::BuiltinPalette& entry, ThemeMode mode) {
+ColorSwatchPreview builtinPaletteSwatchPreview(const nythera::theme::BuiltinPalette& entry, ThemeMode mode) {
   return previewFromFixedPalette(mode == ThemeMode::Light ? entry.light.palette : entry.dark.palette);
 }
 
-ColorSwatchPreview availablePaletteSwatchPreview(const noctalia::theme::AvailablePalette& entry, ThemeMode mode) {
+ColorSwatchPreview availablePaletteSwatchPreview(const nythera::theme::AvailablePalette& entry, ThemeMode mode) {
   if (mode == ThemeMode::Light) {
     ColorSwatchPreview preview = previewFromMetadata(entry.preview.light);
     if (!preview.empty()) {

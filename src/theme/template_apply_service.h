@@ -22,7 +22,7 @@
 class ConfigService;
 class IpcService;
 
-namespace noctalia::theme {
+namespace nythera::theme {
 
   class HookRunner;
 
@@ -53,7 +53,7 @@ namespace noctalia::theme {
     void registerIpc(IpcService& ipc);
 
   private:
-    // Template ids of one source (built-in or community) whose output Noctalia has put on
+    // Template ids of one source (built-in or community) whose output Nythera has put on
     // disk: the enabled ones plus the ones still owing an undo. Mirrors one key of
     // [theme_templates] in state.toml, so a disable survives a restart between queueing the
     // request and running its undo hook. Main thread only.
@@ -71,7 +71,7 @@ namespace noctalia::theme {
       std::string defaultMode;
       std::string imagePath;
       std::string schemeType;
-      // Templates Noctalia has applied and that are no longer enabled: their undo hooks
+      // Templates Nythera has applied and that are no longer enabled: their undo hooks
       // run before this request's templates.
       std::vector<std::string> undoBuiltinIds;
       std::vector<std::string> undoCommunityIds;
@@ -81,7 +81,7 @@ namespace noctalia::theme {
     [[nodiscard]] bool reapplyLast() const;
     [[nodiscard]] ApplyRequest makeRequest(const GeneratedPalette& palette, std::string_view defaultMode) const;
     [[nodiscard]] static bool sameInputs(const ApplyRequest& a, const ApplyRequest& b);
-    // Diffs `enabled` against the ids Noctalia has applied and returns the ids that still
+    // Diffs `enabled` against the ids Nythera has applied and returns the ids that still
     // owe an undo.
     [[nodiscard]] std::vector<std::string>
     syncAppliedIds(AppliedTemplateIds& ids, const std::set<std::string>& enabled) const;
@@ -127,4 +127,4 @@ namespace noctalia::theme {
     mutable std::unique_ptr<HookRunner> m_hookRunner;
   };
 
-} // namespace noctalia::theme
+} // namespace nythera::theme
