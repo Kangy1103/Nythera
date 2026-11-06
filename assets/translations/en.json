@@ -1571,6 +1571,7 @@
           "on": "On",
           "smart": "Smart"
         },
+        "transparency-custom": "Custom",
         "surface-mode": {
           "full": "Full Bar",
           "islands": "Floating Islands",
@@ -2065,16 +2066,16 @@
           "description": "Radius of the rounded desktop opening in logical pixels"
         },
         "dynamic-notifications": {"label": "Island Notifications", "description": "Route eligible notifications and their actions into Dynamic Island; respects filters and Do Not Disturb"},
-        "dynamic-timers": {"label": "Island Timers", "description": "Show the shared session countdown; start or cancel it from the expanded clock"},
-        "dynamic-alarms": {"label": "Island Alarms", "description": "Show one-shot session alarms; arm, dismiss or snooze from the expanded clock"},
+        "dynamic-timers": {"label": "Island Timers", "description": "Show the shared session countdown with a compact cancel control"},
+        "dynamic-alarms": {"label": "Island Alarms", "description": "Show one-shot session alarms with compact dismiss and snooze controls"},
         "dynamic-calls": {"label": "Island Calls", "description": "Recognise incoming-call notifications from Discord, Vesktop, KDE Connect and explicit call categories; use only actions provided by the app"},
-        "dynamic-timer-seconds": {"label": "Island Timer Duration", "description": "Countdown duration in seconds, used by Start Timer in the expanded clock"},
-        "dynamic-alarm-time": {"label": "Island Alarm Time", "description": "Local HH:MM for the next one-shot alarm; use Arm Alarm in the expanded clock. The shell must remain running"},
+        "dynamic-timer-seconds": {"label": "Island Timer Duration", "description": "Default countdown duration in seconds for the island-activity timer-start action"},
+        "dynamic-alarm-time": {"label": "Island Alarm Time", "description": "Local HH:MM for the next one-shot alarm-arm action. The shell must remain running"},
         "dynamic-snooze-seconds": {"label": "Island Snooze Duration", "description": "Alarm snooze duration in seconds"},
         "dynamic-media": {"label": "Island Media", "description": "Show track changes, playback starting/resuming and an expandable player in Dynamic Island mode"},
         "dynamic-volume": {"label": "Island Volume", "description": "Route volume and microphone feedback into Dynamic Island instead of the ordinary OSD"},
         "dynamic-brightness": {"label": "Island Brightness", "description": "Route brightness feedback into Dynamic Island instead of the ordinary OSD"},
-        "dynamic-hover-expand": {"label": "Island Hover Expansion", "description": "Expand the current event or player on hover; clicking pins it until closed"},
+        "dynamic-hover-expand": {"label": "Open Native Tool on Hover", "description": "Grow directly into the existing Noctalia tool on hover; the resting clock opens Dashboard/Home"},
         "dynamic-dwell-ms": {"label": "Island Event Duration", "description": "Milliseconds before temporary feedback returns to the resting clock; interaction holds it open"},
         "dynamic-width": {"label": "Island Expanded Width", "description": "Maximum expanded card width in logical pixels"},
         "dynamic-clock-format": {"label": "Island Clock Format", "description": "Resting clock format, using strftime syntax such as %H:%M"},
@@ -2091,7 +2092,11 @@
           "label": "Auto-Hide Delay"
         },
         "background-opacity": {
-          "description": "Background opacity of the bar"
+          "description": "Background opacity when Transparency is set to Custom"
+        },
+        "transparency-mode": {
+          "label": "Transparency",
+          "description": "Solid, Soft or Glass using the same opacity presets as panels; Custom uses the opacity slider"
         },
         "border": {
           "description": "Color role for the bar outline; fixed hex colors are also supported",
@@ -3033,7 +3038,7 @@
           "description": "Cast the global surface shadow from panel surfaces"
         },
         "transparency-mode": {
-          "description": "Panel glass style, including floating panel opacity and card translucency",
+          "description": "Panel glass style, including floating and Dynamic Island panel opacity and card translucency",
           "label": "Transparency"
         },
         "wallpaper-show-names": {

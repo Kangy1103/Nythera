@@ -769,6 +769,7 @@ namespace {
         (!a.shadow && !b.shadow) || shell::surface_shadow::sameSurfaceMetrics(previousShadow, nextShadow);
     if ((a.surfaceMode == "dynamic" || b.surfaceMode == "dynamic") && a != b) return false;
     return a.name == b.name
+        && a.transparencyMode == b.transparencyMode
         && a.screenWrap == b.screenWrap
         && a.wrapWidth == b.wrapWidth
         && a.wrapRadius == b.wrapRadius
@@ -2456,6 +2457,10 @@ void Bar::setAttachedPanelGeometry(
   }
 
   instance->attachedPanelGeometry = geometry;
+  if (instance->dynamicIsland) {
+    instance->dynamicIsland->setNativePanelGeometry(geometry);
+    return;
+  }
   if (instance->surface != nullptr && instance->surface->width() > 0 && instance->surface->height() > 0) {
     applyBarShadowStyle(
         *instance, m_config->config().shell.shadow, static_cast<float>(instance->surface->width()),

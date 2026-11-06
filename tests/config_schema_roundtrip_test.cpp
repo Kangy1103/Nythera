@@ -1,3 +1,4 @@
+#include "shell/settings/settings_registry.h"
 // Round-trip + golden tests for the declarative config schema.
 //
 // The schema is now the single source for both serialize (config_export::serialize →
@@ -207,6 +208,7 @@ location = "https://example.invalid/bad"
     bar.layer = "overlay";
     bar.thickness = 44;
     bar.backgroundOpacity = 0.85F;
+    bar.transparencyMode = BarTransparencyMode::Soft;
     bar.surfaceMode = "islands";
     bar.dynamicCenter = true;
     bar.compositorBlur = false;
@@ -1506,6 +1508,33 @@ wrap_width = 6
         fail(std::string(key) + ": custom root key collides with a registry section");
       }
     }
+  }
+
+  {
+    BarConfig bar;
+    bar.backgroundOpacity = 0.37F;
+    WaylandOutput output;
+    output.connectorName = "DP-1";
+    for (const auto mode : {BarTransparencyMode::Custom, BarTransparencyMode::Solid, BarTransparencyMode::Soft, BarTransparencyMode::Glass}) {
+      bar.transparencyMode = mode;
+      const auto resolved = ConfigService::resolveForOutput(bar, output);
+      const auto expected = mode == BarTransparencyMode::Custom ? 0.37F : mode == BarTransparencyMode::Solid ? 1.0F : mode == BarTransparencyMode::Soft ? 0.8F : 0.55F;
+      if (std::abs(resolved.backgroundOpacity - expected) > 0.0001F) fail("bar transparency preset did not resolve");
+      if (bar.backgroundOpacity != 0.37F) fail("preset overwrote saved Custom opacity");
+    }
+    BarMonitorOverride monitor;
+    monitor.match = "DP-1";
+    monitor.transparencyMode = BarTransparencyMode::Custom;
+    bar.monitorOverrides = {monitor};
+    if (ConfigService::resolveForOutput(bar, output).backgroundOpacity != 0.37F) fail("monitor Custom did not override inherited Glass");
+    noctalia::config::schema::Diagnostics diag;
+    const auto table = noctalia::config::schema::writeTable(monitor, noctalia::config::schema::barMonitorOverrideSchema());
+    BarMonitorOverride restored;
+    noctalia::config::schema::readInto(table, restored, noctalia::config::schema::barMonitorOverrideSchema(), "bar.default.monitor.DP-1", diag);
+    if (restored.transparencyMode != BarTransparencyMode::Custom) fail("monitor transparency round-trip lost explicit Custom");
+    const auto entries = settings::buildSettingsRegistry(Config{}, &bar, nullptr);
+    const std::vector<std::string> path{"bar", "default", "transparency_mode"};
+    if (std::ranges::find(entries, path, &settings::SettingEntry::path) == entries.end()) fail("bar transparency not exposed in Settings");
   }
 
   checkPluginIdValidation();

@@ -22,6 +22,15 @@ struct WaylandOutput;
 
 // Direction hidden accordion members unfold relative to the always-visible first member, along the
 // bar lane's main axis.
+enum class BarTransparencyMode : std::uint8_t { Custom, Solid, Soft, Glass };
+constexpr EnumOption<BarTransparencyMode> kBarTransparencyModes[] = {
+    {BarTransparencyMode::Custom, "custom", "settings.options.bar.transparency-custom"},
+    {BarTransparencyMode::Solid, "solid", "settings.options.shell.panel-transparency.solid"},
+    {BarTransparencyMode::Soft, "soft", "settings.options.shell.panel-transparency.soft"},
+    {BarTransparencyMode::Glass, "glass", "settings.options.shell.panel-transparency.glass"},
+};
+[[nodiscard]] float barBackgroundOpacityForTransparencyMode(BarTransparencyMode mode, float customOpacity) noexcept;
+
 enum class BarAccordionDirection : std::uint8_t { End = 0, Start = 1 };
 
 // A capsule group: an ordered set of member widgets sharing one capsule + style. `id` is opaque and
@@ -80,6 +89,7 @@ struct BarMonitorOverride {
   std::optional<std::string> layer; // top | overlay
   std::optional<std::int32_t> thickness;
   std::optional<float> backgroundOpacity;
+  std::optional<BarTransparencyMode> transparencyMode;
   std::optional<std::string> surfaceMode;
   std::optional<bool> screenWrap;
   std::optional<std::int32_t> wrapWidth;
@@ -175,6 +185,7 @@ struct BarConfig {
   std::string layer = "top"; // top | overlay; attached panels use the same layer
   std::int32_t thickness = Style::barThicknessDefault;
   float backgroundOpacity = 1.0F;
+  BarTransparencyMode transparencyMode = BarTransparencyMode::Custom;
   // Bar background presentation: "full" draws one continuous bar surface; "islands"
   // draws one background around each complete start/centre/end section.
   std::string surfaceMode = "full";
@@ -194,7 +205,7 @@ struct BarConfig {
   bool dynamicBrightness = true;
   bool dynamicHoverExpand = true;
   std::int32_t dynamicDwellMs = 3500;
-  std::int32_t dynamicWidth = 360;
+  std::int32_t dynamicWidth = 360; // Legacy profile compatibility; native tools use control_center.width.
   std::string dynamicClockFormat = "%H:%M";
   bool dynamicCenter = false;
   bool compositorBlur = true;

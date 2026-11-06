@@ -1,21 +1,23 @@
 #include "shell/bar/dynamic_island.h"
 
 #include "config/config_service.h"
+#include "core/deferred_call.h"
 #include "dbus/mpris/mpris_art.h"
 #include "dbus/mpris/mpris_service.h"
-#include "pipewire/pipewire_service.h"
 #include "render/core/renderer.h"
 #include "render/scene/screen_frame_node.h"
 #include "shell/bar/island_activities.h"
+#include "shell/bar/dynamic_island_style.h"
 #include "shell/bar/island_notification.h"
 #include "shell/bar/screen_wrap.h"
-#include "system/brightness_service.h"
+#include "shell/panel/panel_manager.h"
 #include "time/time_format.h"
 #include "ui/builders.h"
 #include "ui/palette.h"
 #include "wayland/wayland_seat.h"
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <cmath>
 
@@ -31,11 +33,12 @@ namespace {
 } // namespace
 
 LayerSurfaceConfig DynamicIsland::surfaceConfig(const BarConfig& c, int outputWidth, int outputHeight) {
-  const bool side = vertical(c);
+  const bool side = vertical(c), bottom = c.position == "bottom", right = c.position == "right";
   const int gap = c.screenWrap ? 0 : std::clamp(c.marginEdge, 0, std::min(outputWidth, outputHeight) / 4);
-  const int width = std::min(outputWidth - gap, static_cast<int>(static_cast<float>(c.dynamicWidth) + flare(c) * 2));
-  const int height = std::min(outputHeight - gap, static_cast<int>(220 + flare(c) * 2));
-  const bool bottom = c.position == "bottom", right = c.position == "right";
+  // Only the narrow bar strip grows. The existing panel host owns the native tool's surface.
+  const int strip = c.thickness + static_cast<int>(flare(c));
+  const int width = side ? std::min(strip, outputWidth - gap) : outputWidth;
+  const int height = side ? outputHeight : std::min(strip, outputHeight - gap);
   return {
       .nameSpace = "cyberpunk-dynamic-island-" + c.name,
       .layer = layerShellLayerFromConfig(c.layer),
@@ -50,16 +53,16 @@ LayerSurfaceConfig DynamicIsland::surfaceConfig(const BarConfig& c, int outputWi
       .marginLeft = side && !right ? gap : 0,
       .defaultWidth = static_cast<std::uint32_t>(std::max(1, width)),
       .defaultHeight = static_cast<std::uint32_t>(std::max(1, height)),
-      .prewarmBlur = c.compositorBlur,
+      .prewarmBlur = c.compositorBlur
   };
 }
 
 DynamicIsland::DynamicIsland(
     const BarServices& services, const BarConfig& config, LayerSurface& surface, AnimationManager& animations,
-    ScreenWrap* wrap, wl_output* output, int outputWidth, int outputHeight
+    ScreenWrap* wrap, wl_output* output, int width, int height
 )
     : m_services(services), m_config(config), m_surface(surface), m_animations(animations), m_wrap(wrap),
-      m_output(output), m_outputWidth(outputWidth), m_outputHeight(outputHeight), m_vertical(vertical(config)),
+      m_output(output), m_outputWidth(width), m_outputHeight(height), m_vertical(vertical(config)),
       m_reverse(config.position == "bottom" || config.position == "right") {
   m_paletteConnection = paletteChanged().connect([this] { m_surface.requestUpdate(); });
   if (m_services.activities) {
@@ -67,11 +70,38 @@ DynamicIsland::DynamicIsland(
     syncActivities();
   }
 }
-
 DynamicIsland::~DynamicIsland() {
   m_alive.reset();
-  if (m_heldNotificationId && m_services.notifications)
-    m_services.notifications->resumeExpiry(m_heldNotificationId, m_heldNotificationRemaining);
+  if (auto* panels = PanelManager::current(); panels && panels->isDynamicIslandPanel(m_output, m_config.name))
+    panels->closePanel(false);
+}
+
+std::string_view DynamicIsland::nativeToolContext(IslandEvent kind) {
+  switch (kind) {
+  case IslandEvent::Media:
+    return "media";
+  case IslandEvent::Volume:
+    return "audio";
+  case IslandEvent::Brightness:
+    return "monitor";
+  case IslandEvent::Notification:
+  case IslandEvent::Call:
+    return "notifications";
+  default:
+    return "home";
+  }
+}
+float DynamicIsland::compactExtent(IslandEvent kind) const {
+  if (m_vertical) {
+    if (kind == IslandEvent::Call)
+      return 156.0F;
+    if (kind == IslandEvent::Alarm)
+      return 124.0F;
+    if (kind == IslandEvent::Timer || kind == IslandEvent::TimerFinished)
+      return 112.0F;
+    return 76.0F;
+  }
+  return kind == IslandEvent::Resting ? 112.0F : 280.0F;
 }
 
 void DynamicIsland::build() {
@@ -89,75 +119,13 @@ void DynamicIsland::build() {
   }
   auto body = ui::inputArea({});
   body->setClipChildren(true);
-  body->setOnClick([this](const auto&) { toggleExpanded(); });
+  body->setOnClick([this](const auto&) { openNativeTool(); });
   m_body = static_cast<InputArea*>(m_root->addChild(std::move(body)));
   m_content = m_body->addChild(ui::node({}));
   m_content->addChild(ui::glyph({.out = &m_glyph, .glyph = "clock"}));
   m_content->addChild(ui::label({.out = &m_title}));
-  m_content->addChild(ui::label({.out = &m_detail}));
   m_content->addChild(ui::image({.out = &m_art, .fit = ImageFit::Cover}));
-  m_previous = static_cast<Button*>(m_content->addChild(
-      ui::button({
-          .glyph = "player-skip-back",
-          .variant = ButtonVariant::Ghost,
-          .onClick = [this] {
-            if (m_services.mpris)
-              m_services.mpris->previousActive();
-          },
-      })
-  ));
-  m_play = static_cast<Button*>(m_content->addChild(
-      ui::button({
-          .glyph = "player-play",
-          .variant = ButtonVariant::Ghost,
-          .onClick = [this] {
-            if (m_services.mpris)
-              m_services.mpris->playPauseActive();
-          },
-      })
-  ));
-  m_next = static_cast<Button*>(m_content->addChild(
-      ui::button({
-          .glyph = "player-skip-forward",
-          .variant = ButtonVariant::Ghost,
-          .onClick = [this] {
-            if (m_services.mpris)
-              m_services.mpris->nextActive();
-          },
-      })
-  ));
-  m_close = static_cast<Button*>(m_content->addChild(
-      ui::button({
-          .glyph = "x",
-          .variant = ButtonVariant::Ghost,
-          .onClick = [this] {
-            if (m_services.activities) {
-              if (m_event == IslandEvent::Alarm)
-                m_services.activities->dismissAlarm();
-              if (m_event == IslandEvent::TimerFinished)
-                m_services.activities->cancelTimer();
-            }
-            m_pinned = false;
-            m_clockTools = false;
-            m_hoverBlocked = true;
-            m_surface.requestUpdate();
-          },
-      })
-  ));
-  m_tools = static_cast<Button*>(
-      m_content->addChild(ui::button({.text = "Clock & timers", .variant = ButtonVariant::Ghost, .onClick = [this] {
-                                        m_clockTools = !m_clockTools;
-                                        m_pinned = true;
-                                        m_surface.requestUpdate();
-                                      }}))
-  );
-  auto level = ui::inputArea({});
-  level->setOnClick([this](const auto& p) {
-    setLevel(std::clamp(p.localX / std::max(1.0F, m_levelArea->width()), 0.0F, 1.0F));
-  });
-  m_levelArea = static_cast<InputArea*>(m_content->addChild(std::move(level)));
-  auto progress = std::make_unique<ProgressBar>();
-  m_progress = static_cast<ProgressBar*>(m_levelArea->addChild(std::move(progress)));
+  m_progress = static_cast<ProgressBar*>(m_content->addChild(std::make_unique<ProgressBar>()));
   for (auto& action : m_actions)
     action = static_cast<Button*>(m_content->addChild(ui::button({.variant = ButtonVariant::Ghost})));
   m_dispatcher.setSceneRoot(m_root.get());
@@ -184,102 +152,58 @@ bool DynamicIsland::feedback(const OsdContent& content) {
 }
 
 void DynamicIsland::resolve() {
-  if (m_services.notifications && m_services.notifications->doNotDisturb()) {
+  if (m_services.notifications && m_services.notifications->doNotDisturb())
     for (auto kind : {IslandEvent::Notification, IslandEvent::Call})
       if (m_notices[kind == IslandEvent::Call ? 1 : 0].dndPolicy == NotificationDndPolicy::Respect)
         m_state.clear(kind);
-  }
-  const auto player = m_services.mpris ? m_services.mpris->activePlayer() : std::nullopt;
-  const bool expand = m_pinned || (m_config.dynamicHoverExpand && m_hovered && !m_hoverBlocked);
-  auto kind = m_state.resolve(nowMs(), (m_hovered && !m_hoverBlocked) || m_pinned ? m_event : IslandEvent::Resting);
-  if (kind == IslandEvent::Media && (!player || !m_config.dynamicMedia))
+  auto kind = m_state.resolve(nowMs(), m_nativeOwned ? m_event : IslandEvent::Resting);
+  if (kind == IslandEvent::Media && (!m_services.mpris || !m_services.mpris->activePlayer()))
     kind = IslandEvent::Resting;
-  if (m_clockTools && (kind == IslandEvent::Resting || kind == IslandEvent::Media || kind == IslandEvent::Timer))
-    kind = IslandEvent::Resting;
-  if (kind == IslandEvent::Resting && expand && player && m_config.dynamicMedia && !m_clockTools)
-    kind = IslandEvent::Media;
-  const bool expanded = expand || kind == IslandEvent::Alarm || kind == IslandEvent::TimerFinished;
-  const bool changed = kind != m_event || expanded != m_expanded;
-  m_event = kind;
-  m_expanded = expanded;
-  if (changed || !m_initialized)
-    changeContent(kind, expanded);
-  float w = m_vertical ? static_cast<float>(m_config.thickness) : kind == IslandEvent::Resting ? 112.0F : 280.0F;
-  float h = m_vertical ? 76.0F : static_cast<float>(m_config.thickness);
-  if (expanded) {
-    w = static_cast<float>(m_config.dynamicWidth);
-    h = 220.0F;
+  if (kind != m_event || !m_initialized) {
+    m_event = kind;
+    changeContent(kind);
   }
-  w = std::min(w, std::max(1.0F, static_cast<float>(m_surface.width()) - flare(m_config) * 2));
-  h = std::min(h, std::max(1.0F, static_cast<float>(m_surface.height()) - flare(m_config)));
+  const float extent = compactExtent(kind);
+  const float native = m_nativeProgress > 0 ? extent + (m_nativeExtent - extent) * m_nativeProgress : extent;
+  const float width = m_vertical ? static_cast<float>(m_config.thickness)
+                                 : std::min(native, static_cast<float>(m_surface.width()) - flare(m_config) * 2);
+  const float height = m_vertical ? std::min(native, static_cast<float>(m_surface.height()) - flare(m_config) * 2)
+                                  : static_cast<float>(m_config.thickness);
   if (!m_initialized) {
-    m_width = w;
-    m_height = h;
+    m_width = width;
+    m_height = height;
     m_initialized = true;
   }
-  if (w != m_targetWidth || h != m_targetHeight) {
+  if (width != m_targetWidth || height != m_targetHeight) {
     m_animations.cancel(m_resizeAnimation);
-    m_fromWidth = m_width;
-    m_fromHeight = m_height;
-    m_targetWidth = w;
-    m_targetHeight = h;
-    m_resizeAnimation = m_animations.animate(
-        0, 1, 300, Easing::EaseOutCubic,
-        [this](float t) {
-          m_width = m_fromWidth + (m_targetWidth - m_fromWidth) * t;
-          m_height = m_fromHeight + (m_targetHeight - m_fromHeight) * t;
-          m_surface.requestLayout();
-        },
-        {}, m_root.get()
-    );
-    m_surface.requestRedraw();
-  }
-  const auto* notice = (kind == IslandEvent::Notification || kind == IslandEvent::Call)
-      ? &m_notices[kind == IslandEvent::Call ? 1 : 0]
-      : nullptr;
-  const auto held = expanded && notice && notice->expiryTime ? notice->id : 0;
-  if (held != m_heldNotificationId && m_services.notifications) {
-    if (m_heldNotificationId)
-      m_services.notifications->resumeExpiry(m_heldNotificationId, m_heldNotificationRemaining);
-    m_heldNotificationId = held;
-    if (held) {
-      m_heldNotificationRemaining = std::max(
-          1,
-          static_cast<int>(
-              std::chrono::duration_cast<std::chrono::milliseconds>(*notice->expiryTime - Clock::now()).count()
-          )
+    m_targetWidth = width;
+    m_targetHeight = height;
+    if (m_nativeProgress > 0) {
+      m_width = width;
+      m_height = height;
+    } else {
+      const float fromW = m_width, fromH = m_height;
+      m_resizeAnimation = m_animations.animate(
+          0, 1, 300, Easing::EaseOutCubic,
+          [this, fromW, fromH, width, height](float t) {
+            m_width = fromW + (width - fromW) * t;
+            m_height = fromH + (height - fromH) * t;
+            m_surface.requestLayout();
+          },
+          {}, m_root.get()
       );
-      m_services.notifications->pauseExpiry(held);
     }
   }
+  m_content->setOpacity(1.0F - m_nativeProgress);
   m_expiryTimer.stop();
-  const auto remaining = m_state.remaining(m_event, nowMs());
-  if (m_event != IslandEvent::Resting && remaining > 0)
+  const auto remaining = m_state.remaining(kind, nowMs());
+  if (kind != IslandEvent::Resting && remaining > 0)
     m_expiryTimer.start(std::chrono::milliseconds(remaining + 1), [this] { m_surface.requestUpdate(); });
 }
-
-void DynamicIsland::changeContent(IslandEvent kind, bool expanded) {
-  if (!m_initialized) {
-    m_displayEvent = kind;
-    m_displayExpanded = expanded;
-    return;
-  }
-  m_animations.cancelForOwner(m_content);
-  m_animations.animate(
-      m_content->opacity(), 0, 90, Easing::EaseOutCubic, [this](float v) { m_content->setOpacity(v); },
-      [this, kind, expanded] {
-        m_displayEvent = kind;
-        m_displayExpanded = expanded;
-        m_surface.requestLayout();
-        m_animations.animate(
-            0, 1, 210, Easing::EaseOutCubic, [this](float v) { m_content->setOpacity(v); }, {}, m_content
-        );
-      },
-      m_content
-  );
-  m_surface.requestRedraw();
+void DynamicIsland::changeContent(IslandEvent kind) {
+  m_displayEvent = kind;
+  // Native-panel content owns its own reveal; compact event changes simply refresh in place.
 }
-
 void DynamicIsland::prepare(Renderer& renderer, bool update) {
   if (!m_root)
     build();
@@ -288,7 +212,6 @@ void DynamicIsland::prepare(Renderer& renderer, bool update) {
   geometry();
   layout(renderer);
 }
-
 void DynamicIsland::geometry() {
   const float sw = static_cast<float>(m_surface.width()), sh = static_cast<float>(m_surface.height());
   const float gap = m_config.screenWrap
@@ -304,16 +227,19 @@ void DynamicIsland::geometry() {
   m_body->setPosition(x, y);
   m_body->setSize(m_width, m_height);
   m_content->setSize(m_width, m_height);
-  m_background->setPosition(x, y);
-  m_background->setSize(m_width, m_height);
-  m_background->setFill(colorForRole(ColorRole::Surface, m_wrap ? 0.0F : m_config.backgroundOpacity));
+  const float extension = dynamic_island_style::joinExtension(m_nativeProgress, static_cast<float>(m_config.radius), m_config.borderWidth);
+  const float panelOpacity = detachedPanelBackgroundOpacityForTransparencyMode(m_services.config.config().shell.panel.transparencyMode);
+  const float opacity = std::lerp(m_config.backgroundOpacity, panelOpacity, m_nativeProgress);
+  m_background->setPosition(x - (m_vertical && m_reverse ? extension : 0), y - (!m_vertical && m_reverse ? extension : 0));
+  m_background->setSize(m_width + (m_vertical ? extension : 0), m_height + (m_vertical ? 0 : extension));
+  m_background->setFill(colorForRole(ColorRole::Surface, m_wrap ? 0.0F : opacity));
   m_background->setBorder(resolveColorSpec(m_config.border), m_wrap ? 0.0F : m_config.borderWidth);
   m_background->setRadius(static_cast<float>(m_config.radius));
   if (m_wrap) {
     const float begin = m_vertical ? m_originY + y : m_originX + x;
     m_wrap->setIslands(
         {ScreenFrameSpan{}, ScreenFrameSpan{begin, begin + (m_vertical ? m_height : m_width)}, ScreenFrameSpan{}},
-        m_vertical ? m_width : m_height
+        (m_vertical ? m_width : m_height) + extension
     );
     m_wrap->setForegroundHole(
         {static_cast<int>(m_originX), static_cast<int>(m_originY), static_cast<int>(sw), static_cast<int>(sh)}
@@ -323,7 +249,7 @@ void DynamicIsland::geometry() {
     m_frame->setPosition(0, 0);
     m_frame->setSize(sw, sh);
     m_frame->setStyle(
-        {m_wrap->contour(), colorForRole(ColorRole::Surface, m_config.backgroundOpacity),
+        {m_wrap->contour(), colorForRole(ColorRole::Surface, opacity),
          resolveColorSpec(m_config.border), m_config.borderWidth, m_originX, m_originY}
     );
   }
@@ -352,231 +278,151 @@ void DynamicIsland::geometry() {
 }
 
 void DynamicIsland::layout(Renderer& renderer) {
+  const auto kind = m_displayEvent;
   const auto player = m_services.mpris ? m_services.mpris->activePlayer() : std::nullopt;
-  const bool media = m_displayEvent == IslandEvent::Media && player.has_value();
-  const bool level = m_displayEvent == IslandEvent::Volume || m_displayEvent == IslandEvent::Brightness;
-  const bool expanded = m_displayExpanded;
+  const bool media = kind == IslandEvent::Media && player.has_value();
+  const bool level = kind == IslandEvent::Volume || kind == IslandEvent::Brightness;
+  const auto& feedback = m_feedback[static_cast<unsigned>(kind)];
+  std::string title = kind == IslandEvent::Resting          ? formatLocalTime(m_config.dynamicClockFormat.c_str())
+      : media                                               ? player->title
+      : kind == IslandEvent::Notification                   ? m_notices[0].summary
+      : kind == IslandEvent::Call                           ? m_notices[1].summary
+      : kind == IslandEvent::Timer && m_services.activities ? m_services.activities->countdown()
+      : kind == IslandEvent::TimerFinished                  ? "Timer finished"
+      : kind == IslandEvent::Alarm                          ? "Alarm"
+                                                            : feedback.value;
+  if (m_vertical && kind == IslandEvent::Resting)
+    std::ranges::replace(title, ':', '\n');
+  if (m_vertical && !level && kind != IslandEvent::Resting && kind != IslandEvent::Timer)
+    title = "";
   const float fontScale = m_config.scale * m_config.fontScale;
-  const std::string font = m_config.fontFamily.value_or(m_services.config.config().shell.fontFamily);
-  const auto& feedback = m_feedback[static_cast<unsigned>(m_displayEvent)];
-  std::string title = m_displayEvent == IslandEvent::Resting ? formatLocalTime(m_config.dynamicClockFormat.c_str())
-      : media                                       ? (player->title.empty() ? player->identity : player->title)
-      : m_displayEvent == IslandEvent::Notification ? m_notices[0].summary
-      : m_displayEvent == IslandEvent::Call         ? m_notices[1].summary
-      : m_displayEvent == IslandEvent::Timer && m_services.activities ? m_services.activities->countdown()
-      : m_displayEvent == IslandEvent::TimerFinished                  ? "Timer finished"
-      : m_displayEvent == IslandEvent::Alarm                          ? "Alarm"
-                                                                      : feedback.value;
-  if (!expanded && m_vertical) {
-    if (m_displayEvent == IslandEvent::Resting)
-      std::ranges::replace(title, ':', '\n');
-    else if (media)
-      title = "";
-  }
   m_title->setText(title);
-  m_title->setFontFamily(font);
-  m_title->setFontSize((m_displayEvent == IslandEvent::Resting && expanded ? 26.0F : 16.0F) * fontScale);
-  m_title->setColor(colorSpecFromRole(ColorRole::OnSurface));
-  m_title->setMaxWidth(
-      std::max(
-          1.0F,
-          m_width
-              - (expanded                                     ? (media ? 138.0F : 92.0F)
-                     : m_vertical                             ? 12.0F
-                     : m_displayEvent == IslandEvent::Resting ? 24.0F
-                                                              : 60.0F)
-      )
-  );
-  m_title->setMaxLines(!expanded && m_vertical ? 1 + static_cast<int>(std::ranges::count(title, '\n')) : 1);
+  m_title->setFontFamily(m_config.fontFamily.value_or(m_services.config.config().shell.fontFamily));
+  m_title->setFontSize(16 * fontScale);
   m_title->setFontWeight(static_cast<FontWeight>(m_config.fontWeight));
-  m_title->measure(renderer);
-  m_detail->setText(
-      media                                              ? mpris::joinArtists(player->artists)
-          : m_displayEvent == IslandEvent::Resting       ? formatLocalTime("%A, %d %B")
-          : m_displayEvent == IslandEvent::Notification  ? m_notices[0].body
-          : m_displayEvent == IslandEvent::Call          ? m_notices[1].body
-          : m_displayEvent == IslandEvent::Timer         ? "Countdown"
-          : m_displayEvent == IslandEvent::TimerFinished ? "Your countdown has finished"
-          : m_displayEvent == IslandEvent::Alarm         ? "Scheduled alarm"
-          : m_displayEvent == IslandEvent::Brightness    ? "Brightness"
-          : feedback.kind == OsdKind::Microphone         ? "Microphone"
-                                                         : "Volume"
-  );
-  m_detail->setFontFamily(font);
-  m_detail->setFontSize(13 * fontScale);
-  m_detail->setColor(colorSpecFromRole(ColorRole::OnSurfaceVariant));
-  m_detail->setMaxWidth(std::max(1.0F, m_width - 80));
-  m_detail->setMaxLines(m_displayEvent == IslandEvent::Notification || m_displayEvent == IslandEvent::Call ? 3 : 1);
-  m_detail->measure(renderer);
-  m_detail->setVisible(expanded);
+  m_title->setColor(colorSpecFromRole(ColorRole::OnSurface));
+  m_title->setMaxLines(m_vertical ? 3 : 1);
   m_glyph->setGlyph(
-      m_displayEvent == IslandEvent::Notification                                                  ? "bell"
-          : m_displayEvent == IslandEvent::Call                                                    ? "phone"
-          : m_displayEvent == IslandEvent::Alarm                                                   ? "alarm"
-          : (m_displayEvent == IslandEvent::Timer || m_displayEvent == IslandEvent::TimerFinished) ? "hourglass"
-          : media                                                                                  ? "disc"
-          : m_displayEvent == IslandEvent::Resting                                                 ? "clock"
-                                                                                                   : feedback.icon
+      media                                                                    ? "disc"
+          : kind == IslandEvent::Resting                                       ? "clock"
+          : kind == IslandEvent::Notification                                  ? "bell"
+          : kind == IslandEvent::Call                                          ? "phone"
+          : kind == IslandEvent::Alarm                                         ? "alarm"
+          : (kind == IslandEvent::Timer || kind == IslandEvent::TimerFinished) ? "hourglass"
+                                                                               : feedback.icon
   );
   m_glyph->setGlyphSize(20 * m_config.scale);
   m_glyph->setColor(colorSpecFromRole(ColorRole::Primary));
   m_glyph->measure(renderer);
-  m_glyph->setVisible(m_displayEvent != IslandEvent::Resting && !(media && expanded));
-  m_art->setVisible(media && expanded);
-  m_art->setSize(58, 58);
-  m_art->setRadius(10);
-  if (media && expanded) {
+  m_glyph->setVisible(kind != IslandEvent::Resting);
+  m_art->setVisible(false);
+  if (media) {
     const auto path = mpris::resolveArtworkSource(
         m_services.httpClient, m_pendingArt, mpris::effectiveArtUrl(*player), [this] { m_surface.requestUpdate(); },
         m_alive
     );
     if (!path.empty() && path != m_artPath) {
       m_artPath = path;
-      m_art->setSourceFile(renderer, path, 116);
+      m_art->setSourceFile(renderer, path, 64);
     }
-    m_art->setVisible(!path.empty());
-    m_glyph->setVisible(path.empty());
-  }
-  if (expanded) {
-    const float textX = media ? 86.0F : m_displayEvent == IslandEvent::Resting ? 22.0F : 60.0F;
-    m_art->setPosition(16, 18);
-    m_glyph->setPosition(20, 25);
-    m_title->setPosition(textX, 20);
-    m_detail->setPosition(textX, m_displayEvent == IslandEvent::Resting ? 64.0F : 48.0F);
-    m_levelArea->setPosition(22, media ? 86.0F : 78.0F);
-    m_levelArea->setSize(std::max(1.0F, m_width - 44), 24);
-  } else if (m_vertical) {
-    m_glyph->setPosition((m_width - m_glyph->width()) / 2, media ? (m_height - m_glyph->height()) / 2 : 10);
-    m_title->setPosition(
-        (m_width - m_title->width()) / 2,
-        m_displayEvent == IslandEvent::Resting ? (m_height - m_title->height()) / 2 : m_height - m_title->height() - 9
-    );
-  } else {
-    m_glyph->setPosition(16, (m_height - m_glyph->height()) / 2);
-    m_title->setPosition(
-        m_displayEvent == IslandEvent::Resting ? (m_width - m_title->width()) / 2 : 48,
-        (m_height - m_title->height()) / 2
-    );
-  }
-  if (media)
-    m_play->setGlyph(player->playbackStatus == "Playing" ? "player-pause" : "player-play");
-  for (auto* button : {m_previous, m_play, m_next, m_close}) {
-    button->setVisible(expanded && (button == m_close || media));
-    button->setGlyphSize(20 * m_config.scale);
-    button->setControlHeight(36);
-    button->layout(renderer);
-  }
-  m_close->setPosition(std::max(0.0F, m_width - m_close->width() - 8), 6);
-  if (media) {
-    m_play->setEnabled(player->canPlay || player->canPause);
-    m_previous->setEnabled(player->canGoPrevious);
-    m_next->setEnabled(player->canGoNext);
-    m_play->setPosition((m_width - m_play->width()) / 2, 124);
-    m_previous->setPosition(m_play->x() - m_previous->width() - 16, 124);
-    m_next->setPosition(m_play->x() + m_play->width() + 16, 124);
+    if (!path.empty()) {
+      m_art->setVisible(true);
+      m_art->setSize(28, 28);
+      m_art->setRadius(6);
+      m_glyph->setVisible(false);
+    }
   }
   for (auto* action : m_actions)
     action->setVisible(false);
-  std::vector<std::pair<std::string, std::function<void()>>> actions;
-  const bool notice = m_displayEvent == IslandEvent::Notification || m_displayEvent == IslandEvent::Call;
-  if (expanded && notice && m_services.notifications) {
-    const auto n = m_notices[m_displayEvent == IslandEvent::Call ? 1 : 0];
-    for (std::size_t i = 0; i + 1 < n.actions.size() && actions.size() < 5; i += 2) {
-      const auto id = n.id;
-      const auto key = n.actions[i];
-      actions.emplace_back(n.actions[i + 1], [this, id, key] {
-        (void)m_services.notifications->invokeAction(id, key);
-      });
+  std::size_t count = 0;
+  auto action = [&](std::string glyph, std::function<void()> callback, std::optional<ColorSpec> color = std::nullopt) {
+    if (count >= m_actions.size())
+      return;
+    auto* button = m_actions[count++];
+    button->setVisible(true);
+    button->setGlyph(glyph);
+    button->setOnClick(std::move(callback));
+    button->setControlHeight(30);
+    button->setGlyphSize(18);
+    auto colors = Button::defaultPalette(ButtonVariant::Ghost);
+    if (color) {
+      colors.normal.label = *color;
+      colors.hover.label = *color;
+      colors.pressed.label = *color;
     }
-    actions.emplace_back("Dismiss", [this, id = n.id] {
-      (void)m_services.notifications->close(id, CloseReason::Dismissed);
+    button->setCustomPalette(colors);
+    button->layout(renderer);
+  };
+  if (kind == IslandEvent::Call && m_services.notifications) {
+    const auto n = m_notices[1];
+    for (bool accept : {true, false})
+      for (std::size_t i = 0; i + 1 < n.actions.size(); i += 2) {
+        auto text = n.actions[i] + " " + n.actions[i + 1];
+        std::ranges::transform(text, text.begin(), [](unsigned char c) { return std::tolower(c); });
+        const bool match = accept
+            ? (text.find("accept") != std::string::npos || text.find("answer") != std::string::npos)
+            : (text.find("decline") != std::string::npos
+               || text.find("reject") != std::string::npos
+               || text.find("hang") != std::string::npos);
+        if (match) {
+          action(
+              accept ? "phone" : "phone-off",
+              [this, id = n.id, key = n.actions[i]] { (void)m_services.notifications->invokeAction(id, key); },
+              colorSpecFromConfigString(accept ? "#4caf78" : "#ef5350")
+          );
+          break;
+        }
+      }
+    action("x", [this] { dismissEvent(); });
+  } else if (kind == IslandEvent::Timer || kind == IslandEvent::TimerFinished)
+    action("player-stop", [this] { dismissEvent(); });
+  else if (kind == IslandEvent::Alarm) {
+    action("alarm-snooze", [this] {
+      if (m_services.activities)
+        m_services.activities->snooze(m_config.dynamicSnoozeSeconds);
     });
-  } else if (expanded && m_services.activities) {
-    auto* a = m_services.activities;
-    if (m_config.dynamicTimers
-        && (m_displayEvent == IslandEvent::Resting
-            || m_displayEvent == IslandEvent::Timer
-            || m_displayEvent == IslandEvent::TimerFinished))
-      actions.emplace_back(a->timerEnd || a->timerFinished ? "Cancel timer" : "Start timer", [this, a] {
-        if (a->timerEnd || a->timerFinished)
-          a->cancelTimer();
-        else
-          a->startTimer(m_config.dynamicTimerSeconds, m_output);
-      });
-    if (m_config.dynamicAlarms && (m_displayEvent == IslandEvent::Resting || m_displayEvent == IslandEvent::Alarm)) {
-      actions.emplace_back(
-          a->alarmRinging  ? "Dismiss alarm"
-              : a->alarmAt ? "Cancel alarm"
-                           : "Arm " + m_config.dynamicAlarmTime,
-          [this, a] {
-            if (a->alarmRinging || a->alarmAt)
-              a->dismissAlarm();
-            else
-              (void)a->armAlarm(m_config.dynamicAlarmTime, m_output);
-          }
-      );
-      if (a->alarmRinging)
-        actions.emplace_back("Snooze", [this, a] { a->snooze(m_config.dynamicSnoozeSeconds); });
-    }
+    action("x", [this] { dismissEvent(); });
   }
-  for (std::size_t i = 0; i < actions.size() && i < m_actions.size(); ++i) {
-    auto* action = m_actions[i];
-    action->setVisible(true);
-    action->setText(actions[i].first);
-    action->setOnClick(actions[i].second);
-    action->setControlHeight(30);
-    action->setMaxWidth((m_width - 44) / 2);
-    action->layout(renderer);
-    action->setPosition(18 + static_cast<float>(i % 2) * (m_width - 36) / 2, 112 + static_cast<float>(i / 2) * 32);
+  float actionSpace = 0;
+  for (std::size_t i = 0; i < count; ++i) {
+    auto* b = m_actions[i];
+    actionSpace += b->width() + 3;
+    b->setPosition(
+        m_vertical ? (m_width - b->width()) / 2 : m_width - actionSpace - 6,
+        m_vertical ? m_height - static_cast<float>(count - i) * 32 : (m_height - b->height()) / 2
+    );
   }
-  m_tools->setVisible(expanded && (media || m_clockTools));
-  m_tools->setText(m_clockTools ? "Media" : "Clock & timers");
-  m_tools->setControlHeight(30);
-  m_tools->layout(renderer);
-  m_tools->setPosition((m_width - m_tools->width()) / 2, 178);
-  m_levelArea->setVisible(expanded && (media || level));
-  m_progress->setSize(m_levelArea->width(), 5);
-  m_progress->setPosition(0, 10);
+  m_title->setMaxWidth(
+      std::max(
+          1.0F,
+          m_width
+              - (m_vertical                         ? 10
+                     : kind == IslandEvent::Resting ? 20
+                                                    : 60)
+              - actionSpace
+      )
+  );
+  m_title->measure(renderer);
+  if (m_vertical) {
+    m_glyph->setPosition((m_width - m_glyph->width()) / 2, 10);
+    m_art->setPosition((m_width - 28) / 2, 10);
+    m_title->setPosition(
+        (m_width - m_title->width()) / 2, kind == IslandEvent::Resting ? (m_height - m_title->height()) / 2 : 40
+    );
+  } else {
+    m_glyph->setPosition(16, (m_height - m_glyph->height()) / 2 - (level ? 3 : 0));
+    m_art->setPosition(12, (m_height - 28) / 2);
+    m_title->setPosition(
+        kind == IslandEvent::Resting ? (m_width - m_title->width()) / 2 : 48,
+        (m_height - m_title->height()) / 2 - (level ? 4 : 0)
+    );
+  }
+  m_progress->setVisible(level);
+  m_progress->setPosition(m_vertical ? 6 : 16, m_height - 9);
+  m_progress->setSize(std::max(1.0F, m_width - (m_vertical ? 12 : 32)), 3);
   m_progress->setFill(colorSpecFromRole(ColorRole::Primary));
   m_progress->setTrack(colorSpecFromRole(ColorRole::SurfaceContainerHighest));
-  updateProgress();
-  if (media && expanded && m_visible && player->playbackStatus == "Playing") {
-    if (!m_progressTimer.active())
-      m_progressTimer.startRepeating(std::chrono::seconds(1), [this] { m_surface.requestLayout(); });
-  } else
-    m_progressTimer.stop();
-}
-
-void DynamicIsland::updateProgress() {
-  if (m_displayEvent == IslandEvent::Media && m_services.mpris) {
-    const auto player = m_services.mpris->activePlayer();
-    if (player && player->lengthUs > 0)
-      m_progress->setProgress(
-          static_cast<float>(m_services.mpris->positionActive().value_or(player->positionUs))
-          / static_cast<float>(player->lengthUs)
-      );
-    else
-      m_progress->setProgress(0.0F);
-  } else
-    m_progress->setProgress(std::clamp(m_feedback[static_cast<unsigned>(m_displayEvent)].progress, 0.0F, 1.0F));
-}
-
-void DynamicIsland::setLevel(float fraction) {
-  if (m_displayEvent == IslandEvent::Media && m_services.mpris) {
-    const auto player = m_services.mpris->activePlayer();
-    if (player && player->canSeek && player->lengthUs > 0)
-      m_services.mpris->setPositionActive(
-          static_cast<std::int64_t>(static_cast<double>(player->lengthUs) * static_cast<double>(fraction))
-      );
-  } else if (m_displayEvent == IslandEvent::Brightness && m_services.brightness) {
-    if (const auto* display = m_services.brightness->findByOutput(m_output))
-      m_services.brightness->setBrightness(display->id, fraction);
-  } else if (m_displayEvent == IslandEvent::Volume && m_services.audio) {
-    if (m_feedback[static_cast<unsigned>(m_displayEvent)].kind == OsdKind::Microphone)
-      m_services.audio->setMicVolume(fraction);
-    else
-      m_services.audio->setVolume(fraction);
-  }
+  m_progress->setProgress(std::clamp(feedback.progress, 0.0F, 1.0F));
 }
 
 void DynamicIsland::syncClockTimer() {
@@ -589,35 +435,75 @@ void DynamicIsland::syncClockTimer() {
     syncClockTimer();
   });
 }
-
+void DynamicIsland::openNativeTool() {
+  auto* panels = PanelManager::current();
+  if (!panels || !m_visible || m_hoverBlocked)
+    return;
+  if (panels->isDynamicIslandPanel(m_output, m_config.name))
+    return;
+  panels->openPanel(
+      "control-center",
+      {.output = m_output,
+       .anchorX = static_cast<float>(m_outputWidth) / 2,
+       .anchorY = static_cast<float>(m_outputHeight) / 2,
+       .hasExplicitAnchor = true,
+       .hasAnchorPosition = true,
+       .context = nativeToolContext(m_event),
+       .sourceBarName = m_config.name,
+       .fromDynamicIsland = true,
+       .islandCompactExtent = compactExtent(m_event)}
+  );
+  m_nativeOwned = panels->isDynamicIslandPanel(m_output, m_config.name);
+}
 void DynamicIsland::toggleExpanded() {
-  if (m_pinned) {
-    m_pinned = false;
+  auto* panels = PanelManager::current();
+  if (panels && panels->isDynamicIslandPanel(m_output, m_config.name)) {
     m_hoverBlocked = true;
+    panels->closePanel();
   } else {
-    m_pinned = true;
     m_hoverBlocked = false;
+    openNativeTool();
+  }
+}
+void DynamicIsland::setNativePanelGeometry(std::optional<AttachedPanelGeometry> geometry) {
+  if (geometry && geometry->islandExtent <= 0.0F)
+    geometry.reset();
+  m_nativeProgress = geometry ? geometry->revealProgress : 0;
+  m_nativeExtent = geometry ? geometry->islandExtent : 0;
+  if (!geometry && m_nativeOwned) {
+    m_nativeOwned = false;
+    m_hoverBlocked = m_hovered;
   }
   m_surface.requestUpdate();
 }
-
+void DynamicIsland::watchNativeLeave() {
+  m_hoverTimer.start(std::chrono::milliseconds(250), [this] {
+    auto* panels = PanelManager::current();
+    if (!panels || !panels->isDynamicIslandPanel(m_output, m_config.name))
+      return;
+    if (m_hovered || panels->pointerHoldsPanel()) {
+      watchNativeLeave();
+      return;
+    }
+    panels->closePanel();
+  });
+}
 bool DynamicIsland::onPointerEvent(const PointerEvent& e) {
   if (!m_visible)
     return false;
   switch (e.type) {
   case PointerEvent::Type::Enter:
-    m_hoverTimer.stop();
     m_hovered = true;
+    m_hoverTimer.stop();
     m_dispatcher.pointerEnter(static_cast<float>(e.sx), static_cast<float>(e.sy), e.serial);
-    m_surface.requestUpdate();
+    if (m_config.dynamicHoverExpand)
+      openNativeTool();
     return true;
   case PointerEvent::Type::Leave:
+    m_hovered = false;
+    m_hoverBlocked = false;
     m_dispatcher.pointerLeave();
-    m_hoverTimer.start(std::chrono::milliseconds(250), [this] {
-      m_hovered = false;
-      m_hoverBlocked = false;
-      m_surface.requestUpdate();
-    });
+    watchNativeLeave();
     return true;
   case PointerEvent::Type::Motion:
     m_dispatcher.pointerMotion(static_cast<float>(e.sx), static_cast<float>(e.sy), e.serial);
@@ -634,7 +520,6 @@ bool DynamicIsland::onPointerEvent(const PointerEvent& e) {
   }
   return false;
 }
-
 void DynamicIsland::setVisible(bool visible) {
   if (m_visible == visible)
     return;
@@ -643,11 +528,22 @@ void DynamicIsland::setVisible(bool visible) {
     m_root->setOpacity(visible ? 1.0F : 0.0F);
   if (!visible) {
     m_dispatcher.pointerLeave();
-    m_hovered = m_pinned = m_clockTools = false;
+    m_hovered = false;
     m_hoverTimer.stop();
-    m_progressTimer.stop();
+    if (auto* panels = PanelManager::current(); panels && panels->isDynamicIslandPanel(m_output, m_config.name))
+      panels->closePanel(false);
   }
   m_surface.requestUpdate();
+}
+void DynamicIsland::dismissEvent() {
+  if (m_event == IslandEvent::Call && m_services.notifications)
+    (void)m_services.notifications->close(m_notices[1].id, CloseReason::Dismissed);
+  else if (m_services.activities) {
+    if (m_event == IslandEvent::Alarm)
+      m_services.activities->dismissAlarm();
+    else
+      m_services.activities->cancelTimer();
+  }
 }
 
 bool DynamicIsland::notification(const Notification& n, NotificationEvent event) {

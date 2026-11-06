@@ -8,6 +8,7 @@
 #include "shell/bar/bar_services.h"
 #include "shell/bar/dynamic_island_state.h"
 #include "shell/osd/osd_overlay.h"
+#include "shell/panel/attached_panel_context.h"
 #include "ui/signal.h"
 
 #include <memory>
@@ -25,35 +26,37 @@ class ScreenFrameNode;
 class Renderer;
 struct PointerEvent;
 
-// One independent presentation, not a widget appended to the normal bar lanes.
+// Compact event presentation. Rich interaction belongs to the registered native panel.
 class DynamicIsland {
 public:
   DynamicIsland(
-      const BarServices& services, const BarConfig& config, LayerSurface& surface, AnimationManager& animations,
-      ScreenWrap* wrap, wl_output* output, int outputWidth, int outputHeight
+      const BarServices&, const BarConfig&, LayerSurface&, AnimationManager&, ScreenWrap*, wl_output*, int, int
   );
   ~DynamicIsland();
-  void prepare(Renderer& renderer, bool update);
-  bool onPointerEvent(const PointerEvent& event);
-  bool feedback(const OsdContent& content);
-  bool notification(const Notification& notification, NotificationEvent event);
+  void prepare(Renderer&, bool update);
+  bool onPointerEvent(const PointerEvent&);
+  bool feedback(const OsdContent&);
+  bool notification(const Notification&, NotificationEvent);
   void syncActivities();
-  bool activityCommand(const std::string& command, const std::string& value);
-
+  bool activityCommand(const std::string&, const std::string&);
   void toggleExpanded();
-  void setVisible(bool visible);
+  void setVisible(bool);
+  void setNativePanelGeometry(std::optional<AttachedPanelGeometry>);
   Node* root() const { return m_root.get(); }
-  static LayerSurfaceConfig surfaceConfig(const BarConfig& config, int outputWidth, int outputHeight);
+  static LayerSurfaceConfig surfaceConfig(const BarConfig&, int, int);
+  static std::string_view nativeToolContext(IslandEvent);
 
 private:
   void build();
   void resolve();
-  void layout(Renderer& renderer);
+  void layout(Renderer&);
   void geometry();
   void syncClockTimer();
-  void changeContent(IslandEvent kind, bool expanded);
-  void setLevel(float fraction);
-  void updateProgress();
+  void changeContent(IslandEvent);
+  void openNativeTool();
+  void watchNativeLeave();
+  void dismissEvent();
+  float compactExtent(IslandEvent) const;
 
   BarServices m_services;
   BarConfig m_config;
@@ -65,22 +68,17 @@ private:
   bool m_vertical, m_reverse;
   float m_originX = 0, m_originY = 0;
   float m_width = 0, m_height = 0, m_targetWidth = 0, m_targetHeight = 0;
-  float m_fromWidth = 0, m_fromHeight = 0;
   bool m_initialized = false, m_visible = true, m_hovered = false, m_pinned = false, m_hoverBlocked = false;
-  bool m_expanded = false, m_displayExpanded = false, m_clockTools = false;
+  bool m_nativeOwned = false;
+  float m_nativeProgress = 0, m_nativeExtent = 0;
   IslandEvent m_event = IslandEvent::Resting, m_displayEvent = IslandEvent::Resting;
   AnimationManager::Id m_resizeAnimation = 0;
   DynamicIslandState m_state;
   std::array<OsdContent, static_cast<unsigned>(IslandEvent::Count)> m_feedback;
   std::array<Notification, 2> m_notices{};
   unsigned m_timerRevision = 0, m_alarmRevision = 0;
-  std::uint32_t m_heldNotificationId = 0;
-  int m_heldNotificationRemaining = 0;
-  Signal<>::ScopedConnection m_activityConnection;
-  std::array<Button*, 6> m_actions{};
-
-  Timer m_expiryTimer, m_hoverTimer, m_clockTimer, m_progressTimer;
-  Signal<>::ScopedConnection m_paletteConnection;
+  Signal<>::ScopedConnection m_activityConnection, m_paletteConnection;
+  Timer m_expiryTimer, m_hoverTimer, m_clockTimer;
   std::unique_ptr<Node> m_root;
   InputDispatcher m_dispatcher;
   InputArea* m_body = nullptr;
@@ -89,12 +87,10 @@ private:
   ScreenFrameNode* m_frame = nullptr;
   Box* m_background = nullptr;
   Glyph* m_glyph = nullptr;
-  Label *m_title = nullptr, *m_detail = nullptr;
+  Label* m_title = nullptr;
   Image* m_art = nullptr;
-  Button *m_previous = nullptr, *m_play = nullptr, *m_next = nullptr, *m_close = nullptr;
-  Button* m_tools = nullptr;
-  InputArea* m_levelArea = nullptr;
   ProgressBar* m_progress = nullptr;
+  std::array<Button*, 3> m_actions{};
   std::string m_artPath;
   std::unordered_set<std::string> m_pendingArt;
   std::shared_ptr<void> m_alive = std::make_shared<int>(0);

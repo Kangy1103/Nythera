@@ -3753,6 +3753,12 @@ namespace settings {
           "bar surface full continuous floating islands capsules"
       ));
       entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.transparency-mode.label"),
+          tr("settings.schema.bar.transparency-mode.description"), path("transparency_mode"),
+          asSegmented(enumSelect(kBarTransparencyModes, bar.transparencyMode)),
+          "glass soft solid custom alpha transparency opacity"
+      ));
+      entries.push_back(makeEntry(
           section, "effects", tr("settings.schema.shared.background-opacity.label"),
           tr("settings.schema.bar.background-opacity.description"), path("background_opacity"),
           SliderSetting{bar.backgroundOpacity, 0.0F, 1.0F, 0.01F, false}, "alpha transparency translucent opacity"
@@ -3809,11 +3815,6 @@ entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-
           section, "effects", tr("settings.schema.bar.dynamic-dwell-ms.label"),
           tr("settings.schema.bar.dynamic-dwell-ms.description"), path("dynamic_dwell_ms"),
           SliderSetting{static_cast<float>(bar.dynamicDwellMs), 500.0F, 15000.0F, 100.0F, true}, "dynamic island"
-      ));
-      entries.push_back(makeEntry(
-          section, "effects", tr("settings.schema.bar.dynamic-width.label"),
-          tr("settings.schema.bar.dynamic-width.description"), path("dynamic_width"),
-          SliderSetting{static_cast<float>(bar.dynamicWidth), 240.0F, 600.0F, 1.0F, true}, "dynamic island"
       ));
       entries.push_back(makeEntry(
           section, "effects", tr("settings.schema.bar.dynamic-clock-format.label"),
@@ -4209,6 +4210,12 @@ entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-
             barReservedSlider(ovr.borderWidth.value_or(bar.borderWidth), 20.0F, 0.5F, false), "outline stroke", true
         ));
         entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.transparency-mode.label"),
+          tr("settings.schema.bar.transparency-mode.description"), monitorPath("transparency_mode"),
+          asSegmented(enumSelect(kBarTransparencyModes, ovr.transparencyMode.value_or(bar.transparencyMode))),
+          "glass soft solid custom alpha transparency opacity"
+      ));
+        entries.push_back(makeEntry(
             section, "effects", tr("settings.schema.shared.background-opacity.label"),
             tr("settings.schema.bar.background-opacity.description"), monitorPath("background_opacity"),
             SliderSetting{ovr.backgroundOpacity.value_or(bar.backgroundOpacity), 0.0F, 1.0F, 0.01F, false},
@@ -4278,11 +4285,6 @@ entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-
             section, "effects", tr("settings.schema.bar.dynamic-dwell-ms.label"),
             tr("settings.schema.bar.dynamic-dwell-ms.description"), monitorPath("dynamic_dwell_ms"),
             SliderSetting{static_cast<float>(ovr.dynamicDwellMs.value_or(bar.dynamicDwellMs)), 500.0F, 15000.0F, 100.0F, true}, "dynamic island"
-        ));
-        entries.push_back(makeEntry(
-            section, "effects", tr("settings.schema.bar.dynamic-width.label"),
-            tr("settings.schema.bar.dynamic-width.description"), monitorPath("dynamic_width"),
-            SliderSetting{static_cast<float>(ovr.dynamicWidth.value_or(bar.dynamicWidth)), 240.0F, 600.0F, 1.0F, true}, "dynamic island"
         ));
         entries.push_back(makeEntry(
             section, "effects", tr("settings.schema.bar.dynamic-clock-format.label"),

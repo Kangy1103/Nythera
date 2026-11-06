@@ -47,6 +47,8 @@ struct PanelOpenRequest {
   bool hasAnchorPosition = false;
   std::string_view context;
   std::string_view sourceBarName;
+  bool fromDynamicIsland = false;
+  float islandCompactExtent = 112.0F;
 };
 
 class PanelManager : public PopupGrabHost {
@@ -123,6 +125,10 @@ public:
   [[nodiscard]] std::string_view attachedSourceBarName() const noexcept;
   [[nodiscard]] const std::string& activePanelId() const noexcept;
   [[nodiscard]] Panel* activePanel() const noexcept { return m_activePanel; }
+  [[nodiscard]] bool isDynamicIslandPanel(wl_output* output, std::string_view barName) const noexcept {
+    return m_islandPresentation && m_output == output && m_sourceBarName == barName && m_activePanel != nullptr;
+  }
+  [[nodiscard]] bool pointerHoldsPanel() const noexcept;
   // True when a panel is open and it reports the given context as active (e.g. control-center tab).
   [[nodiscard]] bool isActivePanelContext(std::string_view context) const noexcept;
   [[nodiscard]] std::optional<LayerPopupParentContext> popupParentContextForSurface(wl_surface* surface) const noexcept;
@@ -309,6 +315,9 @@ private:
   std::string m_attachedBarPosition; // "top" / "bottom" / "left" / "right" while attached, empty otherwise
   std::string m_sourceBarName;       // name of the bar that opened the current panel
   std::optional<AttachedPanelGeometry> m_attachedPanelGeometry;
+  bool m_islandPresentation = false;
+  float m_islandCompactExtent = 112.0F;
+  float m_islandBarOpacity = 1.0F;
   bool m_pointerInside = false;
   bool m_inTransition = false;
   bool m_closing = false;

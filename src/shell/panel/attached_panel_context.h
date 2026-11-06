@@ -13,6 +13,9 @@ enum class AttachedRevealDirection : std::uint8_t {
 };
 
 struct AttachedPanelGeometry {
+  // Dynamic-island hosts follow this same reveal instead of starting a second animation.
+  float revealProgress = 1.0F;
+  float islandExtent = 0.0F;
   float x = 0.0F;
   float y = 0.0F;
   float width = 0.0F;

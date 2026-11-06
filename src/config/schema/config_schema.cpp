@@ -2599,6 +2599,7 @@ namespace noctalia::config::schema {
         barLayerField(),
         field(&BarConfig::thickness, "thickness", kBarThicknessRange),
         field(&BarConfig::backgroundOpacity, "background_opacity", kBarOpacityRange),
+        enumField(&BarConfig::transparencyMode, "transparency_mode", kBarTransparencyModes),
         barSurfaceModeField(),
         field(&BarConfig::screenWrap, "screen_wrap"),
         field(&BarConfig::wrapWidth, "wrap_width", kBarWrapWidthRange),
@@ -2698,6 +2699,7 @@ namespace noctalia::config::schema {
         ),
         optionalIntField(&BarMonitorOverride::thickness, "thickness", kBarThicknessRange),
         optionalFloatField(&BarMonitorOverride::backgroundOpacity, "background_opacity", kBarOpacityRange),
+        optionalEnumField(&BarMonitorOverride::transparencyMode, "transparency_mode", kBarTransparencyModes),
         custom<BarMonitorOverride>(
             "surface_mode",
             [](const toml::table& tbl, BarMonitorOverride& out, std::string_view path, Diagnostics& diag) {

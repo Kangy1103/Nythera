@@ -1,5 +1,6 @@
 #include "render/core/screen_frame_geometry.h"
 #include "shell/bar/screen_wrap_geometry.h"
+#include "shell/bar/dynamic_island_style.h"
 #include "shell/settings/settings_registry.h"
 
 #include <cassert>
@@ -42,6 +43,25 @@ int main() {
       assert(std::abs(screenFrameDistance(rotated, x, y) - screenFrameDistance(contour, u, v)) < 0.001F);
     }
   }
+  // The shared join is inside the fill, never on an outline or rounded cutout,
+  // on all four edges. Closing restores the compact rounded contour.
+  assert(dynamic_island_style::joinExtension(0, 16, 2) == 0);
+  for (int edge = 0; edge < 4; ++edge) {
+    ScreenFrameContour neck;
+    neck.width = neck.height = 600;
+    neck.edge = edge;
+    neck.islands[1] = {100, 500};
+    neck.depth = 50 + dynamic_island_style::joinExtension(0.5F, 16, 2);
+    for (float u : {103.0F, 300.0F, 497.0F}) {
+      const float x = edge == 1 ? 550 : edge == 3 ? 50 : u;
+      const float y = edge == 2 ? 550 : edge == 0 ? 50 : u;
+      assert(screenFrameDistance(neck, x, y) < -2.0F);
+    }
+  }
+  assert(dynamic_island_style::panelRadii("top", 16) == Radii(0, 0, 16, 16));
+  assert(dynamic_island_style::panelRadii("bottom", 16) == Radii(16, 16, 0, 0));
+  assert(dynamic_island_style::panelRadii("left", 16) == Radii(0, 16, 16, 0));
+  assert(dynamic_island_style::panelRadii("right", 16) == Radii(16, 0, 0, 16));
   const auto square = screen_wrap::geometry(3440, 1440, 6, 0, 50, "top", false, 2);
   assert(square.radius == 0 && square.strips[0].height == 8 && square.strips[2].width == 8);
   Config config;

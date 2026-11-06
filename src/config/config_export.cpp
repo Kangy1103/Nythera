@@ -153,6 +153,8 @@ namespace config_export {
         resolved.thickness = *ovr.thickness;
       if (ovr.backgroundOpacity)
         resolved.backgroundOpacity = *ovr.backgroundOpacity;
+      if (ovr.transparencyMode)
+        resolved.transparencyMode = *ovr.transparencyMode;
       if (ovr.surfaceMode)
         resolved.surfaceMode = *ovr.surfaceMode;
       if (ovr.dynamicCenter)

@@ -1012,6 +1012,8 @@ BarConfig ConfigService::resolveForOutput(const BarConfig& base, const WaylandOu
       resolved.thickness = *ovr.thickness;
     if (ovr.backgroundOpacity)
       resolved.backgroundOpacity = *ovr.backgroundOpacity;
+    if (ovr.transparencyMode)
+      resolved.transparencyMode = *ovr.transparencyMode;
     if (ovr.surfaceMode)
       resolved.surfaceMode = *ovr.surfaceMode;
     if (ovr.dynamicCenter)
@@ -1140,6 +1142,7 @@ BarConfig ConfigService::resolveForOutput(const BarConfig& base, const WaylandOu
     break; // first match wins
   }
 
+  resolved.backgroundOpacity = barBackgroundOpacityForTransparencyMode(resolved.transparencyMode, resolved.backgroundOpacity);
   return resolved;
 }
 

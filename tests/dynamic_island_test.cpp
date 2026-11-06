@@ -86,6 +86,12 @@ int main() {
   state.clear(IslandEvent::Alarm);
   assert(state.resolve(15001) == IslandEvent::Call);
 
+  assert(DynamicIsland::nativeToolContext(IslandEvent::Resting) == "home");
+  assert(DynamicIsland::nativeToolContext(IslandEvent::Media) == "media");
+  assert(DynamicIsland::nativeToolContext(IslandEvent::Volume) == "audio");
+  assert(DynamicIsland::nativeToolContext(IslandEvent::Brightness) == "monitor");
+  assert(DynamicIsland::nativeToolContext(IslandEvent::Notification) == "notifications");
+  assert(DynamicIsland::nativeToolContext(IslandEvent::Call) == "notifications");
   BarConfig bar;
   using namespace noctalia::config::schema;
   Diagnostics diagnostics;
@@ -117,7 +123,7 @@ int main() {
     for (auto key :
          {"dynamic_notifications", "dynamic_timers", "dynamic_alarms", "dynamic_calls", "dynamic_timer_seconds",
           "dynamic_alarm_time", "dynamic_snooze_seconds", "dynamic_media", "dynamic_volume", "dynamic_brightness",
-          "dynamic_hover_expand", "dynamic_width", "dynamic_dwell_ms", "dynamic_clock_format"}) {
+          "dynamic_hover_expand", "dynamic_dwell_ms", "dynamic_clock_format"}) {
       const auto path = perMonitor ? std::vector<std::string>{"bar", "default", "monitor", "DP-1", key}
                                    : std::vector<std::string>{"bar", "default", key};
       assert(std::ranges::find(entries, path, &settings::SettingEntry::path) != entries.end());
@@ -132,7 +138,7 @@ int main() {
   for (auto edge : {"top", "bottom", "left", "right"}) {
     bar.position = edge;
     const auto surface = DynamicIsland::surfaceConfig(bar, 853, 533);
-    assert(surface.width < 853 && surface.height < 533);
+    assert(surface.width <= 853 && surface.height <= 533);
     assert(surface.width * surface.height < 853 * 533 / 2);
     assert(surface.exclusiveZone == bar.thickness);
     bar.reserveSpace = false;

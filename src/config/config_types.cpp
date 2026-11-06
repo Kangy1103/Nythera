@@ -190,6 +190,15 @@ std::vector<KeyChord> defaultKeybindSet(KeybindAction action) {
   return {};
 }
 
+float barBackgroundOpacityForTransparencyMode(BarTransparencyMode mode, float customOpacity) noexcept {
+  switch (mode) {
+  case BarTransparencyMode::Solid: return detachedPanelBackgroundOpacityForTransparencyMode(PanelTransparencyMode::Solid);
+  case BarTransparencyMode::Soft: return detachedPanelBackgroundOpacityForTransparencyMode(PanelTransparencyMode::Soft);
+  case BarTransparencyMode::Glass: return detachedPanelBackgroundOpacityForTransparencyMode(PanelTransparencyMode::Glass);
+  default: return std::clamp(customOpacity, 0.0F, 1.0F);
+  }
+}
+
 float panelCardOpacityForTransparencyMode(PanelTransparencyMode mode, float panelBackgroundOpacity) noexcept {
   const float backgroundOpacity = std::clamp(panelBackgroundOpacity, 0.0F, 1.0F);
   switch (mode) {
