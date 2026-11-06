@@ -20,17 +20,11 @@
 
 struct WaylandOutput;
 
-// Direction hidden accordion members unfold relative to the always-visible first member, along the
-// bar lane's main axis.
+// Custom preserves the existing numeric bar opacity; presets match native panel modes.
 enum class BarTransparencyMode : std::uint8_t { Custom, Solid, Soft, Glass };
-constexpr EnumOption<BarTransparencyMode> kBarTransparencyModes[] = {
-    {BarTransparencyMode::Custom, "custom", "settings.options.bar.transparency-custom"},
-    {BarTransparencyMode::Solid, "solid", "settings.options.shell.panel-transparency.solid"},
-    {BarTransparencyMode::Soft, "soft", "settings.options.shell.panel-transparency.soft"},
-    {BarTransparencyMode::Glass, "glass", "settings.options.shell.panel-transparency.glass"},
-};
 [[nodiscard]] float barBackgroundOpacityForTransparencyMode(BarTransparencyMode mode, float customOpacity) noexcept;
 
+// Direction hidden accordion members unfold along the bar lane's main axis.
 enum class BarAccordionDirection : std::uint8_t { End = 0, Start = 1 };
 
 // A capsule group: an ordered set of member widgets sharing one capsule + style. `id` is opaque and
@@ -93,6 +87,7 @@ struct BarMonitorOverride {
   std::optional<std::string> surfaceMode;
   std::optional<bool> screenWrap;
   std::optional<std::int32_t> wrapWidth;
+  std::optional<std::int32_t> wrapClearance;
   std::optional<std::int32_t> wrapRadius;
   std::optional<std::int32_t> wrapJoinDistance;
   std::optional<bool> dynamicNotifications;
@@ -102,6 +97,10 @@ struct BarMonitorOverride {
   std::optional<std::int32_t> dynamicTimerSeconds;
   std::optional<std::string> dynamicAlarmTime;
   std::optional<std::int32_t> dynamicSnoozeSeconds;
+  std::optional<bool> dynamicActivityIndicators;
+  std::optional<bool> dynamicPrivacy;
+  std::optional<bool> dynamicDevices;
+  std::optional<bool> dynamicVisualizer;
   std::optional<bool> dynamicMedia;
   std::optional<bool> dynamicVolume;
   std::optional<bool> dynamicBrightness;
@@ -191,6 +190,7 @@ struct BarConfig {
   std::string surfaceMode = "full";
   bool screenWrap = false;
   std::int32_t wrapWidth = 6;
+  std::int32_t wrapClearance = 0;
   std::int32_t wrapRadius = 20;
   std::int32_t wrapJoinDistance = 80;
   bool dynamicNotifications = true;
@@ -200,6 +200,10 @@ struct BarConfig {
   std::int32_t dynamicTimerSeconds = 300;
   std::string dynamicAlarmTime = "08:00";
   std::int32_t dynamicSnoozeSeconds = 300;
+  bool dynamicActivityIndicators = true;
+  bool dynamicPrivacy = true;
+  bool dynamicDevices = true;
+  bool dynamicVisualizer = false;
   bool dynamicMedia = true;
   bool dynamicVolume = true;
   bool dynamicBrightness = true;
@@ -680,6 +684,13 @@ template <typename T> struct EnumOption {
   T value;
   std::string_view key;
   std::string_view labelKey;
+};
+
+constexpr EnumOption<BarTransparencyMode> kBarTransparencyModes[] = {
+    {BarTransparencyMode::Custom, "custom", "settings.options.bar.transparency-custom"},
+    {BarTransparencyMode::Solid, "solid", "settings.options.shell.panel-transparency.solid"},
+    {BarTransparencyMode::Soft, "soft", "settings.options.shell.panel-transparency.soft"},
+    {BarTransparencyMode::Glass, "glass", "settings.options.shell.panel-transparency.glass"},
 };
 
 template <typename T, std::size_t N>

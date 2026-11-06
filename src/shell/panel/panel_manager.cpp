@@ -12,6 +12,7 @@
 #include "ipc/ipc_service.h"
 #include "render/render_context.h"
 #include "render/scene/input_area.h"
+#include "render/scene/screen_frame_node.h"
 #include "scripting/plugin_id.h"
 #include "shell/bar/bar_corner_shape.h"
 #include "shell/bar/bar_reserved_zone.h"
@@ -631,7 +632,10 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
   m_activePanel = it->second.get();
   m_activePanelId = panelId;
   m_islandPresentation = request.fromDynamicIsland;
+  m_islandHoverOpen = request.fromDynamicIsland && request.islandHoverOpen;
+  m_islandPinned = request.fromDynamicIsland && !request.islandHoverOpen;
   m_islandCompactExtent = request.islandCompactExtent;
+  m_islandFrameProvider = std::move(request.islandFrameProvider);
   m_activePanel->setContentScale(shell::panel_surface::contentScale(m_config));
   m_pendingOpenContext = std::string(request.context);
   m_activePanel->setPendingOpenContext(request.context);
@@ -926,13 +930,14 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
   // focus: the click shield swallows the click meant for the app below, and the
   // compositor focus grab takes the keyboard.
   const bool wantsOutsideDismiss =
-      m_activePanel->dismissOnOutsideClick() && m_activePanel->keyboardMode() != LayerShellKeyboard::None;
+      m_activePanel->dismissOnOutsideClick() && m_activePanel->keyboardMode() != LayerShellKeyboard::None
+      && !m_islandHoverOpen;
   // Two plans: the attached branch falls back to the standalone surface when its
   // layer-shell init fails, and that surface is placed detached.
   const PanelKeyboardPlan keyboardPlan =
-      resolvePanelKeyboardPlan(m_activePanel->keyboardMode(), hasFocusGrab, hasFocusGrab && wantsOutsideDismiss, false);
+      resolvePanelKeyboardPlan(m_islandHoverOpen ? LayerShellKeyboard::None : m_activePanel->keyboardMode(), hasFocusGrab, hasFocusGrab && wantsOutsideDismiss, false);
   const PanelKeyboardPlan attachedKeyboardPlan =
-      resolvePanelKeyboardPlan(m_activePanel->keyboardMode(), hasFocusGrab, hasFocusGrab && wantsOutsideDismiss, true);
+      resolvePanelKeyboardPlan(m_islandHoverOpen ? LayerShellKeyboard::None : m_activePanel->keyboardMode(), hasFocusGrab, hasFocusGrab && wantsOutsideDismiss, true);
 
   if (wantsOutsideDismiss) {
     activateClickShield(panelLayer);
@@ -1115,6 +1120,20 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
       surfaceX = visualX - crossOutsetStart;
       surfaceY = barIsBottom ? visualY - mainBleedAway : visualY;
     }
+    if (m_islandPresentation) {
+      m_islandBar = barConfig;
+      m_islandOutputWidth = outputWidth;
+      m_islandOutputHeight = outputHeight;
+      const auto neck = std::max(0, barConfig.thickness);
+      if (barIsVertical) {
+        surfaceWidth += static_cast<std::uint32_t>(neck);
+        if (barIsLeft) surfaceX -= neck;
+      } else {
+        surfaceHeight += static_cast<std::uint32_t>(neck);
+        if (!barIsBottom) surfaceY -= neck;
+      }
+    }
+
     // Keep the surface origin on the output by trimming overhang past the start edges;
     // the trimmed bleed is off-screen anyway. Hyprland picks a layer popup's monitor
     // from the parent surface's top-left corner, so an origin on a neighboring output
@@ -1128,6 +1147,8 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
       surfaceY = 0;
     }
 
+    m_islandSurfaceX = static_cast<float>(surfaceX);
+    m_islandSurfaceY = static_cast<float>(surfaceY);
     m_panelInsetX = visualX - surfaceX;
     m_panelInsetY = visualY - surfaceY;
     m_panelVisualWidth = panelWidth;
@@ -1197,7 +1218,7 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
     // config edge; subtracting the bar's own reservation on the main axis avoids
     // double-counting it. With no other reservation this matches the old absolute
     // placement; it self-corrects by the external reservation when one exists.
-    const std::int32_t barReserved = barConfig.reserveSpace ? reservedBarEdgeDistance(barConfig, shadowConfig) : 0;
+    const std::int32_t barReserved = !barConfig.screenWrap && barConfig.reserveSpace ? reservedBarEdgeDistance(barConfig, shadowConfig) : 0;
     std::uint32_t attachedAnchor = LayerShellAnchor::Top | LayerShellAnchor::Left;
     std::int32_t attachedMarginTop = surfaceY;
     std::int32_t attachedMarginRight = 0;
@@ -1223,7 +1244,7 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
         .anchor = attachedAnchor,
         .width = surfaceWidth,
         .height = surfaceHeight,
-        .exclusiveZone = 0,
+        .exclusiveZone = barConfig.screenWrap ? -1 : 0,
         .marginTop = attachedMarginTop,
         .marginRight = attachedMarginRight,
         .marginBottom = attachedMarginBottom,
@@ -1661,6 +1682,8 @@ void PanelManager::destroyPanel() {
     m_activePanel->onClose();
   }
   m_bgNode = nullptr;
+  m_islandFrame = nullptr;
+  m_islandFrameProvider = {};
   m_contentNode = nullptr;
   m_detachedRevealClipNode = nullptr;
   m_detachedRevealContentNode = nullptr;
@@ -1785,6 +1808,19 @@ bool PanelManager::onPointerEvent(const PointerEvent& event) {
   }
   if (!isOpen() || m_inTransition) {
     return false;
+  }
+
+  if (m_islandPresentation && event.surface == m_wlSurface
+      && event.type == PointerEvent::Type::Button && event.pressed) {
+    // The native host owns the neck while open, so an explicit click on that
+    // neck must pin here rather than waiting for the hidden compact surface.
+    const auto& edge = m_islandBar.position;
+    const float neck = static_cast<float>(m_islandBar.thickness);
+    const bool onNeck = edge == "top" ? event.sy < neck
+        : edge == "bottom" ? event.sy >= static_cast<float>(m_surface->height()) - neck
+        : edge == "left" ? event.sx < neck : event.sx >= static_cast<float>(m_surface->width()) - neck;
+    if (onNeck) m_islandPinned = true;
+    promoteIslandInteraction();
   }
 
   if (m_selectPopup != nullptr && m_selectPopup->isSelectDropdownOpen()) {
@@ -2213,8 +2249,24 @@ void PanelManager::onKeyboardEvent(const KeyboardEvent& event) {
   }
 }
 
+void PanelManager::promoteIslandInteraction() {
+  if (!m_islandPresentation || !m_islandHoverOpen) return;
+  m_islandHoverOpen = false;
+  if (m_layerSurface && m_activePanel && m_activePanel->keyboardMode() != LayerShellKeyboard::None) {
+    m_layerSurface->setKeyboardInteractivity(LayerShellKeyboard::Exclusive);
+    const auto generation = m_destroyGeneration;
+    m_keyboardRelaxTimer.start(std::chrono::milliseconds(180), [this, generation] {
+      if (generation == m_destroyGeneration && isOpen() && !m_closing)
+        applyKeyboardRelaxation(LayerShellKeyboard::OnDemand);
+    });
+  }
+}
+
 bool PanelManager::pointerHoldsPanel() const noexcept {
-  return m_pointerInside
+  return (m_islandPresentation && m_islandPinned)
+      || (m_islandPresentation && m_inputDispatcher.focusedArea()
+          && m_inputDispatcher.focusedArea()->retainsFocusOnPointerRelease())
+      || m_pointerInside
       || m_attachedPopupCount > 0
       || m_activePopup != nullptr
       || m_inputDispatcher.pointerCaptured()
@@ -2267,10 +2319,10 @@ void PanelManager::applyAttachedReveal(float progress) {
     m_attachedRevealContentNode->setPosition(contentX, contentY);
     m_attachedRevealContentNode->setFrameSize(w, h);
   }
+  const bool side = m_attachedRevealDirection == AttachedRevealDirection::Left
+      || m_attachedRevealDirection == AttachedRevealDirection::Right;
   float clipX = 0.0F, clipY = 0.0F, clipW = w, clipH = h;
   if (m_islandPresentation && m_attachedRevealContentNode != nullptr) {
-    const bool side = m_attachedRevealDirection == AttachedRevealDirection::Left
-        || m_attachedRevealDirection == AttachedRevealDirection::Right;
     const float extent = side ? panelH : panelW;
     const float cross = m_islandCompactExtent + (extent - m_islandCompactExtent) * m_attachedRevealProgress;
     const float inset = ((side ? h : w) - cross) / 2.0F;
@@ -2289,12 +2341,47 @@ void PanelManager::applyAttachedReveal(float progress) {
     m_panelContactShadowNode->setOpacity(m_attachedRevealProgress);
   }
 
-  if (m_islandPresentation) applyAttachedDecorationStyle();
+  if (m_islandPresentation) {
+    placePanelChrome();
+    if (m_islandFrame != nullptr) {
+      ScreenFrameContour contour;
+      contour.width = static_cast<float>(m_islandOutputWidth);
+      contour.height = static_cast<float>(m_islandOutputHeight);
+      contour.rail = static_cast<float>(m_islandBar.wrapWidth);
+      contour.radius = static_cast<float>(m_islandBar.wrapRadius);
+      contour.depth = static_cast<float>(m_islandBar.thickness) + (side ? panelW : panelH) * m_attachedRevealProgress;
+      contour.islandRadius = std::min(static_cast<float>(m_islandBar.radius), static_cast<float>(m_islandBar.thickness) / 2);
+      contour.join = 2.0F * std::min(contour.islandRadius, (static_cast<float>(m_islandBar.thickness) - contour.rail) / 2);
+      contour.edge = m_attachedBarPosition == "right" ? 1 : m_attachedBarPosition == "bottom" ? 2 : m_attachedBarPosition == "left" ? 3 : 0;
+      const float extent = side ? panelH : panelW;
+      const float cross = std::lerp(m_islandCompactExtent, extent, m_attachedRevealProgress);
+      const float center = side ? m_islandSurfaceY + static_cast<float>(m_panelInsetY) + panelH / 2
+                                : m_islandSurfaceX + static_cast<float>(m_panelInsetX) + panelW / 2;
+      contour.islands[1] = {center - cross / 2, center + cross / 2};
+      const float opacity = std::lerp(m_islandBarOpacity, m_attachedBackgroundOpacity, m_attachedRevealProgress);
+      m_islandFrame->setVisible(m_attachedRevealProgress > 0.001F);
+      m_islandFrame->setSize(w, h);
+      auto shared = m_islandFrameProvider ? m_islandFrameProvider() : ScreenFrameStyle{};
+      if (!shared.contour.bands.empty()) {
+        for (auto& band : shared.contour.bands) if (band.name == m_sourceBarName) {
+          band.spans = contour.islands;
+          band.depth = static_cast<float>(m_islandBar.marginEdge) + contour.depth;
+          band.fill = colorForRole(ColorRole::Surface, opacity);
+        }
+        shared.offsetX = m_islandSurfaceX; shared.offsetY = m_islandSurfaceY;
+        shared.exclusion = {};
+        m_islandFrame->setStyle(shared);
+      } else {
+        m_islandFrame->setStyle({contour, colorForRole(ColorRole::Surface, opacity), resolveColorSpec(m_islandBar.border),
+                                m_islandBar.borderWidth, m_islandSurfaceX, m_islandSurfaceY});
+      }
+    }
+  }
   publishAttachedPanelGeometry(m_attachedRevealProgress);
-  const int bodyX = m_panelInsetX + static_cast<int>(std::lround(contentX));
-  const int bodyY = m_panelInsetY + static_cast<int>(std::lround(contentY));
+  const int bodyX = m_islandPresentation && m_islandFrame == nullptr ? static_cast<int>(std::lround(m_bgNode->x() + contentX)) : m_panelInsetX + static_cast<int>(std::lround(contentX));
+  const int bodyY = m_islandPresentation && m_islandFrame == nullptr ? static_cast<int>(std::lround(m_bgNode->y() + contentY)) : m_panelInsetY + static_cast<int>(std::lround(contentY));
   applyPanelCompositorBlur(
-      bodyX, bodyY, static_cast<int>(m_panelVisualWidth), static_cast<int>(m_panelVisualHeight),
+      bodyX, bodyY, static_cast<int>(m_islandPresentation && m_islandFrame == nullptr ? m_bgNode->width() : m_panelVisualWidth), static_cast<int>(m_islandPresentation && m_islandFrame == nullptr ? m_bgNode->height() : m_panelVisualHeight),
       static_cast<int>(std::lround(clipX)), static_cast<int>(std::lround(clipY)), static_cast<int>(std::lround(clipW)),
       static_cast<int>(std::lround(clipH))
   );
@@ -2392,6 +2479,8 @@ void PanelManager::publishAttachedPanelGeometry(float revealProgress) {
     const bool vertical = m_attachedRevealDirection == AttachedRevealDirection::Left
         || m_attachedRevealDirection == AttachedRevealDirection::Right;
     geometry.islandExtent = (vertical ? geometry.height : geometry.width) - 2.0F * geometry.cornerRadius;
+    geometry.islandDepth = static_cast<float>(m_islandBar.thickness) + (vertical ? geometry.width : geometry.height) * progress;
+    geometry.islandSurface = {m_islandSurfaceX, m_islandSurfaceY, static_cast<float>(m_surface->width()), static_cast<float>(m_surface->height())};
   }
 
   // The bar-side concave bulges only enter the visible clip during the last
@@ -2465,6 +2554,24 @@ void PanelManager::applyPanelCompositorBlur(
     return;
   }
 
+  if (m_islandPresentation && m_islandFrame != nullptr) {
+    if (m_platform->wayland().hasBackgroundEffectBlur()) {
+      std::vector<InputRect> region;
+      const auto& style = m_islandFrame->style();
+      if (m_attachedRevealProgress > 0.001F)
+        for (int y = 0; y < static_cast<int>(m_surface->height()); ++y) {
+          int begin = -1;
+          for (int x = 0; x <= static_cast<int>(m_surface->width()); ++x) {
+            const bool inside = x < static_cast<int>(m_surface->width()) && screenFrameDistance(style.contour, static_cast<float>(x) + style.offsetX + 0.5F, static_cast<float>(y) + style.offsetY + 0.5F) < 0;
+            if (inside && begin < 0) begin = x;
+            if (!inside && begin >= 0) { region.push_back({begin, y, x - begin, 1}); begin = -1; }
+          }
+        }
+      m_surface->setBlurRegion(region);
+    }
+    return;
+  }
+
   if (blurTraceEnabled()) {
     kLog.debug(
         "blur-trace panel-blur-input mode={} progress={:.3F} phase={} surface={}x{} body={}:{}+{}x{} "
@@ -2487,7 +2594,7 @@ void PanelManager::applyPanelCompositorBlur(
   const CornerShapes corners = m_attachedToBar && !m_islandPresentation ? attached_panel::cornerShapes(m_attachedBarPosition) : CornerShapes{};
   const RectInsets logicalInset =
       m_attachedToBar && !m_islandPresentation ? attached_panel::logicalInset(m_attachedBarPosition, radius) : RectInsets{};
-  const Radii radii = m_attachedToBar && m_islandPresentation ? dynamic_island_style::panelRadii(m_attachedBarPosition, radius) : Radii{radius, radius, radius, radius};
+  const Radii radii = Radii{radius, radius, radius, radius};
   auto strips = Surface::tessellateShape(bodyX, bodyY, bodyW, bodyH, corners, logicalInset, radii);
   if (strips.empty()) {
     if (blurTraceEnabled()) {
@@ -2549,7 +2656,7 @@ void PanelManager::applyAttachedDecorationStyle() {
   if (m_panelShadowNode != nullptr && m_config != nullptr) {
     const auto& shadowConfig = m_config->config().shell.shadow;
     const bool panelShadow =
-        m_config->config().shell.panel.shadow && shell::surface_shadow::enabled(true, shadowConfig);
+        !m_islandPresentation && m_config->config().shell.panel.shadow && shell::surface_shadow::enabled(true, shadowConfig);
     m_panelShadowNode->setVisible(panelShadow);
     if (panelShadow) {
       const RoundedRectStyle shadowStyle = shell::surface_shadow::style(
@@ -2630,7 +2737,7 @@ void PanelManager::onConfigReloaded() {
   if (m_panelShadowNode != nullptr) {
     const auto& shadowConfig = m_config->config().shell.shadow;
     const bool panelShadow =
-        m_config->config().shell.panel.shadow && shell::surface_shadow::enabled(true, shadowConfig);
+        !m_islandPresentation && m_config->config().shell.panel.shadow && shell::surface_shadow::enabled(true, shadowConfig);
     m_panelShadowNode->setVisible(panelShadow);
     if (!m_attachedToBar && panelShadow) {
       const float shadowRadius = Style::scaledRadiusXl(m_activePanel->contentScale());
@@ -2659,7 +2766,12 @@ void PanelManager::onConfigReloaded() {
   }
   const auto& barConfig = *barConfigOpt;
   bool changed = false;
+  if (m_islandPresentation && m_bgNode != nullptr) {
+    static_cast<Box*>(m_bgNode)->setBorder(barConfig.border, barConfig.borderWidth);
+    changed = true;
+  }
   if (m_islandPresentation || m_activePanel->inheritsBarBackgroundOpacity()) {
+    m_islandBar = barConfig;
     m_islandBarOpacity = barConfig.backgroundOpacity;
     const float newOpacity = m_islandPresentation ? shell::panel_surface::backgroundOpacity(m_config) : barConfig.backgroundOpacity;
     if (std::abs(newOpacity - m_attachedBackgroundOpacity) >= 0.001F) {
@@ -2702,6 +2814,12 @@ void PanelManager::buildScene(std::uint32_t width, std::uint32_t height) {
     }
     m_sceneRoot->setSize(w, h);
 
+    if (m_islandPresentation && m_islandBar.screenWrap) {
+      auto frame = std::make_unique<ScreenFrameNode>();
+      frame->setHitTestVisible(false);
+      m_islandFrame = static_cast<ScreenFrameNode*>(m_sceneRoot->addChild(std::move(frame)));
+    }
+
     Node* sceneParent = m_sceneRoot.get();
     if (m_attachedToBar) {
       auto revealClip = ui::node({});
@@ -2725,7 +2843,7 @@ void PanelManager::buildScene(std::uint32_t width, std::uint32_t height) {
       auto shadow = ui::box({});
       m_panelShadowNode = static_cast<Box*>(sceneParent->addChild(std::move(shadow)));
       m_panelShadowNode->setZIndex(-1);
-      m_panelShadowNode->setVisible(m_config->config().shell.panel.shadow);
+      m_panelShadowNode->setVisible(!m_islandPresentation && m_config->config().shell.panel.shadow);
     }
 
     if (hasDecoration) {
@@ -2735,9 +2853,13 @@ void PanelManager::buildScene(std::uint32_t width, std::uint32_t height) {
       if (m_attachedToBar) {
         const float radius = Style::scaledRadiusXl(m_activePanel->contentScale());
         bg->clearBorder();
+        if (m_islandPresentation && m_barConfigProvider) {
+          if (const auto bar = m_barConfigProvider(m_output, m_sourceBarName))
+            bg->setBorder(bar->border, bar->borderWidth);
+        }
         bg->setCornerShapes(m_islandPresentation ? CornerShapes{} : attached_panel::cornerShapes(m_attachedBarPosition));
         bg->setLogicalInset(m_islandPresentation ? RectInsets{} : attached_panel::logicalInset(m_attachedBarPosition, radius));
-        bg->setRadii(m_islandPresentation ? dynamic_island_style::panelRadii(m_attachedBarPosition, radius) : Radii{radius, radius, radius, radius});
+        bg->setRadii(Radii{radius, radius, radius, radius});
         // Fill (opacity-dependent) is applied via applyAttachedDecorationStyle() below.
       } else {
         const float backgroundOpacity = shell::panel_surface::backgroundOpacity(m_config);
@@ -2879,15 +3001,17 @@ void PanelManager::placePanelChrome() {
   const float attachedRadius = m_attachedToBar && !m_islandPresentation ? Style::scaledRadiusXl(m_activePanel->contentScale()) : 0.0F;
   const bool barIsVertical = m_attachedToBar && (m_attachedBarPosition == "left" || m_attachedBarPosition == "right");
   // The bg extends past the body along the bar cross axis for concave-corner notches.
-  const float bgX = barIsVertical ? panelX : panelX - attachedRadius;
-  const float bgY = barIsVertical ? panelY - attachedRadius : panelY;
-  const float bgW = barIsVertical ? panelW : panelW + attachedRadius * 2.0F;
-  const float bgH = barIsVertical ? panelH + attachedRadius * 2.0F : panelH;
+  const float cross = m_islandPresentation
+      ? std::lerp(m_islandCompactExtent, barIsVertical ? panelH : panelW, m_attachedRevealProgress) : 0;
+  const float bgX = m_islandPresentation && !barIsVertical ? panelX + (panelW - cross) / 2 : barIsVertical ? panelX : panelX - attachedRadius;
+  const float bgY = m_islandPresentation && barIsVertical ? panelY + (panelH - cross) / 2 : barIsVertical ? panelY - attachedRadius : panelY;
+  const float bgW = m_islandPresentation && !barIsVertical ? cross : barIsVertical ? panelW : panelW + attachedRadius * 2.0F;
+  const float bgH = m_islandPresentation && barIsVertical ? cross : barIsVertical ? panelH + attachedRadius * 2.0F : panelH;
 
   if (m_panelShadowNode != nullptr && m_config != nullptr) {
     const auto& shadowConfig = m_config->config().shell.shadow;
     const bool panelShadow =
-        m_config->config().shell.panel.shadow && shell::surface_shadow::enabled(true, shadowConfig);
+        !m_islandPresentation && m_config->config().shell.panel.shadow && shell::surface_shadow::enabled(true, shadowConfig);
     m_panelShadowNode->setVisible(panelShadow);
     const auto shadowOff = shadowDirectionOffset(shadowConfig.direction);
     const auto shadowOffsetX = static_cast<float>(shadowOff.x);
@@ -2907,8 +3031,17 @@ void PanelManager::placePanelChrome() {
   }
 
   if (m_bgNode != nullptr) {
-    m_bgNode->setPosition(bgX, bgY);
-    m_bgNode->setSize(bgW, bgH);
+    RectInsets extension;
+    if (m_islandPresentation) {
+      const float neck = static_cast<float>(m_islandBar.thickness);
+      if (m_attachedBarPosition == "top") extension.top = neck;
+      else if (m_attachedBarPosition == "bottom") extension.bottom = neck;
+      else if (m_attachedBarPosition == "left") extension.left = neck;
+      else extension.right = neck;
+      m_bgNode->setVisible(!m_islandBar.screenWrap && m_attachedRevealProgress > 0.001F);
+    }
+    m_bgNode->setPosition(bgX - extension.left, bgY - extension.top);
+    m_bgNode->setSize(bgW + extension.left + extension.right, bgH + extension.top + extension.bottom);
   }
 
   if (m_panelContactShadowNode != nullptr) {

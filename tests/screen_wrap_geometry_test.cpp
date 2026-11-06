@@ -1,6 +1,7 @@
 #include "render/core/screen_frame_geometry.h"
-#include "shell/bar/screen_wrap_geometry.h"
 #include "shell/bar/dynamic_island_style.h"
+#include "shell/bar/screen_wrap_geometry.h"
+#include "shell/bar/wrap_layout.h"
 #include "shell/settings/settings_registry.h"
 
 #include <cassert>
@@ -58,10 +59,71 @@ int main() {
       assert(screenFrameDistance(neck, x, y) < -2.0F);
     }
   }
+  const auto topStroke = dynamic_island_style::outlineExtension("top", 2);
+  const auto bottomStroke = dynamic_island_style::outlineExtension("bottom", 2);
+  const auto leftStroke = dynamic_island_style::outlineExtension("left", 2);
+  const auto rightStroke = dynamic_island_style::outlineExtension("right", 2);
+  assert(topStroke.top > 2 && topStroke.left == 0 && topStroke.right == 0 && topStroke.bottom == 0);
+  assert(bottomStroke.bottom > 2 && bottomStroke.top == 0);
+  assert(leftStroke.left > 2 && leftStroke.right == 0);
+  assert(rightStroke.right > 2 && rightStroke.left == 0);
+  assert(dynamic_island_style::outlineExtension("top", 0).top == 0);
   assert(dynamic_island_style::panelRadii("top", 16) == Radii(0, 0, 16, 16));
   assert(dynamic_island_style::panelRadii("bottom", 16) == Radii(16, 16, 0, 0));
   assert(dynamic_island_style::panelRadii("left", 16) == Radii(0, 16, 16, 0));
   assert(dynamic_island_style::panelRadii("right", 16) == Radii(16, 0, 0, 16));
+  {
+    BarConfig top, left;
+    top.name = "top";
+    top.screenWrap = true;
+    top.surfaceMode = "full";
+    top.position = "top";
+    top.thickness = 50;
+    left = top;
+    left.name = "left";
+    left.position = "left";
+    left.thickness = 40;
+    std::vector<BarConfig> bars{top, left};
+    const auto t = screen_wrap::tracks(bars, 0), l = screen_wrap::tracks(bars, 1);
+    assert(t.offset == 0 && l.offset == 0 && t.endInset >= 40 && l.endInset >= 50);
+    bars.push_back(left);
+    assert(screen_wrap::tracks(bars, 2).offset == 40);
+    std::array<int, 3> requests{50, 40, 80};
+    bars[0].wrapClearance = 12;
+    bars[1].wrapClearance = 8;
+    const auto zones = screen_wrap::reservations(bars, requests);
+    assert(zones[0] == 62 && zones[3] == 92 && zones[1] == 18 && zones[2] == 18);
+    auto contour = ScreenFrameContour{};
+    contour.width = 1000;
+    contour.height = 600;
+    ScreenFrameBand a;
+    a.name = "top";
+    a.edge = 0;
+    a.depth = 50;
+    a.radius = 12;
+    a.join = 24;
+    a.spans[0] = {-50, 1050};
+    auto b = a;
+    b.name = "left";
+    b.edge = 3;
+    b.depth = 40;
+    b.spans[0] = {-40, 640};
+    contour.bands = {a, b};
+    assert(screenFrameDistance(contour, 20, 20) < -2);
+    assert(screenFrameDistance(contour, 40, 50) < 0);
+    assert(screenFrameDistance(contour, 90, 90) > 0);
+    auto mixed = bars;
+    mixed[2].wrapWidth = 20;
+    const auto mixedZones = screen_wrap::reservations(mixed, std::array<int, 3>{50, 40, 0});
+    assert(mixedZones[1] == 32 && mixedZones[2] == 32); // shared rail includes a non-reserving bar's request
+    auto expanded = contour;
+    expanded.bands[0].depth = 300; // transient native panel cannot change work-area requests
+    assert(screenFrameDistance(expanded, 500, 200) < 0);
+    assert(screen_wrap::reservations(bars, requests) == zones);
+    auto limited = screen_wrap::boundedReservations({500, 500, 500, 500}, 853, 533);
+    assert(limited[0] + limited[2] == 532 && limited[1] + limited[3] == 852);
+    assert((screen_wrap::reservations(bars, std::array<int, 3>{}) == std::array<int, 4>{}));
+  }
   const auto square = screen_wrap::geometry(3440, 1440, 6, 0, 50, "top", false, 2);
   assert(square.radius == 0 && square.strips[0].height == 8 && square.strips[2].width == 8);
   Config config;
@@ -76,7 +138,7 @@ int main() {
   config.bars = {bar};
   for (bool perMonitor : {false, true}) {
     const auto entries = settings::buildSettingsRegistry(config, &bar, perMonitor ? &monitor : nullptr);
-    for (auto key : {"screen_wrap", "wrap_width", "wrap_radius", "wrap_join_distance"}) {
+    for (auto key : {"screen_wrap", "wrap_width", "wrap_clearance", "wrap_radius", "wrap_join_distance"}) {
       const std::vector<std::string> path = perMonitor
           ? std::vector<std::string>{"bar", "default", "monitor", "DP-1", key}
           : std::vector<std::string>{"bar", "default", key};
@@ -86,6 +148,70 @@ int main() {
       if (std::string_view(key) == "screen_wrap")
         assert(std::get<settings::ToggleSetting>(entry->control).checked == !perMonitor);
     }
+  }
+  // Visibility follows live base/monitor choices, not the config used to build the registry.
+  // Hidden values remain stored and reappear when their feature is enabled again.
+  {
+    const auto entries = settings::buildSettingsRegistry(config, &bar, nullptr);
+    const auto visible = [&](std::string key, bool perMonitor = false) {
+      const auto path = perMonitor
+          ? std::vector<std::string>{"bar", "default", "monitor", "DP-1", key}
+          : std::vector<std::string>{"bar", "default", key};
+      const auto entry = std::ranges::find(entries, path, &settings::SettingEntry::path);
+      assert(entry != entries.end());
+      return !entry->visibleWhen || entry->visibleWhen(config);
+    };
+    auto& b = config.bars[0];
+    b.surfaceMode = "full";
+    assert(visible("surface_mode") && visible("screen_wrap"));
+    assert(!visible("dynamic_media") && visible("start") && visible("dynamic_center"));
+    assert(visible("wrap_width") && !visible("wrap_width", true));
+    assert(!visible("wrap_join_distance") && !visible("margin_edge") && !visible("shadow"));
+    b.surfaceMode = "islands";
+    assert(visible("wrap_join_distance") && visible("start"));
+    b.surfaceMode = "dynamic";
+    assert(visible("dynamic_media") && visible("dynamic_clock_format"));
+    assert(!visible("wrap_join_distance"));
+    assert(!visible("start") && !visible("capsule") && !visible("dynamic_center"));
+    assert(visible("font_family") && visible("font_weight") && visible("font_family", true));
+    assert(visible("dynamic_privacy") && visible("dynamic_devices") && visible("dynamic_activity_indicators"));
+    assert(visible("dynamic_visualizer"));
+    b.dynamicMedia = false;
+    assert(!visible("dynamic_visualizer"));
+    b.dynamicMedia = true;
+    assert(!visible("auto_hide") && !visible("padding") && !visible("panel_overlap"));
+    b.dynamicTimers = false;
+    b.dynamicAlarms = false;
+    assert(!visible("dynamic_timer_seconds") && !visible("dynamic_alarm_time"));
+    assert(!visible("dynamic_snooze_seconds"));
+    b.dynamicTimers = true;
+    b.dynamicAlarms = true;
+    assert(visible("dynamic_timer_seconds") && visible("dynamic_alarm_time"));
+    assert(visible("dynamic_snooze_seconds"));
+    b.reserveSpace = false;
+    assert(!visible("wrap_clearance"));
+    b.reserveSpace = true;
+    assert(visible("wrap_clearance"));
+    b.transparencyMode = BarTransparencyMode::Soft;
+    assert(!visible("background_opacity"));
+    b.transparencyMode = BarTransparencyMode::Custom;
+    assert(visible("background_opacity"));
+    auto& o = b.monitorOverrides[0];
+    o.surfaceMode = "full";
+    o.transparencyMode = BarTransparencyMode::Glass;
+    assert(!visible("dynamic_media", true) && visible("start", true));
+    assert(!visible("background_opacity", true));
+    o.surfaceMode.reset();
+    o.screenWrap.reset();
+    assert(visible("dynamic_media", true) && visible("wrap_width", true));
+    o.dynamicTimers = false;
+    assert(!visible("dynamic_timer_seconds", true) && visible("dynamic_timer_seconds"));
+    b.screenWrap = false;
+    assert(!visible("wrap_width") && !visible("wrap_width", true));
+    assert(visible("margin_edge"));
+    b.surfaceMode = "full";
+    assert(visible("start") && visible("shadow") && !visible("dynamic_media"));
+    assert(b.dynamicTimers && !o.dynamicTimers.value());
   }
   for (auto edge : {"top", "bottom", "left", "right"}) {
     for (bool full : {false, true}) {

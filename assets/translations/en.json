@@ -2053,9 +2053,13 @@
           "label": "Screen Wrap",
           "description": "Connect the bar sections with a rounded frame around the screen. Works with Full Bar and Islands; attaches the bar to its chosen edge while enabled. Use one wrapped bar per monitor."
         },
+        "wrap-clearance": {
+          "label": "Window Clearance",
+          "description": "Additional logical pixels between the shared frame/bar footprint and the compositor work area. Requires Reserve Space; the largest request on this display wins. Does not move the frame or follow island animations."
+        },
         "wrap-width": {
           "label": "Frame Width",
-          "description": "Thickness of the screen-edge rails in logical pixels"
+          "description": "Thickness of the shared screen-edge rails in logical pixels; the largest wrapped-bar request on this display wins"
         },
         "wrap-join-distance": {
           "label": "Corner Join Distance",
@@ -2063,7 +2067,7 @@
         },
         "wrap-radius": {
           "label": "Frame Rounding",
-          "description": "Radius of the rounded desktop opening in logical pixels"
+          "description": "Radius of the shared desktop opening in logical pixels; the largest wrapped-bar request on this display wins"
         },
         "dynamic-notifications": {"label": "Island Notifications", "description": "Route eligible notifications and their actions into Dynamic Island; respects filters and Do Not Disturb"},
         "dynamic-timers": {"label": "Island Timers", "description": "Show the shared session countdown with a compact cancel control"},
@@ -2072,6 +2076,10 @@
         "dynamic-timer-seconds": {"label": "Island Timer Duration", "description": "Default countdown duration in seconds for the island-activity timer-start action"},
         "dynamic-alarm-time": {"label": "Island Alarm Time", "description": "Local HH:MM for the next one-shot alarm-arm action. The shell must remain running"},
         "dynamic-snooze-seconds": {"label": "Island Snooze Duration", "description": "Alarm snooze duration in seconds"},
+        "dynamic-activity-indicators": {"label": "Activity Indicators", "description": "Keep running timer and microphone, camera or screen-capture indicators visible beside compact feedback"},
+        "dynamic-privacy": {"label": "Privacy Feedback", "description": "Route existing microphone, camera and screen-capture feedback into the island"},
+        "dynamic-devices": {"label": "Device Feedback", "description": "Route existing Wi-Fi, Bluetooth and power-profile feedback into the island"},
+        "dynamic-visualizer": {"label": "Compact Visualiser", "description": "Show the existing audio spectrum beneath compact media feedback; no additional player or capture service"},
         "dynamic-media": {"label": "Island Media", "description": "Show track changes, playback starting/resuming and an expandable player in Dynamic Island mode"},
         "dynamic-volume": {"label": "Island Volume", "description": "Route volume and microphone feedback into Dynamic Island instead of the ordinary OSD"},
         "dynamic-brightness": {"label": "Island Brightness", "description": "Route brightness feedback into Dynamic Island instead of the ordinary OSD"},

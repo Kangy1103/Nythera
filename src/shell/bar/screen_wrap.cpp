@@ -1,321 +1,314 @@
 #include "shell/bar/screen_wrap.h"
 
+#include "core/log.h"
 #include "core/ui_phase.h"
-#include "render/scene/screen_corner_node.h"
 #include "render/scene/screen_frame_node.h"
+#include "shell/bar/wrap_layout.h"
 #include "ui/builders.h"
-#include "ui/controls/screen_corner.h"
 #include "ui/palette.h"
+#include "wayland/wayland_connection.h"
 
 #include <cmath>
+#include <map>
+
+struct ScreenWrap::Shared {
+  struct Contribution {
+    BarConfig config;
+    std::array<ScreenFrameSpan, 3> spans{};
+    float depth = 0, opacity = 1;
+    LayerShellLayer layer = LayerShellLayer::Top;
+    int reservation = 0;
+    InputRect hole{};
+  };
+  struct Strip {
+    std::unique_ptr<LayerSurface> surface;
+    std::unique_ptr<Node> root;
+    screen_wrap::Rect rect{};
+  };
+  WaylandConnection& wayland;
+  RenderContext* renderer;
+  wl_output* output;
+  int width, height;
+  std::map<std::size_t, Contribution> bars;
+  std::array<Strip, 4> strips, reservations;
+  ScreenFrameStyle material;
+
+  Shared(WaylandConnection& w, RenderContext* r, wl_output* o, int x, int y)
+      : wayland(w), renderer(r), output(o), width(x), height(y) {}
+
+  std::vector<InputRect> blurRegion(const screen_wrap::Rect& rect) const {
+    std::vector<InputRect> result;
+    // This fallback is only needed for compositors advertising client blur
+    // regions. Umbriel uses its layer rules and never pays for this tessellation.
+    if (!wayland.hasBackgroundEffectBlur())
+      return result;
+    for (int y = 0; y < rect.height; ++y) {
+      int start = -1;
+      for (int x = 0; x <= rect.width; ++x) {
+        const float gx = static_cast<float>(rect.x + x) + 0.5F;
+        const float gy = static_cast<float>(rect.y + y) + 0.5F;
+        const auto& h = material.exclusion;
+        const bool excluded = h[2] > 0 && gx >= h[0] && gy >= h[1] && gx < h[0] + h[2] && gy < h[1] + h[3];
+        const bool inside = x < rect.width && !excluded && screenFrameDistance(material.contour, gx, gy) < 0;
+        if (inside && start < 0)
+          start = x;
+        if (!inside && start >= 0) {
+          result.push_back({start, y, x - start, 1});
+          start = -1;
+        }
+      }
+    }
+    return result;
+  }
+
+  void buildStrip(std::size_t i) {
+    auto& strip = strips[i];
+    if (!strip.surface)
+      return;
+    if (!strip.root) {
+      strip.root = std::make_unique<ScreenFrameNode>();
+      strip.root->setHitTestVisible(false);
+      strip.surface->setSceneRoot(strip.root.get());
+    }
+    auto* node = static_cast<ScreenFrameNode*>(strip.root.get());
+    node->setSize(static_cast<float>(strip.rect.width), static_cast<float>(strip.rect.height));
+    auto style = material;
+    style.offsetX = static_cast<float>(strip.rect.x);
+    style.offsetY = static_cast<float>(strip.rect.y);
+    node->setStyle(style);
+
+    strip.surface->setInputRegion({});
+    const bool blur =
+        std::ranges::any_of(bars, [](const auto& p) { return p.second.config.compositorBlur && p.second.opacity > 0; });
+    if (blur && wayland.hasBackgroundEffectBlur())
+      strip.surface->setBlurRegion(blurRegion(strip.rect));
+    else
+      strip.surface->clearBlurRegion();
+    strip.surface->requestRedraw();
+  }
+
+  void reserveEdges() {
+    std::vector<BarConfig> configs;
+    std::vector<int> requests;
+    for (const auto& [id, bar] : bars) {
+      configs.push_back(bar.config);
+      requests.push_back(bar.reservation);
+    }
+    const auto requested = screen_wrap::reservations(configs, requests);
+    const auto zones = screen_wrap::boundedReservations(requested, width, height);
+    if (zones != requested) {
+      static constexpr Logger log("screen-wrap");
+      log.warn("requested frame clearance cannot fit output {}x{}; work-area reservations were bounded", width, height);
+    }
+    for (std::size_t i = 0; i < zones.size(); ++i) {
+      auto& strip = reservations[i];
+      if (!strip.surface && zones[i] > 0) {
+        const bool side = i == 1 || i == 3;
+        const auto edge = i == 0 ? LayerShellAnchor::Top
+            : i == 1             ? LayerShellAnchor::Right
+            : i == 2             ? LayerShellAnchor::Bottom
+                                 : LayerShellAnchor::Left;
+        const auto anchor = edge
+            | (side ? LayerShellAnchor::Top | LayerShellAnchor::Bottom
+                    : LayerShellAnchor::Left | LayerShellAnchor::Right);
+        strip.surface = std::make_unique<LayerSurface>(
+            wayland,
+            LayerSurfaceConfig{
+                .nameSpace = "noctalia-bar-reservation-" + std::to_string(i),
+                .layer = LayerShellLayer::Top,
+                .anchor = anchor,
+                .width = side ? 1U : 0U,
+                .height = side ? 0U : 1U,
+                .exclusiveZone = zones[i],
+                .defaultWidth = side ? 1U : static_cast<unsigned>(width),
+                .defaultHeight = side ? static_cast<unsigned>(height) : 1U
+            }
+        );
+        strip.surface->setClickThrough(true);
+        strip.surface->setRenderContext(renderer);
+        strip.surface->setConfigureCallback([this, i](std::uint32_t w, std::uint32_t h) {
+          auto& s = reservations[i];
+          s.root = ui::node({});
+          s.root->setSize(static_cast<float>(w), static_cast<float>(h));
+          s.root->setHitTestVisible(false);
+          s.surface->setSceneRoot(s.root.get());
+          s.surface->setInputRegion({});
+        });
+        if (!strip.surface->initialize(output))
+          strip.surface.reset();
+      }
+      if (strip.surface)
+        strip.surface->setExclusiveZone(zones[i]);
+    }
+  }
+
+  void refresh() {
+    if (bars.empty())
+      return;
+    UiPhaseScope phase(UiPhase::Layout);
+    const auto& primary = bars.begin()->second;
+    float visible = 0;
+    for (const auto& [id, b] : bars)
+      visible = std::max(visible, b.opacity);
+    int rail = 1, radius = 0, outline = 0;
+    auto layer = primary.layer;
+    for (const auto& [id, b] : bars) {
+      rail = std::max(rail, b.config.wrapWidth);
+      radius = std::max(radius, b.config.wrapRadius);
+      outline = std::max(outline, static_cast<int>(std::ceil(b.config.borderWidth)));
+      if (static_cast<unsigned>(b.layer) < static_cast<unsigned>(layer))
+        layer = b.layer;
+    }
+    auto geometry = screen_wrap::geometry(width, height, rail, radius, 0, "top", false, outline);
+    material = {};
+    material.contour.width = static_cast<float>(width);
+    material.contour.height = static_cast<float>(height);
+    material.contour.rail = static_cast<float>(geometry.left);
+    material.contour.radius = static_cast<float>(geometry.radius);
+    material.fill = colorForRole(ColorRole::Surface, primary.config.backgroundOpacity * visible);
+    material.border = resolveColorSpec(primary.config.border);
+    material.border.a *= visible;
+    material.borderWidth = primary.config.borderWidth;
+    for (const auto& [id, b] : bars) {
+      const auto& c = b.config;
+      const float stableDepth = static_cast<float>(c.marginEdge + c.thickness);
+      const float rounding = std::min(static_cast<float>(c.radius), static_cast<float>(c.thickness) / 2);
+      const float join = 2 * std::min(rounding, (static_cast<float>(c.thickness) - static_cast<float>(rail)) / 2);
+      screen_wrap::reserveIslandSpace(
+          geometry, c.position, static_cast<int>(std::ceil(stableDepth + std::max(0.0F, join))) + 1
+      );
+      if (b.opacity <= 0)
+        continue;
+      ScreenFrameBand band;
+      band.name = c.name;
+      band.edge = screen_wrap::edgeIndex(c.position);
+      band.outer = static_cast<float>(c.marginEdge);
+      band.depth = band.outer + b.depth;
+      band.radius = rounding;
+      band.join = std::max(0.0F, join);
+      band.spans = b.spans;
+      band.fill = colorForRole(ColorRole::Surface, c.backgroundOpacity * b.opacity);
+      band.border = resolveColorSpec(c.border);
+      band.border.a *= b.opacity;
+      band.borderWidth = c.borderWidth;
+      if (c.surfaceMode == "full") {
+        const float length = band.edge == 1 || band.edge == 3 ? static_cast<float>(height) : static_cast<float>(width);
+        band.spans = {ScreenFrameSpan{-stableDepth, length + stableDepth}, {}, {}};
+      } else {
+        band.spans = joinedScreenFrameSpans(
+            band.spans, band.edge == 1 || band.edge == 3 ? static_cast<float>(height) : static_cast<float>(width),
+            static_cast<float>(c.wrapJoinDistance), stableDepth
+        );
+      }
+      material.contour.bands.push_back(std::move(band));
+      if (b.hole.width > 0)
+        material.exclusion = {
+            static_cast<float>(b.hole.x), static_cast<float>(b.hole.y), static_cast<float>(b.hole.width),
+            static_cast<float>(b.hole.height)
+        };
+    }
+    for (std::size_t i = 0; i < strips.size(); ++i) {
+      auto& strip = strips[i];
+      const auto next = geometry.strips[i];
+      const bool moved = strip.rect.x != next.x
+          || strip.rect.y != next.y
+          || strip.rect.width != next.width
+          || strip.rect.height != next.height;
+      strip.rect = next;
+      if (!strip.surface) {
+        strip.surface = std::make_unique<LayerSurface>(
+            wayland,
+            LayerSurfaceConfig{
+                .nameSpace = "noctalia-bar-wrap-shared",
+                .layer = layer,
+                .anchor = LayerShellAnchor::Top | LayerShellAnchor::Left,
+                .width = static_cast<unsigned>(strip.rect.width),
+                .height = static_cast<unsigned>(strip.rect.height),
+                .exclusiveZone = -1,
+                .marginTop = strip.rect.y,
+                .marginLeft = strip.rect.x,
+                .defaultWidth = static_cast<unsigned>(strip.rect.width),
+                .defaultHeight = static_cast<unsigned>(strip.rect.height)
+            }
+        );
+        strip.surface->setClickThrough(true);
+        strip.surface->setRenderContext(renderer);
+        strip.surface->setConfigureCallback([this, i](std::uint32_t, std::uint32_t) { buildStrip(i); });
+        if (!strip.surface->initialize(output))
+          strip.surface.reset();
+      } else {
+        strip.surface->setLayer(layer);
+        if (moved) {
+          strip.surface->setMargins(strip.rect.y, 0, 0, strip.rect.x);
+          strip.surface->requestSize(static_cast<unsigned>(strip.rect.width), static_cast<unsigned>(strip.rect.height));
+        }
+      }
+      buildStrip(i);
+    }
+  }
+};
 
 ScreenWrap::ScreenWrap(
-    WaylandConnection& wayland, RenderContext* renderer, wl_output* output, const BarConfig& config, int width,
-    int height
+    WaylandConnection& w, RenderContext* r, wl_output* o, const BarConfig& config, int width, int height,
+    ScreenWrap* sibling, std::size_t priority
 )
-    : m_config(config), m_geometry(
-                            screen_wrap::geometry(
-                                width, height, config.wrapWidth, config.wrapRadius, config.thickness, config.position,
-                                config.surfaceMode == "full", static_cast<int>(std::ceil(config.borderWidth))
-                            )
-                        ) {
-  const bool islands = config.surfaceMode != "full";
-  m_contour.width = static_cast<float>(width);
-  m_contour.height = static_cast<float>(height);
-  m_contour.rail = static_cast<float>(config.wrapWidth);
-  m_contour.radius = static_cast<float>(m_geometry.radius);
-  m_contour.depth = static_cast<float>(config.thickness);
-  m_contour.islandRadius = std::min(static_cast<float>(config.radius), m_contour.depth / 2);
-  m_contour.join = 2.0F * std::min(m_contour.islandRadius, (m_contour.depth - m_contour.rail) / 2);
-  m_contour.edge = config.position == "right" ? 1 : config.position == "bottom" ? 2 : config.position == "left" ? 3 : 0;
-  if (islands) {
-    screen_wrap::reserveIslandSpace(
-        m_geometry, config.position, config.thickness + static_cast<int>(std::ceil(m_contour.join)) + 1
-    );
-  }
-  for (std::size_t i = 0; i < m_strips.size(); ++i) {
-    const auto rect = m_geometry.strips[i];
-    if (rect.width <= 0 || rect.height <= 0)
-      continue;
-    auto& strip = m_strips[i];
-    strip.surface = std::make_unique<LayerSurface>(
-        wayland,
-        LayerSurfaceConfig{
-            .nameSpace = "cyberpunk-screen-wrap-" + config.name,
-            .layer = layerShellLayerFromConfig(config.layer),
-            .anchor = LayerShellAnchor::Top | LayerShellAnchor::Left,
-            .width = static_cast<std::uint32_t>(rect.width),
-            .height = static_cast<std::uint32_t>(rect.height),
-            // Ignore existing exclusive zones: these are physical screen edges.
-            .exclusiveZone = -1,
-            .marginTop = rect.y,
-            .marginLeft = rect.x,
-            .defaultWidth = static_cast<std::uint32_t>(rect.width),
-            .defaultHeight = static_cast<std::uint32_t>(rect.height),
-            .prewarmBlur = config.compositorBlur,
-        }
-    );
-    strip.surface->setRenderContext(renderer);
-    auto* part = &strip;
-    strip.surface->setConfigureCallback([this, part, rect](std::uint32_t, std::uint32_t) {
-      UiPhaseScope phase(UiPhase::Layout);
-      build(*part, rect);
-    });
-    if (!strip.surface->initialize(output)) {
-      strip.surface.reset();
-      continue;
-    }
-    strip.surface->setInputRegion({});
+    : m_shared(sibling ? sibling->m_shared : std::make_shared<Shared>(w, r, o, width, height)), m_id(priority) {
+  auto& entry = m_shared->bars[m_id];
+  entry.config = config;
+  entry.depth = static_cast<float>(config.thickness);
+  entry.layer = layerShellLayerFromConfig(config.layer);
+  entry.reservation = config.reserveSpace ? config.marginEdge + config.thickness + config.marginOppositeEdge : 0;
+  m_shared->refresh();
+  m_shared->reserveEdges();
+}
+ScreenWrap::~ScreenWrap() {
+  m_shared->bars.erase(m_id);
+  if (!m_shared->bars.empty()) {
+    m_shared->refresh();
+    m_shared->reserveEdges();
   }
 }
-
-void ScreenWrap::build(Strip& strip, const screen_wrap::Rect& rect) {
-  const auto& g = m_geometry;
-  if (m_config.surfaceMode != "full") {
-    auto root = std::make_unique<ScreenFrameNode>();
-    root->setSize(static_cast<float>(rect.width), static_cast<float>(rect.height));
-    root->setStyle(frameStyle(rect));
-    root->setHitTestVisible(false);
-    root->setOpacity(m_opacity);
-    strip.root = std::move(root);
-    strip.surface->setSceneRoot(strip.root.get());
-    syncBlur(strip, rect);
-    return;
-  }
-  auto root = ui::node({});
-  root->setSize(static_cast<float>(rect.width), static_cast<float>(rect.height));
-  root->setClipChildren(true);
-  root->setHitTestVisible(false);
-  root->setOpacity(m_opacity);
-  const auto fill = colorForRole(ColorRole::Surface, m_config.backgroundOpacity);
-  auto addFill = [&](int x, int y, int w, int h) {
-    auto box = ui::box();
-    box->setPosition(static_cast<float>(x - rect.x), static_cast<float>(y - rect.y));
-    box->setSize(static_cast<float>(w), static_cast<float>(h));
-    box->setFill(fill);
-    root->addChild(std::move(box));
-  };
-  addFill(0, 0, g.width, g.top);
-  addFill(0, g.height - g.bottom, g.width, g.bottom);
-  addFill(0, g.top, g.left, g.height - g.top - g.bottom);
-  addFill(g.width - g.right, g.top, g.right, g.height - g.top - g.bottom);
-  if (g.radius > 0) {
-    const int xs[] = {g.left, g.width - g.right - g.radius, g.width - g.right - g.radius, g.left};
-    const int ys[] = {g.top, g.top, g.height - g.bottom - g.radius, g.height - g.bottom - g.radius};
-    for (int i = 0; i < 4; ++i) {
-      auto corner = std::make_unique<ScreenCorner>();
-      corner->setPosition(static_cast<float>(xs[i] - rect.x), static_cast<float>(ys[i] - rect.y));
-      corner->setSize(static_cast<float>(g.radius), static_cast<float>(g.radius));
-      corner->setCorner(static_cast<ScreenCornerPosition>(i));
-      corner->setExponent(2.0F);
-      corner->setColor(fill);
-      root->addChild(std::move(corner));
-    }
-  }
-  if (m_config.borderWidth > 0.0F) {
-    auto outline = ui::box();
-    outline->setPosition(static_cast<float>(g.left - rect.x), static_cast<float>(g.top - rect.y));
-    outline->setSize(static_cast<float>(g.width - g.left - g.right), static_cast<float>(g.height - g.top - g.bottom));
-    outline->setFill(Color{0, 0, 0, 0});
-    outline->setBorder(resolveColorSpec(m_config.border), m_config.borderWidth);
-    outline->setRadius(static_cast<float>(g.radius));
-    root->addChild(std::move(outline));
-  }
-  strip.root = std::move(root);
-  strip.surface->setSceneRoot(strip.root.get());
-  syncBlur(strip, rect);
-}
-
-void ScreenWrap::syncBlur(Strip& strip, const screen_wrap::Rect& rect) {
-  if (!m_config.compositorBlur || m_opacity <= 0.0F) {
-    strip.surface->clearBlurRegion();
-    return;
-  }
-  auto regions = blurRegion(rect);
-  if (m_foregroundHole.width > 0) {
-    std::vector<InputRect> clipped;
-    const InputRect hole{
-        m_foregroundHole.x - rect.x, m_foregroundHole.y - rect.y, m_foregroundHole.width, m_foregroundHole.height
-    };
-    for (const auto r : regions) {
-      const int left = std::max(r.x, hole.x), top = std::max(r.y, hole.y);
-      const int right = std::min(r.x + r.width, hole.x + hole.width);
-      const int bottom = std::min(r.y + r.height, hole.y + hole.height);
-      if (right <= left || bottom <= top) {
-        clipped.push_back(r);
-        continue;
-      }
-      if (top > r.y)
-        clipped.push_back({r.x, r.y, r.width, top - r.y});
-      if (bottom < r.y + r.height)
-        clipped.push_back({r.x, bottom, r.width, r.y + r.height - bottom});
-      if (left > r.x)
-        clipped.push_back({r.x, top, left - r.x, bottom - top});
-      if (right < r.x + r.width)
-        clipped.push_back({right, top, r.x + r.width - right, bottom - top});
-    }
-    regions = std::move(clipped);
-  }
-  strip.surface->setBlurRegion(regions);
-}
-
-std::vector<InputRect> ScreenWrap::blurRegion(const screen_wrap::Rect& rect) const {
-  // Blur only the painted frame, never the transparent desktop opening.
-  const auto& g = m_geometry;
-  std::vector<InputRect> regions;
-  auto add = [&](int begin, int end, int y) {
-    begin = std::max(begin, rect.x);
-    end = std::min(end, rect.x + rect.width);
-    if (end > begin)
-      regions.push_back({begin - rect.x, y - rect.y, end - begin, 1});
-  };
-  for (int y = rect.y; y < rect.y + rect.height; ++y) {
-    if (y < g.top || y >= g.height - g.bottom) {
-      add(0, g.width, y);
-      continue;
-    }
-    const float cornerY = std::max(
-        static_cast<float>(g.top + g.radius) - (static_cast<float>(y) + 0.5F),
-        static_cast<float>(y) + 0.5F - static_cast<float>(g.height - g.bottom - g.radius)
-    );
-    const int carve = cornerY > 0.0F
-        ? static_cast<int>(std::ceil(
-              static_cast<float>(g.radius)
-              - std::sqrt(std::max(0.0F, static_cast<float>(g.radius * g.radius) - cornerY * cornerY))
-          ))
-        : 0;
-    add(0, g.left + carve, y);
-    add(g.width - g.right - carve, g.width, y);
-  }
-  for (const auto& island : m_islandBlur) {
-    const int x = std::max(island.x, rect.x), y = std::max(island.y, rect.y);
-    const int right = std::min(island.x + island.width, rect.x + rect.width);
-    const int bottom = std::min(island.y + island.height, rect.y + rect.height);
-    if (right > x && bottom > y)
-      regions.push_back({x - rect.x, y - rect.y, right - x, bottom - y});
-  }
-  return regions;
-}
-
-ScreenFrameStyle ScreenWrap::frameStyle(const screen_wrap::Rect& rect) const {
-  return {
-      m_contour,
-      colorForRole(ColorRole::Surface, m_config.backgroundOpacity),
-      resolveColorSpec(m_config.border),
-      m_config.borderWidth,
-      static_cast<float>(rect.x),
-      static_cast<float>(rect.y),
-      {static_cast<float>(m_foregroundHole.x), static_cast<float>(m_foregroundHole.y),
-       static_cast<float>(m_foregroundHole.width), static_cast<float>(m_foregroundHole.height)}
-  };
-}
-
-void ScreenWrap::setIslands(const std::array<ScreenFrameSpan, 3>& spans, float depth) {
-  if (m_config.surfaceMode == "full")
-    return;
-  depth = depth < 0 ? static_cast<float>(m_config.thickness) : depth;
-  if (spans == m_islands && depth == m_contour.depth)
-    return;
-  m_contour.depth = depth;
-  m_islands = spans;
-  const bool vertical = m_contour.edge == 1 || m_contour.edge == 3;
-  m_contour.islands = joinedScreenFrameSpans(
-      spans, vertical ? m_contour.height : m_contour.width, static_cast<float>(m_config.wrapJoinDistance),
-      m_contour.depth
-  );
-  rebuildIslandBlur();
-  for (std::size_t i = 0; i < m_strips.size(); ++i) {
-    auto& strip = m_strips[i];
-    if (!strip.root)
-      continue;
-    static_cast<ScreenFrameNode*>(strip.root.get())->setStyle(frameStyle(m_geometry.strips[i]));
-    syncBlur(strip, m_geometry.strips[i]);
-    strip.surface->requestRedraw();
-  }
-}
-
-void ScreenWrap::rebuildIslandBlur() {
-  m_islandBlur.clear();
-  if (!m_config.compositorBlur)
-    return;
-  const bool vertical = m_contour.edge == 1 || m_contour.edge == 3;
-  const float length = vertical ? m_contour.height : m_contour.width;
-  const float cross = vertical ? m_contour.width : m_contour.height;
-  const float limit = std::min(cross / 2, m_contour.depth + m_contour.join + 1);
-  for (int u = 0; u < static_cast<int>(length); ++u) {
-    const float column = static_cast<float>(u);
-    const bool nearIsland = std::ranges::any_of(m_contour.islands, [&](const auto span) {
-      return span.end > span.begin && column + 1 > span.begin - m_contour.join && column < span.end + m_contour.join;
-    });
-    if (!nearIsland)
-      continue;
-    float lo = 0, hi = limit;
-    for (int step = 0; step < 9; ++step) {
-      const float v = (lo + hi) / 2;
-      const float main = static_cast<float>(u) + 0.5F;
-      const float x = m_contour.edge == 1 ? cross - v : vertical ? v : main;
-      const float y = m_contour.edge == 2 ? cross - v : vertical ? main : v;
-      if (screenFrameDistance(m_contour, x, y) < 0)
-        lo = v;
-      else
-        hi = v;
-    }
-    const int depth = static_cast<int>(std::ceil(lo));
-    if (m_contour.edge == 0)
-      m_islandBlur.push_back({u, 0, 1, depth});
-    else if (m_contour.edge == 1)
-      m_islandBlur.push_back({static_cast<int>(cross) - depth, u, depth, 1});
-    else if (m_contour.edge == 2)
-      m_islandBlur.push_back({u, static_cast<int>(cross) - depth, 1, depth});
-    else
-      m_islandBlur.push_back({0, u, depth, 1});
-  }
-}
-
-void ScreenWrap::refreshPalette() {
-  UiPhaseScope phase(UiPhase::Layout);
-  for (std::size_t i = 0; i < m_strips.size(); ++i) {
-    auto& strip = m_strips[i];
-    if (!strip.surface)
-      continue;
-    build(strip, m_geometry.strips[i]);
-    strip.surface->requestRedraw();
-  }
-}
-
+void ScreenWrap::refreshPalette() { m_shared->refresh(); }
 void ScreenWrap::setOpacity(float opacity) {
-  if (m_opacity == opacity)
+  auto& b = m_shared->bars.at(m_id);
+  if (b.opacity == opacity)
     return;
-  const bool blurChanged = (m_opacity <= 0.0F) != (opacity <= 0.0F);
-  m_opacity = opacity;
-  for (std::size_t i = 0; i < m_strips.size(); ++i) {
-    auto& strip = m_strips[i];
-    if (!strip.root)
-      continue;
-    strip.root->setOpacity(opacity);
-    if (blurChanged)
-      syncBlur(strip, m_geometry.strips[i]);
-    strip.surface->requestRedraw();
-  }
+  b.opacity = opacity;
+  m_shared->refresh();
 }
-
 void ScreenWrap::setLayer(LayerShellLayer layer) {
-  for (auto& strip : m_strips) {
-    if (strip.surface)
-      strip.surface->setLayer(layer);
-  }
-}
-
-void ScreenWrap::setForegroundHole(InputRect rect) {
-  if (rect == m_foregroundHole)
+  auto& b = m_shared->bars.at(m_id);
+  if (b.layer == layer)
     return;
-  m_foregroundHole = rect;
-  for (std::size_t i = 0; i < m_strips.size(); ++i) {
-    auto& strip = m_strips[i];
-    if (!strip.root)
-      continue;
-    static_cast<ScreenFrameNode*>(strip.root.get())->setStyle(frameStyle(m_geometry.strips[i]));
-    syncBlur(strip, m_geometry.strips[i]);
-    strip.surface->requestRedraw();
-  }
+  b.layer = layer;
+  m_shared->refresh();
+}
+void ScreenWrap::setReservation(int value) {
+  auto& b = m_shared->bars.at(m_id);
+  if (b.reservation == value)
+    return;
+  b.reservation = value;
+  m_shared->reserveEdges();
+}
+void ScreenWrap::setIslands(const std::array<ScreenFrameSpan, 3>& spans, float depth) {
+  auto& b = m_shared->bars.at(m_id);
+  if (depth < 0)
+    depth = static_cast<float>(b.config.thickness);
+  if (b.spans == spans && b.depth == depth)
+    return;
+  b.spans = spans;
+  b.depth = depth;
+  m_shared->refresh();
+}
+const ScreenFrameContour& ScreenWrap::contour() const { return m_shared->material.contour; }
+ScreenFrameStyle ScreenWrap::style() const { return m_shared->material; }
+void ScreenWrap::setForegroundHole(InputRect rect) {
+  auto& b = m_shared->bars.at(m_id);
+  if (b.hole.x == rect.x && b.hole.y == rect.y && b.hole.width == rect.width && b.hole.height == rect.height)
+    return;
+  b.hole = rect;
+  m_shared->refresh();
+}
+std::vector<InputRect> ScreenWrap::blurRegion(const screen_wrap::Rect& rect) const {
+  return m_shared->blurRegion(rect);
 }

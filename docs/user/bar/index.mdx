@@ -153,13 +153,21 @@ Only the fields you specify are overridden; everything else falls through to the
 
 `compositor_blur = true` publishes the bar's shape as a blur region when the compositor supports `ext-background-effect-v1`. Set it to `false` to clear the bar's blur request without changing blur for panels, the dock, notifications, or other surfaces. This setting is independent of `background_opacity`, defaults to `true`, applies immediately on reload, and can be overridden per monitor. In the Settings GUI it lives under **Bar → Effects** and only appears when the compositor supports `ext-background-effect-v1`; on other compositors the key has no effect.
 
-`surface_mode` selects the bar background. `"full"` uses the normal continuous bar; `"islands"` draws one rounded, translucent background around each complete start, centre and end section. Empty sections disappear. Capsule groups retain their spacing and hover behaviour, with their individual backgrounds suppressed in islands mode. Rounded island shapes define input and compositor blur regions, so gaps pass through to the desktop. The previous capsule-only islands presentation has been replaced. Choose **Full Bar**, **Floating Islands**, or **Dynamic Island** under **Bar → Effects**. All three modes support every bar edge and per-monitor overrides.
+`surface_mode` selects the bar background. `"full"` uses the normal continuous bar; `"islands"` draws one rounded, translucent background around each complete start, centre and end section. Empty sections disappear. Capsule groups retain their spacing and hover behaviour, with their individual backgrounds suppressed in islands mode. Rounded island shapes define input and compositor blur regions, so gaps pass through to the desktop. The previous capsule-only islands presentation has been replaced. Choose **Full Bar**, **Floating Islands**, or **Dynamic Island** under **Bar → General → Surface**. All three modes support every bar edge and per-monitor overrides.
 
 `dynamic_center = true` smoothly animates changes in the size of the existing centre section. It uses precisely the widgets selected in the bar editor; it does not insert a clock, media player, visualiser or transport controls. Add and configure those using the shell's existing widgets. Existing accordion groups continue to control hover expansion. The feature defaults to false and follows the global motion settings. Find **Dynamic Centre** under **Bar → Effects**, including per-monitor settings.
 
+**Bar → Effects → Transparency** offers **Custom**, **Solid**, **Soft** and **Glass**, globally and per monitor. The presets share the native panel background opacities: Solid 100%, Soft 80%, Glass 55%. Custom retains the saved numeric Opacity slider; selecting a preset does not overwrite that value. The TOML key is `transparency_mode = "custom" | "solid" | "soft" | "glass"`.
+
+### Mode-aware settings
+
+Choose the presentation under **Bar → General → Surface**. Settings use the existing conditional visibility system, including effective per-monitor overrides. Dynamic Island controls appear only in that mode; widget lanes, capsule styling, dead-zone actions and Dynamic Centre return in Full Bar or Floating Islands. Automatic hiding controls are omitted for Dynamic Island, which does not use automatic hiding. Common thickness, content/font scale, colour, transparency and border controls remain available.
+
+Frame controls appear only with **Screen Wrap** enabled. Corner Join Distance appears only for Floating Islands, and Window Clearance requires **Reserve Space**. Saved edge margins and shadows are hidden while wrap owns those properties. Individual corner overrides are shown only for an unwrapped Full Bar. The numeric opacity control appears only with **Custom** transparency. Timer/alarm detail controls follow their respective event toggles. Hiding a setting never resets its value; switching modes restores the saved configuration. These rules also apply to settings search and automatically remove empty groups.
+
 ### Dynamic Island
 
-Select **Bar → Effects → Surface → Dynamic Island** (`surface_mode = "dynamic"`). It is a standalone event-driven presentation, separate from Full Bar and Floating Islands. The usual start/centre/end widget layouts remain saved and return when switching back. Screen Wrap is independent, on all four edges.
+Select **Bar → General → Surface → Dynamic Island** (`surface_mode = "dynamic"`). It is a standalone event-driven presentation, separate from Full Bar and Floating Islands. The usual start/centre/end widget layouts remain saved and return when switching back. Screen Wrap is independent, on all four edges.
 
 #### Compact feedback and native tools
 
@@ -177,13 +185,34 @@ The island supplies compact event feedback. **Hovering opens the actual register
 
 The existing `PanelManager` opens its registered `ControlCenterPanel` with the relevant context. Native tool settings, tab selection, keyboard handling, menus, popups and dismissal remain with that host. Dynamic Island adds a scoped attached presentation: the native reveal's progress drives both its content clip and the island's widening/lengthening join. It does not create a second Control Center instance or recreate native controls.
 
-The pointer can cross from the island into the native tool. A 250 ms leave grace allows that handoff; hovering the tool, dragging a control or using one of its popups holds it open. Leaving both surfaces retracts it. Native Close/Escape/outside-click behaviour remains available. **Open Native Tool on Hover** controls hover activation; clicking remains available if it is disabled. The tools use their native sizing settings; the old bespoke **Island Expanded Width** control was removed. `dynamic_width` is accepted only for legacy profile compatibility and no longer sizes native tools.
+During expansion, the existing native panel surface extends back through the island neck and owns the complete background and theme-driven perimeter. The shared frame excludes that ownership rectangle from its paint and client blur regions. The native host reads the live output contour and updates only its own contribution, preserving adjoining bars. With Screen Wrap, both use the same frame contour; without it, one rounded native background covers neck and tool. Native content and controls remain in their existing panel host. This prevents live backdrop blur from sampling a separately tinted island and producing a dark band at the join. Closing returns background ownership to the compact island. All four edges are supported; no full-screen panel buffer is introduced.
+
+The island and Screen Wrap use the native `noctalia-bar-*` surface namespace so existing compositor layer-effect rules cover them. These are compatibility identifiers, not project branding. A later Nythera identifier migration must update matching external rules at the same time. On the current Umbriel session, blur is supplied by those rules because the client background-effect protocol is not advertised. Solid/Soft/Glass select the shell's opacity/card treatment; they cannot enable compositor blur on an unmatched layer.
+
+**Panels → Effects → Transparency** remains the existing Solid/Soft/Glass control. It now controls the outer background of tools opened from Dynamic Island as well as their native card translucency. The island blends to that same opacity during expansion. Choose Glass for both Bar and Panels for matching 55% outer backgrounds; internal control/card surfaces retain their native contrast. Ordinary attached panels retain their existing bar-opacity behaviour.
+
+Hover waits 180 ms before opening the native tool, without taking keyboard focus. Compact call/timer/alarm action hit areas do not auto-expand. Clicking the island explicitly holds the native tool open until its normal Close/Escape/outside dismissal. Clicking a hovered native tool enables normal keyboard interaction; focused editable controls, popups and drags hold the tool open. The pointer can cross from the island into the native tool. A 250 ms leave grace allows that handoff; hovering the tool, dragging a control or using one of its popups holds it open. Leaving both surfaces retracts it. Native Close/Escape/outside-click behaviour remains available. **Open Native Tool on Hover** controls hover activation; clicking remains available if it is disabled. The tools use their native sizing settings; the old bespoke **Island Expanded Width** control was removed. `dynamic_width` is accepted only for legacy profile compatibility and no longer sizes native tools.
+
+#### Compact presentation and optional additions
+
+Compact content fades out over 120 ms, changes, then fades in over the same 300 ms base duration as resizing. This follows global Motion settings. Width/height is measured from the title, artwork, action controls and activity indicators, bounded to the output and a scaled 76–420px main-axis range. Text/font and artwork/action sizes follow bar scaling within the bar thickness. Descriptive titles remain available on vertical bars, rotated anticlockwise; percentages, clocks and countdowns stay upright. Shared font family/weight controls live in Bar → Layout and remain visible for Dynamic Island.
+
+Four mode-aware switches in **Bar → Effects**, also per monitor:
+
+- **Activity Indicators** (`dynamic_activity_indicators`, default true): a running countdown stays visible during another event. MIC/CAM/SHARE reflect filtered live PipeWire capture activity, using the existing privacy filters. These are capture indicators, not a claim that an arbitrary recorder is running.
+- **Privacy Feedback** (`dynamic_privacy`, default true): existing privacy OSD transitions enter the compact island.
+- **Device Feedback** (`dynamic_devices`, default true): existing Wi-Fi, Bluetooth and power-profile OSD feedback enters the island; native destinations are Network, Bluetooth and Power. The island switches control interception; disabling them restores the ordinary OSD path and its normal preferences. Connection notifications use the normal notification path.
+- **Compact Visualiser** (`dynamic_visualizer`, default false): the existing audio visualiser/spectrum service draws a small themed strip during compact Playing media feedback. It is released when hidden, paused, preempted, expanded or disabled; no second CAVA process/player is launched. The option is shown only when Island Media is enabled.
+
+Explicit `call.ongoing` metadata is labelled as an ongoing call. It does not infer call connection from microphone activity or invent unsupported actions. Call lifecycle remains source-owned.
 
 #### Registered events
 
 | Event | Trigger |
 | --- | --- |
 | Volume / microphone | Existing Noctalia audio feedback: default-device level, mute or route changes, including its feedback commands. Existing suppression/deduplication remains. |
+| Privacy | Existing filtered microphone/camera/screen-capture OSD transitions; activity badges use current filtered PipeWire captures. |
+| Device | Existing Wi-Fi, Bluetooth and power-profile OSD feedback. |
 | Brightness | A changed controllable-display brightness percentage, or its feedback command. |
 | Media track | The active MPRIS player's titled track changes while Playing, after 400 ms metadata settling. |
 | Media Play / Resume | The active player's known non-Playing state changes to Playing. Waits for a title if needed. Pause, repeated Playing updates and first discovery do not announce an event. |
@@ -192,7 +221,7 @@ The pointer can cross from the island into the native tool. A 250 ms leave grace
 | Countdown | Starting the shared session timer; its countdown updates each second. Completion becomes a persistent compact alert until acknowledged. |
 | Alarm | Reaching an explicitly armed one-shot local-time deadline. Remains as a compact alert until dismissed or snoozed. |
 
-Feedback is routed to the focused output's visible island. Timer/alarm ownership stays with the initiating output. Priority remains alarm/finished timer, calls, notifications, volume/brightness, media, countdown, clock. Equal priorities use the newest event. Transient events use the configured dwell time; active tools are not replaced underneath the user by a different native panel.
+Feedback is routed to the focused output's visible island. Timer/alarm ownership stays with the initiating output. Priority remains alarm/finished timer, calls, notifications, volume/brightness, media, countdown, clock. Ordinary notifications use an eight-entry FIFO with replacement by notification ID. Their display dwell and native expiry are paused while queued behind higher-priority events or held for interaction. The next notice receives its own display time; overflow falls back to the ordinary toast. Only the owning island consumes updates. Other transient categories coalesce repeated feedback and use the newest equal-priority event. Transient events use the configured dwell time; active tools are not replaced underneath the user by a different native panel.
 
 #### Settings and activities
 
@@ -237,6 +266,13 @@ Call integration remains notification-backed. It cannot infer real ongoing state
 
 ### Screen wrap
 
+Screen Wrap is shared **per output**, rather than allocating a frame for every bar. Participating bars retain widgets, ordering, layouts and materials and contribute tracks/island spans to one contour. A single fill/outline joins adjacent top/left and other tracks without doubled borders. Different bar materials blend at their junction; the first configured wrapped bar supplies the common thin-rail material. Frame width/rounding use the largest participating request. Separate displays have separate owners. The current GPU contour supports up to 32 bar tracks per output.
+
+**Bar → Effects → Window Clearance** (`wrap_clearance`, 0–500 logical pixels, default **0**) adds space between the stable frame/bar footprint and application work area, including per-monitor overrides. **Reserve Space** enables the request. A transparent, non-interactive reservation surface handles each edge; requests combine by maximum, not addition. Positive clearance also reserves the thin rails on otherwise unused edges. Zero keeps the previous reservation behaviour. Visual surfaces ignore exclusive zones and stay at physical edges. Same-edge tracks and corner-safe widget insets derive from configured thickness, never animated extents. Existing saved margins remain available outside wrap mode; Opposite Edge Margin still contributes to the work-area request.
+
+Requests that cannot fit an output are bounded to leave a nonempty work area and logged. Reservations are compositor requests, not window movement commands. Umbriel's scrolling columns, floating and fullscreen windows may extend past the usable area; Nythera cannot force their clipping or placement. Dynamic Island foreground surfaces now request only their visible thickness: the old left surface included unused contour padding. Curves remain in shared click-through frame buffers. There is no opaque mask or arbitrary monitor offset.
+
+
 **Bar → Effects → Screen Wrap** connects the bar to a rounded frame around the display. It works with Full Bar, Floating Islands and Dynamic Island, on any bar edge, and can be overridden per monitor. **Frame Width** controls the thin rails (1–32 logical pixels, capped at half the bar thickness); **Frame Rounding** controls the desktop opening (0–100 logical pixels).
 
 ```toml
@@ -248,11 +284,11 @@ wrap_radius = 20
 
 Full Bar becomes the thick edge of the frame. Islands join the narrow rail on their chosen edge and keep their configured contents and size animations. The frame uses the bar's palette, background opacity, border and compositor-blur settings. It has no independently hardcoded colours or widgets. Use one wrapped bar per monitor.
 
-While wrapped, the bar attaches to its selected edge, its drop shadow is suppressed, and its ends leave room for the frame. These are runtime adjustments: switching wrap off restores the saved margins, corners and shadow settings. The extra rails are click-through overlays; they do not reserve additional desktop space. The existing bar reservation is unchanged. Bar hide/show fades the frame with the bar.
+While wrapped, the bar attaches to its selected edge, its drop shadow is suppressed, and its ends leave room for the frame. These are runtime adjustments: switching wrap off restores the saved margins, corners and shadow settings. The rails are click-through. With Window Clearance zero, only configured bar tracks reserve work area; positive clearance includes the other rails too. The frame remains visible while any participant is shown.
 
-The renderer uses four disjoint edge buffers rather than a full-screen transparent buffer. Frame surfaces are destroyed with their owning bar and rebuilt when the output geometry changes. Placing independently configurable widgets on the other frame edges remains a separate design step.
+The renderer uses four disjoint edge buffers rather than a full-screen transparent buffer. Frame surfaces survive an individual participant being removed, and are released with the last participant or when output geometry changes. Placing independently configurable widgets on the other frame edges remains a separate design step.
 
-Wrapped Islands share one continuous contour with the frame. Rounded junctions follow the bar's existing Corner Radius, including during island resizing, so the frame outline does not run through the islands. Widget positions are unaffected.
+Wrapped Islands share one continuous contour with the frame. Rounded junctions follow the bar's existing Corner Radius, including during island resizing, so the frame outline does not run through the islands. Widget ordering is unchanged; configured neighbouring tracks determine stable corner-safe content insets.
 
 **Bar → Effects → Corner Join Distance** (`wrap_join_distance`, also available per monitor) controls whether the outer start/end islands merge into the adjacent screen corners. The default is **80 logical pixels**, twice the original 40px gap. Islands farther away retain the outer gap and curved rail junction; `0` disables corner merging. The centre island never merges into a screen corner. The same rule applies to the upper/lower ends of vertical bars.
 

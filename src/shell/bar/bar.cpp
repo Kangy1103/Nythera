@@ -16,6 +16,7 @@
 #include "render/scene/input_area.h"
 #include "shell/bar/bar_corner_shape.h"
 #include "shell/bar/bar_reserved_zone.h"
+#include "shell/bar/wrap_layout.h"
 #include "shell/bar/widget.h"
 #include "shell/bar/widget_gesture_defaults.h"
 #include "shell/bar/widgets/plugin_widget.h"
@@ -44,7 +45,7 @@ namespace {
 
   constexpr Logger kLog("bar");
 
-  BarConfig resolveBarForOutput(const BarConfig& bar, const WaylandOutput& output) {
+  BarConfig resolveBarForOutput(const BarConfig& bar, const WaylandOutput& output, const std::vector<BarConfig>& bars) {
     auto resolved = ConfigService::resolveForOutput(bar, output);
     if (resolved.surfaceMode == "dynamic") {
       resolved.autoHide = resolved.smartAutoHide = false;
@@ -53,10 +54,17 @@ namespace {
     if (resolved.screenWrap) {
       // Runtime geometry only: retain the user's unwrapped margins in config.
       resolved.wrapWidth = std::min(resolved.wrapWidth, std::max(1, resolved.thickness / 2));
-      resolved.marginEdge = 0;
-      resolved.marginEnds = resolved.surfaceMode == "full"
-          ? resolved.wrapWidth
-          : std::max(resolved.marginEnds, resolved.wrapWidth + resolved.wrapRadius);
+      std::vector<BarConfig> participants;
+      std::size_t selected = 0;
+      for (const auto& definition : bars) {
+        auto candidate = ConfigService::resolveForOutput(definition, output);
+        candidate.wrapWidth = std::min(candidate.wrapWidth, std::max(1, candidate.thickness / 2));
+        if (candidate.name == bar.name) selected = participants.size();
+        participants.push_back(std::move(candidate));
+      }
+      const auto layout = screen_wrap::tracks(participants, selected);
+      resolved.marginEdge = layout.offset;
+      resolved.marginEnds = layout.endInset;
       resolved.concaveEdgeCorners = false;
       resolved.shadow = false;
     }
@@ -772,6 +780,7 @@ namespace {
         && a.transparencyMode == b.transparencyMode
         && a.screenWrap == b.screenWrap
         && a.wrapWidth == b.wrapWidth
+        && a.wrapClearance == b.wrapClearance
         && a.wrapRadius == b.wrapRadius
         && a.wrapJoinDistance == b.wrapJoinDistance
         && (!a.screenWrap || a.radius == b.radius)
@@ -1823,7 +1832,8 @@ void Bar::reload() {
     if (outIt == outputs.end()) {
       return true;
     }
-    auto resolved = resolveBarForOutput(*it->second.first, *outIt);
+    if (inst.screenWrap && inst.barIndex != it->second.second) return true;
+    auto resolved = resolveBarForOutput(*it->second.first, *outIt, m_config->config().bars);
     if (!resolved.enabled) {
       return true;
     }
@@ -1867,7 +1877,7 @@ void Bar::reload() {
       return destroy();
     }
 
-    auto resolved = resolveBarForOutput(*it->second.first, *outIt);
+    auto resolved = resolveBarForOutput(*it->second.first, *outIt, m_config->config().bars);
     if (!resolved.enabled) {
       return destroy();
     }
@@ -2253,7 +2263,12 @@ void Bar::syncBarExclusiveZone(BarInstance& instance) {
   const std::int32_t zone = shouldReserveExclusiveZone(instance)
       ? reservedBarExclusiveZone(instance.barConfig, m_config->config().shell.shadow)
       : 0;
-  instance.surface->setExclusiveZone(zone);
+  if (instance.screenWrap) {
+    instance.screenWrap->setReservation(zone > 0 ? zone + instance.barConfig.marginEdge : 0);
+    instance.surface->setExclusiveZone(-1); // physical geometry, independent of work-area reservations
+  } else {
+    instance.surface->setExclusiveZone(zone);
+  }
 }
 
 void Bar::syncBarSurfaceChrome(BarInstance& instance) {
@@ -2644,7 +2659,7 @@ void Bar::syncInstances() {
         return inst->outputName == output.name && inst->barIndex == barIdx;
       });
       if (!exists) {
-        auto resolved = resolveBarForOutput(bars[barIdx], output);
+        auto resolved = resolveBarForOutput(bars[barIdx], output, bars);
         if (!resolved.enabled) {
           continue;
         }
@@ -2696,10 +2711,14 @@ void Bar::createInstance(const WaylandOutput& output, std::size_t barIndex, cons
   if (barConfig.surfaceMode == "dynamic") surfaceConfig = DynamicIsland::surfaceConfig(barConfig, output.effectiveLogicalWidth(), output.effectiveLogicalHeight());
 
   if (barConfig.screenWrap) {
+    ScreenWrap* sibling = nullptr;
+    for (const auto& other : m_instances)
+      if (other->output == output.output && other->screenWrap) { sibling = other->screenWrap.get(); break; }
     instance->screenWrap = std::make_unique<ScreenWrap>(
         m_platform->wayland(), m_renderContext, output.output, barConfig, output.effectiveLogicalWidth(),
-        output.effectiveLogicalHeight()
+        output.effectiveLogicalHeight(), sibling, barIndex
     );
+    surfaceConfig.exclusiveZone = -1;
   }
   instance->surface = std::make_unique<LayerSurface>(m_platform->wayland(), std::move(surfaceConfig));
   instance->surface->setRenderContext(m_renderContext);
@@ -2718,6 +2737,7 @@ void Bar::createInstance(const WaylandOutput& output, std::size_t barIndex, cons
     });
     if (!instance->surface->initialize(output.output)) return;
     instance->surface->setInputRegion({});
+    syncBarExclusiveZone(*instance);
     m_surfaceMap[instance->surface->wlSurface()] = instance.get();
     m_instances.push_back(std::move(instance));
     return;
@@ -2748,13 +2768,14 @@ void Bar::createInstance(const WaylandOutput& output, std::size_t barIndex, cons
 
 void Bar::destroyInstance(std::uint32_t outputName) {
   std::erase_if(m_instances, [outputName, this](const auto& inst) {
+    if (inst->outputName != outputName) return false;
     if (inst->surface != nullptr) {
       m_surfaceMap.erase(inst->surface->wlSurface());
     }
     if (m_hoveredInstance == inst.get()) {
       m_hoveredInstance = nullptr;
     }
-    return inst->outputName == outputName;
+    return true;
   });
 }
 
@@ -4653,7 +4674,7 @@ bool Bar::routeDynamicNotification(const Notification& n, NotificationEvent even
   bool handled = false;
   for (const auto& instance : m_instances) {
     if (!instance->dynamicIsland) continue;
-    if (event == NotificationEvent::Closed || (!m_overlayDisplaySuppressed && !instance->ipcLayoutReleased && (event == NotificationEvent::Updated || instance->output == m_platform->preferredInteractiveOutput())))
+    if (event == NotificationEvent::Closed || (!m_overlayDisplaySuppressed && !instance->ipcLayoutReleased && (event == NotificationEvent::Updated || (!handled && instance->output == m_platform->preferredInteractiveOutput()))))
       handled = instance->dynamicIsland->notification(n,event) || handled;
   }
   return handled;

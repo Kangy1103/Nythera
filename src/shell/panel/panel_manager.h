@@ -4,6 +4,7 @@
 #include "render/animation/animation_manager.h"
 #include "render/scene/input_dispatcher.h"
 #include "shell/panel/attached_panel_context.h"
+#include "render/core/screen_frame_geometry.h"
 #include "shell/panel/panel_click_shield.h"
 #include "shell/panel/persistent_panel_host.h"
 #include "ui/dialogs/layer_popup_host.h"
@@ -23,6 +24,7 @@ class CompositorPlatform;
 class ContextMenuPopup;
 class SelectDropdownPopup;
 class Box;
+class ScreenFrameNode;
 class IpcService;
 class FocusGrab;
 class LayerSurface;
@@ -49,6 +51,8 @@ struct PanelOpenRequest {
   std::string_view sourceBarName;
   bool fromDynamicIsland = false;
   float islandCompactExtent = 112.0F;
+  std::function<ScreenFrameStyle()> islandFrameProvider;
+  bool islandHoverOpen = false;
 };
 
 class PanelManager : public PopupGrabHost {
@@ -129,6 +133,7 @@ public:
     return m_islandPresentation && m_output == output && m_sourceBarName == barName && m_activePanel != nullptr;
   }
   [[nodiscard]] bool pointerHoldsPanel() const noexcept;
+  void promoteIslandInteraction();
   // True when a panel is open and it reports the given context as active (e.g. control-center tab).
   [[nodiscard]] bool isActivePanelContext(std::string_view context) const noexcept;
   [[nodiscard]] std::optional<LayerPopupParentContext> popupParentContextForSurface(wl_surface* surface) const noexcept;
@@ -254,6 +259,7 @@ private:
   AnimationManager m_animations;
   std::unique_ptr<Node> m_sceneRoot;
   Node* m_bgNode = nullptr;
+  ScreenFrameNode* m_islandFrame = nullptr;
   Node* m_contentNode = nullptr;
   Node* m_detachedRevealClipNode = nullptr;
   Node* m_detachedRevealContentNode = nullptr;
@@ -316,8 +322,14 @@ private:
   std::string m_sourceBarName;       // name of the bar that opened the current panel
   std::optional<AttachedPanelGeometry> m_attachedPanelGeometry;
   bool m_islandPresentation = false;
+  bool m_islandHoverOpen = false;
+  bool m_islandPinned = false;
   float m_islandCompactExtent = 112.0F;
   float m_islandBarOpacity = 1.0F;
+  BarConfig m_islandBar;
+  std::function<ScreenFrameStyle()> m_islandFrameProvider;
+  float m_islandSurfaceX = 0, m_islandSurfaceY = 0;
+  int m_islandOutputWidth = 0, m_islandOutputHeight = 0;
   bool m_pointerInside = false;
   bool m_inTransition = false;
   bool m_closing = false;

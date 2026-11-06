@@ -8,37 +8,27 @@
 #include <array>
 #include <memory>
 
-// Decorative, click-through edge surfaces. Owned by the bar, so output removal,
-// config rebuilds and shell shutdown cannot leave an orphan frame behind.
+// Per-bar contribution handle. Sibling handles on one output share the four
+// decorative buffers and one reservation per edge; outputs never share state.
 class ScreenWrap {
 public:
   ScreenWrap(
-      WaylandConnection& wayland, RenderContext* renderer, wl_output* output, const BarConfig& config, int width,
-      int height
+      WaylandConnection&, RenderContext*, wl_output*, const BarConfig&, int width, int height,
+      ScreenWrap* sibling = nullptr, std::size_t priority = 0
   );
+  ~ScreenWrap();
   void refreshPalette();
-  void setOpacity(float opacity);
-  void setLayer(LayerShellLayer layer);
-  void setIslands(const std::array<ScreenFrameSpan, 3>& spans, float depth = -1.0F);
-  const ScreenFrameContour& contour() const { return m_contour; }
-  void setForegroundHole(InputRect rect);
-  std::vector<InputRect> blurRegion(const screen_wrap::Rect& rect) const;
+  void setOpacity(float);
+  void setLayer(LayerShellLayer);
+  void setReservation(int);
+  void setIslands(const std::array<ScreenFrameSpan, 3>&, float depth = -1.0F);
+  const ScreenFrameContour& contour() const;
+  ScreenFrameStyle style() const;
+  void setForegroundHole(InputRect);
+  std::vector<InputRect> blurRegion(const screen_wrap::Rect&) const;
 
 private:
-  struct Strip {
-    std::unique_ptr<LayerSurface> surface;
-    std::unique_ptr<Node> root;
-  };
-  void build(Strip& strip, const screen_wrap::Rect& rect);
-  void syncBlur(Strip& strip, const screen_wrap::Rect& rect);
-  ScreenFrameStyle frameStyle(const screen_wrap::Rect& rect) const;
-  void rebuildIslandBlur();
-  BarConfig m_config;
-  screen_wrap::Geometry m_geometry;
-  std::array<Strip, 4> m_strips;
-  float m_opacity = 1.0F;
-  ScreenFrameContour m_contour;
-  std::array<ScreenFrameSpan, 3> m_islands{};
-  std::vector<InputRect> m_islandBlur;
-  InputRect m_foregroundHole;
+  struct Shared;
+  std::shared_ptr<Shared> m_shared;
+  std::size_t m_id;
 };

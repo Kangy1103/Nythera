@@ -3,6 +3,7 @@
 #include "core/toml.h"
 #include "shell/bar/dynamic_island.h"
 #include "shell/bar/island_activities.h"
+#include "shell/bar/island_notice_queue.h"
 #include "shell/bar/island_notification.h"
 #include "shell/osd/media_osd.h"
 #include "shell/settings/settings_registry.h"
@@ -10,6 +11,31 @@
 #include <cassert>
 
 int main() {
+  {
+    struct Notice { std::uint32_t id; int value; };
+    IslandNoticeQueue<Notice> queue;
+    assert(queue.push({1, 10}, 3500));
+    assert(queue.push({2, 20}, 3500));
+    assert(!queue.advance(1000, false, false));
+    assert(!queue.advance(9000, false, false)); // a call has hidden both notices
+    assert(queue.front()->remaining == 3500);
+    assert(!queue.advance(9001, true, false));
+    assert(!queue.advance(10001, true, false));
+    assert(queue.front()->remaining == 2500);
+    assert(!queue.advance(10002, true, true));
+    assert(!queue.advance(20000, true, true)); // hover/native tool holds its dwell
+    assert(queue.front()->remaining == 2500);
+    assert(!queue.advance(20001, true, false));
+    assert(queue.advance(22501, true, false)->id == 1);
+    assert(queue.front()->notice.id == 2 && queue.front()->remaining == 3500);
+    assert(queue.push({2, 99}, 4000) && queue.size() == 1);
+    assert(queue.front()->notice.value == 99 && queue.front()->remaining == 4000);
+    for (std::uint32_t id = 3; id <= 9; ++id) assert(queue.push({id, 0}, 3500));
+    assert(!queue.push({10, 0}, 3500)); // caller falls back to its ordinary toast
+    assert(queue.contains(2));
+    queue.erase(2);
+    assert(!queue.contains(2) && queue.front()->notice.id == 3);
+  }
   MediaPlaybackStartState playback;
   assert(!playback.observe("Playing", true, true)); // Discovery is silent.
   assert(!playback.observe("Paused", true, true));
@@ -96,14 +122,14 @@ int main() {
   using namespace noctalia::config::schema;
   Diagnostics diagnostics;
   readInto(
-      toml::parse("surface_mode='dynamic'\ndynamic_media=false\ndynamic_width=900\ndynamic_dwell_ms=50"), bar,
+      toml::parse("surface_mode='dynamic'\ndynamic_visualizer=true\ndynamic_devices=false\ndynamic_media=false\ndynamic_width=900\ndynamic_dwell_ms=50"), bar,
       barFieldsSchema(), "bar.default", diagnostics
   );
-  assert(bar.surfaceMode == "dynamic" && !bar.dynamicMedia);
+  assert(bar.surfaceMode == "dynamic" && !bar.dynamicMedia && bar.dynamicVisualizer && !bar.dynamicDevices);
   assert(bar.dynamicWidth == 600 && bar.dynamicDwellMs == 500);
   BarMonitorOverride monitor;
   readInto(
-      toml::parse("surface_mode='dynamic'\ndynamic_volume=false\ndynamic_width=300"), monitor,
+      toml::parse("surface_mode='dynamic'\ndynamic_privacy=false\ndynamic_activity_indicators=false\ndynamic_visualizer=false\ndynamic_volume=false\ndynamic_width=300"), monitor,
       barMonitorOverrideSchema(), "bar.default.monitor.DP-1", diagnostics
   );
   assert(monitor.surfaceMode == "dynamic" && monitor.dynamicVolume == false && monitor.dynamicWidth == 300);
@@ -112,6 +138,7 @@ int main() {
       writeTable(monitor, barMonitorOverrideSchema()), restored, barMonitorOverrideSchema(), "monitor", diagnostics
   );
   assert(restored == monitor);
+  assert(monitor.dynamicPrivacy == false && monitor.dynamicActivityIndicators == false && monitor.dynamicVisualizer == false);
 
   Config config;
   bar.dynamicWidth = 360;
@@ -123,7 +150,8 @@ int main() {
     for (auto key :
          {"dynamic_notifications", "dynamic_timers", "dynamic_alarms", "dynamic_calls", "dynamic_timer_seconds",
           "dynamic_alarm_time", "dynamic_snooze_seconds", "dynamic_media", "dynamic_volume", "dynamic_brightness",
-          "dynamic_hover_expand", "dynamic_dwell_ms", "dynamic_clock_format"}) {
+          "dynamic_hover_expand", "dynamic_dwell_ms", "dynamic_clock_format",
+          "dynamic_activity_indicators", "dynamic_privacy", "dynamic_devices", "dynamic_visualizer"}) {
       const auto path = perMonitor ? std::vector<std::string>{"bar", "default", "monitor", "DP-1", key}
                                    : std::vector<std::string>{"bar", "default", key};
       assert(std::ranges::find(entries, path, &settings::SettingEntry::path) != entries.end());
@@ -138,11 +166,14 @@ int main() {
   for (auto edge : {"top", "bottom", "left", "right"}) {
     bar.position = edge;
     const auto surface = DynamicIsland::surfaceConfig(bar, 853, 533);
+    assert(surface.nameSpace.starts_with("noctalia-bar-")); // Matches native bar layer-effect rules.
     assert(surface.width <= 853 && surface.height <= 533);
     assert(surface.width * surface.height < 853 * 533 / 2);
-    assert(surface.exclusiveZone == bar.thickness);
+    assert(surface.exclusiveZone == (bar.screenWrap ? -1 : bar.thickness));
+    const bool side = std::string_view(edge) == "left" || std::string_view(edge) == "right";
+    assert((side ? surface.width : surface.height) == static_cast<unsigned>(bar.thickness));
     bar.reserveSpace = false;
-    assert(DynamicIsland::surfaceConfig(bar, 853, 533).exclusiveZone == 0);
+    assert(DynamicIsland::surfaceConfig(bar, 853, 533).exclusiveZone == (bar.screenWrap ? -1 : 0));
     bar.reserveSpace = true;
   }
   OsdOverlay overlay;

@@ -2,6 +2,7 @@
 
 #include "render/core/render_styles.h"
 
+#include <array>
 #include <cstdint>
 #include <string_view>
 
@@ -16,6 +17,8 @@ struct AttachedPanelGeometry {
   // Dynamic-island hosts follow this same reveal instead of starting a second animation.
   float revealProgress = 1.0F;
   float islandExtent = 0.0F;
+  float islandDepth = 0.0F;
+  std::array<float, 4> islandSurface{}; // output-local backdrop ownership rectangle
   float x = 0.0F;
   float y = 0.0F;
   float width = 0.0F;

@@ -34,4 +34,6 @@ private:
   GLint m_edgeLocation = -1, m_islandsLocation = -1;
   GLint m_exclusionLocation = -1;
   GLint m_transformLocation = -1;
+  GLint m_bandCountLocation = -1, m_bandShapeLocation = -1, m_bandMetaLocation = -1;
+  GLint m_bandSpansLocation = -1, m_bandFillLocation = -1, m_bandBorderLocation = -1;
 };

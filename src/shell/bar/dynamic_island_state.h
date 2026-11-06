@@ -8,6 +8,8 @@ enum class IslandEvent : std::uint8_t {
   Media,
   Volume,
   Brightness,
+  Privacy,
+  Device,
   Notification,
   Timer,
   TimerFinished,
@@ -63,6 +65,8 @@ private:
       return 2;
     case IslandEvent::Volume:
     case IslandEvent::Brightness:
+    case IslandEvent::Privacy:
+    case IslandEvent::Device:
       return 3;
     case IslandEvent::Notification:
       return 4;

@@ -163,6 +163,8 @@ namespace config_export {
         resolved.screenWrap = *ovr.screenWrap;
       if (ovr.wrapWidth)
         resolved.wrapWidth = *ovr.wrapWidth;
+    if (ovr.wrapClearance)
+        resolved.wrapClearance = *ovr.wrapClearance;
       if (ovr.wrapRadius)
         resolved.wrapRadius = *ovr.wrapRadius;
       if (ovr.wrapJoinDistance)
@@ -174,6 +176,10 @@ namespace config_export {
       if (ovr.dynamicTimerSeconds) resolved.dynamicTimerSeconds = *ovr.dynamicTimerSeconds;
       if (ovr.dynamicAlarmTime) resolved.dynamicAlarmTime = *ovr.dynamicAlarmTime;
       if (ovr.dynamicSnoozeSeconds) resolved.dynamicSnoozeSeconds = *ovr.dynamicSnoozeSeconds;
+      if (ovr.dynamicActivityIndicators) resolved.dynamicActivityIndicators = *ovr.dynamicActivityIndicators;
+      if (ovr.dynamicPrivacy) resolved.dynamicPrivacy = *ovr.dynamicPrivacy;
+      if (ovr.dynamicDevices) resolved.dynamicDevices = *ovr.dynamicDevices;
+      if (ovr.dynamicVisualizer) resolved.dynamicVisualizer = *ovr.dynamicVisualizer;
       if (ovr.dynamicMedia) resolved.dynamicMedia = *ovr.dynamicMedia;
       if (ovr.dynamicVolume) resolved.dynamicVolume = *ovr.dynamicVolume;
       if (ovr.dynamicBrightness) resolved.dynamicBrightness = *ovr.dynamicBrightness;

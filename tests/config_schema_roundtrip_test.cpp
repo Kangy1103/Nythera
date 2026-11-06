@@ -24,6 +24,7 @@
 #include "wayland/wayland_connection.h"
 
 #include <algorithm>
+#include <cmath>
 #include <optional>
 #include <print>
 #include <set>
@@ -210,6 +211,7 @@ location = "https://example.invalid/bad"
     bar.backgroundOpacity = 0.85F;
     bar.transparencyMode = BarTransparencyMode::Soft;
     bar.surfaceMode = "islands";
+    bar.wrapClearance = 17;
     bar.dynamicCenter = true;
     bar.compositorBlur = false;
     bar.border = colorSpecFromConfigString("#123456");
@@ -288,6 +290,7 @@ location = "https://example.invalid/bad"
     ovr.layer = "top";
     ovr.thickness = 50;
     ovr.backgroundOpacity = 0.7F;
+    ovr.transparencyMode = BarTransparencyMode::Glass;
     ovr.surfaceMode = "islands";
     ovr.dynamicCenter = true;
     ovr.dynamicNotifications = true;
@@ -297,6 +300,10 @@ location = "https://example.invalid/bad"
     ovr.dynamicTimerSeconds = 300;
     ovr.dynamicAlarmTime = "08:00";
     ovr.dynamicSnoozeSeconds = 300;
+    ovr.dynamicActivityIndicators = true;
+    ovr.dynamicPrivacy = true;
+    ovr.dynamicDevices = true;
+    ovr.dynamicVisualizer = false;
     ovr.dynamicMedia = true;
     ovr.dynamicVolume = true;
     ovr.dynamicBrightness = true;
@@ -306,6 +313,7 @@ location = "https://example.invalid/bad"
     ovr.dynamicClockFormat = "%H:%M";
     ovr.screenWrap = false;
     ovr.wrapWidth = 6;
+    ovr.wrapClearance = 0;
     ovr.wrapRadius = 20;
     ovr.wrapJoinDistance = 80;
     ovr.compositorBlur = true;
@@ -1173,7 +1181,9 @@ dynamic_center = false
 screen_wrap = false
 wrap_width = 9
 wrap_radius = 24
-wrap_join_distance = 0)");
+wrap_join_distance = 0
+dynamic_privacy = false
+dynamic_visualizer = true)");
     BarMonitorOverride monitor;
     Diagnostics diag;
     readInto(table, monitor, barMonitorOverrideSchema(), "bar.default.monitor.DP-1", diag);
@@ -1200,7 +1210,8 @@ wrap_join_distance = 0)");
         || resolved.wrapWidth != 9
         || resolved.wrapRadius != 24
         || resolved.wrapJoinDistance != 0
-        || resolved.surfaceMode != "full")
+        || resolved.surfaceMode != "full"
+        || resolved.dynamicPrivacy || !resolved.dynamicVisualizer)
       fail("runtime monitor frame overrides did not resolve");
     Config config;
     config.bars = {base};
@@ -1240,19 +1251,23 @@ color = "#0A0B0C"
 compositor_blur = false
 concave_edge_corners = true
 contact_shadow = true
+dynamic_activity_indicators = true
 dynamic_alarm_time = "08:00"
 dynamic_alarms = true
 dynamic_brightness = true
 dynamic_calls = true
 dynamic_center = true
 dynamic_clock_format = "%H:%M"
+dynamic_devices = true
 dynamic_dwell_ms = 3500
 dynamic_hover_expand = true
 dynamic_media = true
 dynamic_notifications = true
+dynamic_privacy = true
 dynamic_snooze_seconds = 300
 dynamic_timer_seconds = 300
 dynamic_timers = true
+dynamic_visualizer = false
 dynamic_volume = true
 dynamic_width = 360
 enabled = false
@@ -1284,7 +1299,9 @@ smart_auto_hide = false
 start = [ "launcher" ]
 surface_mode = "islands"
 thickness = 44
+transparency_mode = "soft"
 widget_spacing = 8
+wrap_clearance = 17
 wrap_join_distance = 80
 wrap_radius = 20
 wrap_width = 6
@@ -1325,19 +1342,23 @@ wrap_width = 6
     compositor_blur = true
     concave_edge_corners = false
     contact_shadow = false
+    dynamic_activity_indicators = true
     dynamic_alarm_time = "08:00"
     dynamic_alarms = true
     dynamic_brightness = true
     dynamic_calls = true
     dynamic_center = true
     dynamic_clock_format = "%H:%M"
+    dynamic_devices = true
     dynamic_dwell_ms = 3500
     dynamic_hover_expand = true
     dynamic_media = true
     dynamic_notifications = true
+    dynamic_privacy = true
     dynamic_snooze_seconds = 300
     dynamic_timer_seconds = 300
     dynamic_timers = true
+    dynamic_visualizer = false
     dynamic_volume = true
     dynamic_width = 360
     enabled = true
@@ -1370,7 +1391,9 @@ wrap_width = 6
     start = [ "tray" ]
     surface_mode = "islands"
     thickness = 50
+    transparency_mode = "glass"
     widget_spacing = 7
+    wrap_clearance = 0
     wrap_join_distance = 80
     wrap_radius = 20
     wrap_width = 6
@@ -1532,7 +1555,9 @@ wrap_width = 6
     BarMonitorOverride restored;
     noctalia::config::schema::readInto(table, restored, noctalia::config::schema::barMonitorOverrideSchema(), "bar.default.monitor.DP-1", diag);
     if (restored.transparencyMode != BarTransparencyMode::Custom) fail("monitor transparency round-trip lost explicit Custom");
-    const auto entries = settings::buildSettingsRegistry(Config{}, &bar, nullptr);
+    Config settingsConfig;
+    settingsConfig.bars = {bar};
+    const auto entries = settings::buildSettingsRegistry(settingsConfig, &bar, nullptr);
     const std::vector<std::string> path{"bar", "default", "transparency_mode"};
     if (std::ranges::find(entries, path, &settings::SettingEntry::path) == entries.end()) fail("bar transparency not exposed in Settings");
   }

@@ -5,10 +5,25 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <string>
+#include <vector>
 
 struct ScreenFrameSpan {
   float begin = 0, end = 0;
   bool operator==(const ScreenFrameSpan&) const = default;
+};
+
+// A bar contributes geometry and material to a display-owned contour. Tracks
+// are separate from widget layout and can later describe detached/freeform pieces.
+inline constexpr std::size_t kMaxScreenFrameBands = 32;
+struct ScreenFrameBand {
+  std::string name;
+  int edge = 0;
+  float outer = 0, depth = 50, radius = 12, join = 24;
+  std::array<ScreenFrameSpan, 3> spans{};
+  Color fill{}, border{};
+  float borderWidth = 0;
+  bool operator==(const ScreenFrameBand&) const = default;
 };
 
 // Canonical island coordinates run along the bar, then inward from its screen edge.
@@ -17,6 +32,7 @@ struct ScreenFrameContour {
   float depth = 50, islandRadius = 12, join = 24;
   int edge = 0; // top, right, bottom, left
   std::array<ScreenFrameSpan, 3> islands{};
+  std::vector<ScreenFrameBand> bands;
   bool operator==(const ScreenFrameContour&) const = default;
 };
 
@@ -56,6 +72,22 @@ inline float screenFrameDistance(const ScreenFrameContour& g, float x, float y) 
     );
     const float h = g.join > 0 ? std::max(g.join - std::abs(d - island), 0.0F) / g.join : 0.0F;
     d = std::min(d, island) - h * h * g.join * 0.25F;
+  }
+  for (const auto& band : g.bands) {
+    const bool side = band.edge == 1 || band.edge == 3;
+    const float bandU = side ? y : x;
+    const float bandV = band.edge == 1 ? g.width - x : band.edge == 2 ? g.height - y : band.edge == 3 ? x : y;
+    const float outer = band.outer > 0 ? band.outer : -(side ? g.width : g.height);
+    for (const auto span : band.spans) {
+      if (span.end <= span.begin)
+        continue;
+      const float shape = screenFrameRoundedDistance(
+          bandU - (span.begin + span.end) / 2, bandV - (band.depth + outer) / 2, (span.end - span.begin) / 2,
+          (band.depth - outer) / 2, band.radius
+      );
+      const float h = band.join > 0 ? std::max(band.join - std::abs(d - shape), 0.0F) / band.join : 0.0F;
+      d = std::min(d, shape) - h * h * band.join * 0.25F;
+    }
   }
   return d;
 }

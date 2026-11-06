@@ -32,6 +32,12 @@ uniform vec2 u_islands[3];
 uniform vec4 u_fill;
 uniform vec4 u_border;
 uniform float u_border_width;
+uniform int u_band_count;
+uniform vec4 u_band_shape[32]; // edge, outer, depth, radius
+uniform vec4 u_band_meta[32]; // join, border width, third span
+uniform vec4 u_band_spans[32]; // first two spans
+uniform vec4 u_band_fill[32];
+uniform vec4 u_band_border[32];
 varying vec2 v_local;
 float roundedDistance(vec2 p, vec2 halfSize, float r) {
   r = min(r, min(halfSize.x, halfSize.y));
@@ -56,12 +62,38 @@ void main() {
     float h = u_shape.z > 0.0 ? max(u_shape.z - abs(d - island), 0.0) / u_shape.z : 0.0;
     d = min(d, island) - h * h * u_shape.z * 0.25;
   }
+  vec4 materialFill = u_fill;
+  vec4 materialBorder = u_border;
+  float materialWidth = u_border_width;
+  for (int b = 0; b < 32; ++b) {
+    if (b >= u_band_count) break;
+    vec4 shape = u_band_shape[b];
+    vec4 meta = u_band_meta[b];
+    vec2 buv = p;
+    bool side = shape.x == 1.0 || shape.x == 3.0;
+    if (shape.x == 1.0) buv = vec2(p.y, u_frame.x - p.x);
+    else if (shape.x == 2.0) buv.y = u_frame.y - p.y;
+    else if (shape.x == 3.0) buv = p.yx;
+    float outer = shape.y > 0.0 ? shape.y : -(side ? u_frame.x : u_frame.y);
+    for (int j = 0; j < 3; ++j) {
+      vec2 span = j == 0 ? u_band_spans[b].xy : j == 1 ? u_band_spans[b].zw : meta.zw;
+      if (span.y <= span.x) continue;
+      float bd = roundedDistance(buv - vec2((span.x + span.y) * 0.5, (shape.z + outer) * 0.5),
+          vec2((span.y - span.x) * 0.5, (shape.z - outer) * 0.5), shape.w);
+      float blend = meta.x > 0.0 ? clamp(0.5 + (d - bd) / (2.0 * meta.x), 0.0, 1.0) : (bd < d ? 1.0 : 0.0);
+      float h = meta.x > 0.0 ? max(meta.x - abs(d - bd), 0.0) / meta.x : 0.0;
+      d = min(d, bd) - h * h * meta.x * 0.25;
+      materialFill = mix(materialFill, u_band_fill[b], blend);
+      materialBorder = mix(materialBorder, u_band_border[b], blend);
+      materialWidth = mix(materialWidth, meta.y, blend);
+    }
+  }
   float aa = max(length(vec2(dFdx(d), dFdy(d))), 1e-6);
   float coverage = clamp(0.5 - d / aa, 0.0, 1.0);
   if (coverage <= 0.0) discard;
-  float stroke = u_border_width > 0.0 ? clamp(0.5 + (d + u_border_width) / aa, 0.0, 1.0) : 0.0;
-  vec4 fill = vec4(u_fill.rgb * u_fill.a, u_fill.a);
-  vec4 border = vec4(u_border.rgb * u_border.a, u_border.a);
+  float stroke = materialWidth > 0.0 ? clamp(0.5 + (d + materialWidth) / aa, 0.0, 1.0) : 0.0;
+  vec4 fill = vec4(materialFill.rgb * materialFill.a, materialFill.a);
+  vec4 border = vec4(materialBorder.rgb * materialBorder.a, materialBorder.a);
   gl_FragColor = mix(fill, border, stroke) * coverage;
 }
 )";
@@ -84,6 +116,12 @@ void ScreenFrameProgram::ensureInitialized() {
   m_exclusionLocation = glGetUniformLocation(m_program.id(), "u_exclusion");
   m_edgeLocation = glGetUniformLocation(m_program.id(), "u_edge");
   m_islandsLocation = glGetUniformLocation(m_program.id(), "u_islands[0]");
+  m_bandCountLocation = glGetUniformLocation(m_program.id(), "u_band_count");
+  m_bandShapeLocation = glGetUniformLocation(m_program.id(), "u_band_shape[0]");
+  m_bandMetaLocation = glGetUniformLocation(m_program.id(), "u_band_meta[0]");
+  m_bandSpansLocation = glGetUniformLocation(m_program.id(), "u_band_spans[0]");
+  m_bandFillLocation = glGetUniformLocation(m_program.id(), "u_band_fill[0]");
+  m_bandBorderLocation = glGetUniformLocation(m_program.id(), "u_band_border[0]");
   if (m_positionLocation < 0
       || m_surfaceSizeLocation < 0
       || m_sizeLocation < 0
@@ -96,7 +134,13 @@ void ScreenFrameProgram::ensureInitialized() {
       || m_offsetLocation < 0
       || m_exclusionLocation < 0
       || m_edgeLocation < 0
-      || m_islandsLocation < 0)
+      || m_islandsLocation < 0
+      || m_bandCountLocation < 0
+      || m_bandShapeLocation < 0
+      || m_bandMetaLocation < 0
+      || m_bandSpansLocation < 0
+      || m_bandFillLocation < 0
+      || m_bandBorderLocation < 0)
     throw std::runtime_error("failed to query screen-frame shader locations");
 }
 
@@ -128,6 +172,42 @@ void ScreenFrameProgram::draw(
   glUniform4fv(m_exclusionLocation, 1, style.exclusion.data());
   glUniform1i(m_edgeLocation, g.edge);
   glUniform2fv(m_islandsLocation, 3, spans.data());
+  if (g.bands.size() > kMaxScreenFrameBands)
+    throw std::runtime_error("shared screen frame exceeds 32 bar tracks on one output");
+  std::array<GLfloat, kMaxScreenFrameBands * 4> shapes{}, meta{}, bandSpans{}, fills{}, borders{};
+  for (std::size_t i = 0; i < g.bands.size(); ++i) {
+    const auto& b = g.bands[i];
+    const auto o = i * 4;
+    shapes[o] = static_cast<float>(b.edge);
+    shapes[o + 1] = b.outer;
+    shapes[o + 2] = b.depth;
+    shapes[o + 3] = b.radius;
+    meta[o] = b.join;
+    meta[o + 1] = b.borderWidth;
+    meta[o + 2] = b.spans[2].begin;
+    meta[o + 3] = b.spans[2].end;
+    bandSpans[o] = b.spans[0].begin;
+    bandSpans[o + 1] = b.spans[0].end;
+    bandSpans[o + 2] = b.spans[1].begin;
+    bandSpans[o + 3] = b.spans[1].end;
+    fills[o] = b.fill.r;
+    fills[o + 1] = b.fill.g;
+    fills[o + 2] = b.fill.b;
+    fills[o + 3] = b.fill.a;
+    borders[o] = b.border.r;
+    borders[o + 1] = b.border.g;
+    borders[o + 2] = b.border.b;
+    borders[o + 3] = b.border.a;
+  }
+  const auto count = static_cast<GLsizei>(g.bands.size());
+  glUniform1i(m_bandCountLocation, count);
+  if (count > 0) {
+    glUniform4fv(m_bandShapeLocation, count, shapes.data());
+    glUniform4fv(m_bandMetaLocation, count, meta.data());
+    glUniform4fv(m_bandSpansLocation, count, bandSpans.data());
+    glUniform4fv(m_bandFillLocation, count, fills.data());
+    glUniform4fv(m_bandBorderLocation, count, borders.data());
+  }
   const auto attr = static_cast<GLuint>(m_positionLocation);
   glVertexAttribPointer(attr, 2, GL_FLOAT, GL_FALSE, 0, vertices.data());
   glEnableVertexAttribArray(attr);
