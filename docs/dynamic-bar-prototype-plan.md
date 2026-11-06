@@ -8,7 +8,7 @@ clock or automatically inserted media, visualiser or transport widgets.
 ## Saved starting point
 
 - Baseline branch: `codex/bar-baseline-2026-11-04`, commit `c53f851f6`.
-- Working branch: `codex/dynamic-bar-prototype`.
+- Working branch: `dev` (renamed from `codex/dynamic-bar-prototype` on 6 November 2026).
 - `main` remains at its previous commit. The baseline includes the eight previously
   uncommitted files, including configuration isolation and the surface-mode selector.
 - Design references: [Bar Ideas](https://wiki.kangy.uk/personal-projects/umbriel-cyberpunk-shell/bar-ideas)

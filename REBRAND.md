@@ -1,6 +1,6 @@
 # Nythera application identity
 
-Nythera is an independent fork of [Noctalia](https://github.com/noctalia-dev/noctalia). The repository remains [Kangy1103/noctalia](https://github.com/Kangy1103/noctalia), on `codex/dynamic-bar-prototype`; Git remotes have not been renamed. Original MIT licensing and third-party acknowledgements remain intact.
+Nythera is an independent fork of [Noctalia](https://github.com/noctalia-dev/noctalia). The repository remains [Kangy1103/noctalia](https://github.com/Kangy1103/noctalia), on `dev`; Git remotes have not been renamed. Original MIT licensing and third-party acknowledgements remain intact.
 
 ## Runtime and build
 

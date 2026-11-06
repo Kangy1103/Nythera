@@ -7,7 +7,7 @@
 ;;; (channel
 ;;;   (name 'nythera)
 ;;;   (url "https://github.com/Kangy1103/noctalia")
-;;;   (branch "codex/dynamic-bar-prototype"))
+;;;   (branch "dev"))
 ;;; --8<---------------cut here---------------end--------------->8---
 ;;;
 ;;; It provides this (nythera) module with the nythera-git package.
