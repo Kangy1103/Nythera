@@ -1,10 +1,17 @@
 # Contributing
 
-This file collects contributor-facing details for Noctalia: design goals, stack notes, code style, contribution rules, testing, commit conventions, source layout, and debugging helpers.
+This file collects contributor-facing details for Nythera (forked from Noctalia): design goals, stack notes, code style, contribution rules, testing, commit conventions, source layout, and debugging helpers.
 
 For dependencies and normal build commands, start with [BUILDING.md](BUILDING.md). For the architecture and the invariants reviewers enforce (UI phases, layer boundaries, rendering, surfaces, config, plugins), read [ARCHITECTURE.md](ARCHITECTURE.md).
 
-Before contributing, read our [ethos](https://noctalia.dev/ethos) to understand the values and philosophy guiding the project.
+Nythera is an experimental personal fork. Please discuss significant changes before opening a pull request. The technical guidance below is inherited from Noctalia and remains useful unless superseded by Nythera-specific decisions.
+
+## Fork-specific notes
+
+- Nythera is independently maintained; upstream Noctalia community links and policies do not represent Nythera support channels.
+- Preserve the original copyright and licence notices and third-party attributions.
+- Technical names and command examples below reflect the current source implementation. Rename them only as part of the tested application rebrand.
+- AI-assisted contributions are welcome, but changes still need review and appropriate testing.
 
 ## Design Principles
 
@@ -165,7 +172,7 @@ Draft pull requests may leave checkboxes incomplete. Before marking a pull reque
 
 ## Translations
 
-Noctalia translations are managed through [Noctalia Translate](https://i18n.noctalia.dev/projects/noctalia). The JSON files in `assets/translations/` are exported from that workflow, with `assets/translations/en.json` acting as the source catalog for new strings.
+Upstream Noctalia translations are managed through [Noctalia Translate](https://i18n.noctalia.dev/projects/noctalia). The JSON files in `assets/translations/` are exported from that workflow, with `assets/translations/en.json` acting as the source catalog for new strings.
 
 When a code, UI, settings, or documentation change needs a new user-facing string, add or update the English string in `assets/translations/en.json` only. Do not machine translate strings, copy English into other locales, or include broad updates to non-English translation files in a normal feature or bug-fix PR. The translation team handles those locale updates through the translation app.
 
@@ -277,6 +284,9 @@ third_party/
 
 ## Debugging
 
+> The D-Bus identifiers and binary names in the examples below are inherited from Noctalia and may change during the Nythera application rename.
+
+
 All debug commands use the `dev.noctalia.Debug` D-Bus service, available at runtime.
 
 ```sh
@@ -304,7 +314,7 @@ AddressSanitizer (ASan) can find memory errors that a normal build reports only 
 Install the source-build dependencies for your distribution using the commands in [BUILDING.md](BUILDING.md#dependencies), then clone the repository:
 
 ```sh
-git clone https://github.com/noctalia-dev/noctalia.git
+git clone https://github.com/Kangy1103/noctalia.git
 cd noctalia
 ```
 
