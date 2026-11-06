@@ -1,110 +1,98 @@
-# Noctalia
+# Nythera
 
-Noctalia is a native Wayland desktop shell for people who want a polished, configurable Linux desktop without stitching together a separate bar, launcher, notification daemon, lock screen, wallpaper tool, and settings UI.
+Nythera is my personal fork of [Noctalia](https://github.com/noctalia-dev/noctalia), a native Wayland desktop shell written in C++.
 
-It provides the shell layer around your compositor: bars, widgets, dock, launcher, control center, notifications, wallpaper, lock screen, session actions, clipboard history, OSDs, tray integration, and desktop widgets. The project is built directly on Wayland and OpenGL ES with no Qt or GTK dependency, so the UI, rendering, configuration, and IPC model are designed as one cohesive shell instead of a collection of unrelated panels and scripts.
+I started this because I wanted something a bit different from the usual desktop bars and panels. Noctalia already provides a solid foundation, so rather than starting from scratch, I decided to build on what was already there and see how far I could take it.
 
-<p><br/></p>
+The general idea is a more flexible desktop shell with floating islands, dynamic layouts, screen wrapping and a darker sci-fi/fantasy aesthetic.
 
-<p align="center">
-  <img src="https://assets.noctalia.dev/noctalia-logo.svg?v=2" alt="Noctalia Logo" style="width: 192px" />
-</p>
+I'm not trying to reinvent everything Noctalia does. Most of its existing functionality is exactly what I need. I just want more freedom over how it looks and behaves.
 
-<p align="center">
-  <a href="https://docs.noctalia.dev/noctalia/getting-started/installation/">
-    <img
-      src="https://img.shields.io/badge/Install_Noctalia-FFF59B?style=for-the-badge&labelColor=FFF59B"
-      alt="Install Noctalia"
-      style="height: 50px"
-    />
-  </a>
-</p>
+### A Note on Development
 
-<p><br/></p>
+I'll get this out of the way early: **Nythera is largely vibe coded.** 🤣
 
-<p align="center">
-  <a href="https://github.com/noctalia-dev/noctalia/commits">
-    <img src="https://img.shields.io/github/last-commit/noctalia-dev/noctalia?style=for-the-badge&labelColor=FFF59B&color=FFF59B&logo=git&logoColor=070722&label=commit" alt="Last commit" />
-  </a>
-  <a href="https://github.com/noctalia-dev/noctalia/stargazers">
-    <img src="https://img.shields.io/github/stars/noctalia-dev/noctalia?style=for-the-badge&labelColor=FFF59B&color=FFF59B&logo=github&logoColor=070722" alt="GitHub stars" />
-  </a>
-  <a href="https://docs.noctalia.dev">
-    <img src="https://img.shields.io/badge/docs-FFF59B?style=for-the-badge&logo=gitbook&logoColor=070722&labelColor=FFF59B" alt="Documentation" />
-  </a>
-  <a href="https://discord.noctalia.dev">
-    <img src="https://img.shields.io/badge/discord-FFF59B?style=for-the-badge&labelColor=FFF59B&logo=discord&logoColor=070722" alt="Discord" />
-  </a>
-</p>
+I'm learning to code, but C++ is completely outside my wheelhouse. I couldn't write this project myself, so I'm using AI tools to help turn my ideas into something that actually works.
 
-## Why Noctalia?
+The ideas, design direction and decisions are mine, while the implementation is largely AI-generated. I'm testing things, breaking things, figuring out what works and probably giving the AI a headache in the process.
 
-Most Wayland setups leave the desktop shell to a stack of small tools: one bar, another launcher, another notification daemon, a lock screen, a wallpaper daemon, scripts for session actions, and separate config formats for each piece. That can be flexible, but it also makes a complete desktop feel fragile and hard to keep visually consistent.
+I'm not pretending to be a C++ developer. I'm just someone who enjoys messing around with Linux, has far too many ideas, and now has the tools to actually try building them.
 
-Noctalia solves that by providing one configurable shell layer that owns the common desktop surfaces and services while still fitting into compositor-driven Wayland workflows. It is meant for users who want the control of a custom desktop environment with fewer moving parts and a consistent UI.
+## What's Different?
 
-To understand the values and philosophy guiding the project, read our [ethos](https://noctalia.dev/ethos).
+### Dynamic Bars & Islands
 
-## What It Includes
+One of the main things I'm working on is moving away from the traditional single desktop bar.
 
-- Multi-monitor bars with configurable widgets, taskbar, workspaces, system tray, media, network, battery, brightness, weather, clipboard, and custom script-backed widgets.
-- Dock, launcher, control center, notification toasts/history, wallpaper picker, OSD overlays, lock screen, session panel, and desktop widgets.
-- TOML configuration with hot reload, GUI-managed overrides, theme/palette support, template application, and IPC for runtime control.
-- Direct Wayland integration for layer-shell, session lock, idle behavior, clipboard, foreign toplevels, workspaces, fractional scaling, and compositor-specific workspace backends where needed.
+Nythera currently experiments with:
 
-## Wayland Compositor Support
+- **Floating Islands** — Separate sections of the bar into individual panels rather than one continuous strip.
+- **Dynamic Island** — A section that changes to display relevant information depending on what's happening, such as media playback, notifications and system events.
+- **Screen Wrap** — Extends the bar's appearance around the edges of the display, creating a frame that integrates with the islands.
+- **Traditional Bars** — The original bar layout is still available. Not everything needs to be an island!
 
-Noctalia supports Wayland compositors that provide the layer-shell protocols it needs for shell surfaces. Workspace integration works through compositor-native backends where needed, or through `ext-workspace-v1` on compositors that implement it.
+### Appearance
 
-Current compositor integrations include Niri, Hyprland, Sway, Scroll, Mango, Labwc, dwl, and other compatible Wayland compositors. Other compositors may run Noctalia but can have reduced workspace, window, output, or session-action integration depending on the protocols and IPC they expose.
+I'm going for a darker, futuristic look with some sci-fi and fantasy influences. Think dark backgrounds, subtle lighting, transparency and a bit of crimson.
 
-## Scope
+That doesn't mean everyone has to use the same appearance, though. The intention is to keep things configurable rather than hardcoding everything to my preferences.
 
-Noctalia is a desktop shell, not a full desktop environment. It provides the visual and service layer around your Wayland compositor; window management, compositor configuration, and standalone desktop applications belong elsewhere, and non-essential features live in plugins. See [SCOPE.md](SCOPE.md) for what the project takes on and declines.
+## What I'm Working Towards
 
-## Build from source
+There's quite a bit I'd still like to do.
 
-Source dependencies, distro-specific package commands, build modes, and install layouts live in [BUILDING.md](BUILDING.md).
+- **Freeform Islands** — Being able to drag islands around the screen rather than being restricted to fixed bar positions.
+- **Bar Merging** — Allowing multiple bars and islands to connect together without awkward gaps, overlapping borders or mismatched corners.
+- **Better Screen Wrap Integration** — Improving how the screen frame interacts with bars and application windows, including configurable spacing.
+- **More Customisation** — Greater control over island positioning, appearance and behaviour.
 
-## Configuration
+These are ideas I'm actively exploring, not a promise that everything will make it in.
 
-A ready-to-use starting config with all defaults is at [example.toml](example.toml). The full configuration reference lives in the [documentation site](https://docs.noctalia.dev/noctalia/). The source MDX files are in [`docs/user/`](docs/user/); sync them to a local docs checkout with `tools/sync-docs.sh`.
+## Existing Features
 
-## Contributing
+Since Nythera is based on Noctalia, it retains most of the functionality already available in the original project, including:
 
-Developer notes, code style, contribution rules, testing, project layout, and debugging commands live in [CONTRIBUTING.md](CONTRIBUTING.md). The architecture and its invariants are described in [ARCHITECTURE.md](ARCHITECTURE.md).
+- Multi-monitor bars, widgets, taskbar and workspaces.
+- Application launcher and dock.
+- Notifications, control centre and on-screen displays.
+- Media, audio, network and brightness controls.
+- Wallpaper management and lock screen.
+- Clipboard history and desktop widgets.
+- TOML configuration, hot reload and graphical settings.
+- Native Wayland integration and IPC controls.
 
-Bug reports, fixes, documentation updates, themes, and configuration examples are welcome. For general help and design discussion, join the community on [Discord](https://discord.noctalia.dev).
+## Compositor Support
+
+I'm developing Nythera primarily on **Umbriel**, since that's what I use.
+
+Noctalia already supports several Wayland compositors, including Niri, Hyprland, Sway, Mango, Labwc and others. Much of that support should carry over, although I haven't tested Nythera extensively outside my own setup.
+
+## Building & Installation
+
+Nythera is still in development, so I haven't put together a proper installation process yet.
+
+For now, the build process is based on Noctalia's existing setup. See [BUILDING.md](BUILDING.md) for the current instructions.
+
+Expect things to change, particularly configuration paths, executable names and other bits that still reference Noctalia.
 
 ## Credits
 
-Thank you to the [contributors](https://github.com/noctalia-dev/noctalia/graphs/contributors) and community members who test Noctalia, report issues, share configurations, and help shape the project.
+Nythera wouldn't exist without [Noctalia](https://github.com/noctalia-dev/noctalia) and the work of its developers and contributors.
 
-## Donations
+The vast majority of the underlying functionality and architecture comes directly from their project. I'm building on top of that rather than pretending I've written an entire desktop shell myself.
 
-Donations are appreciated but completely optional.
+Nythera is an independent fork and isn't affiliated with or endorsed by the Noctalia developers.
 
-<p>
-  <a href="https://www.buymeacoffee.com/noctalia">
-    <img src="https://img.shields.io/badge/Buy_Me_a_Coffee-FFF59B?style=for-the-badge&logo=buymeacoffee&logoColor=070722&labelColor=FFF59B" alt="Buy Me a Coffee">
-  </a>
-  <a href="https://ko-fi.com/noctaliadev">
-    <img src="https://img.shields.io/badge/Ko--fi-FFF59B?style=for-the-badge&logo=kofi&logoColor=070722&labelColor=FFF59B" alt="Ko-fi">
-  </a>
-</p>
+See [CREDITS.md](CREDITS.md) for additional acknowledgements and third-party dependencies.
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+Nythera is licensed under the [MIT License](LICENSE), the same as Noctalia.
 
-## Packaging
+The original copyright and licence notices are retained.
 
-Distro packaging notes (description, deps, install layout, Meson options) live in [PACKAGING.md](PACKAGING.md).
+---
 
-## Star History
+This is mostly a personal project that I'm building because I enjoy messing around with Linux and wanted to make something a bit more my own.
 
-<p align="center">
-  <a href="https://github.com/noctalia-dev/noctalia/stargazers">
-    <img src="https://api.noctalia.dev/stars-animated/noctalia" alt="Star History" />
-  </a>
-</p>
+I've got plenty of ideas for it. Whether I manage to implement all of them is another matter. 🤣
