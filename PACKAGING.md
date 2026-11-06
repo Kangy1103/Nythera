@@ -1,36 +1,21 @@
-# Packaging Noctalia
+# Packaging Nythera
 
-Notes for distribution packagers. End-user install docs live in the [README](README.md) and at [docs.noctalia.dev](https://docs.noctalia.dev/noctalia/getting-started/installation/).
+Nythera is an experimental fork of [Noctalia](https://github.com/noctalia-dev/noctalia). It does **not** currently claim the distribution packaging or release support of the upstream project.
 
-## Package description
+## Current packaging status
 
-Use this exact short description for package metadata (`pkgdesc`, `Summary`, AppStream, etc.):
+No official Nythera packages or stable release policy are established yet. See [BUILDING.md](BUILDING.md) for source builds.
 
-> A sleek, customizable desktop shell crafted for Wayland.
+## Current technical identity
 
-Do not substitute shorter or alternate blurbs (“lightweight Wayland bar”, “status bar”, ...). Noctalia is a full desktop shell (bars, dock, launcher, notifications, lock screen, wallpaper, settings, ...), not a bar-only tool.
+The executable, desktop entries, installation paths, environment variables, completion names and IPC identifiers below are inherited from Noctalia **until the application rebranding is implemented and tested**. Package maintainers should inspect the actual build output rather than assuming these have already been renamed.
 
-## Packaged distributions
-
-v5 is already packaged for:
-
-- Arch Linux
-- NixOS
-- Fedora
-- openSUSE
-- KaOS
-- Gentoo
-- GNU Guix
-- Debian (including Ubuntu)
-
-[Repology](https://repology.org/project/noctalia/versions) is a useful at-a-glance check, but it only covers repositories it indexes (and may still list v4 as `noctalia-shell`). It is not a complete inventory of community packaging.
-
-## Identity
+### Existing upstream identifiers (pending rename)
 
 |                 |                                                                                                                |
 | --------------- | -------------------------------------------------------------------------------------------------------------- |
 | Name            | `noctalia`                                                                                                     |
-| Homepage        | <https://github.com/noctalia-dev/noctalia>                                                                     |
+| Homepage        | <https://github.com/Kangy1103/noctalia>                                                                     |
 | Docs            | <https://docs.noctalia.dev>                                                                                    |
 | License         | MIT ([LICENSE](LICENSE)); also see vendored licenses under `third_party/` for SPDX completeness                |
 | Version         | [`VERSION`](VERSION), read by Meson `project(... version: files('VERSION'))`                                   |
@@ -38,9 +23,6 @@ v5 is already packaged for:
 | Desktop entries | `dev.noctalia.Noctalia.desktop`; `dev.noctalia.Noctalia.Annotator.desktop` (hidden, image "Open With" handler) |
 | Icon            | `noctalia` (`share/icons/hicolor/scalable/apps/noctalia.svg`)                                                  |
 
-## Maintenance Policy
-
-Releases strive to follow [semantic versioning](https://semver.org). The latest version is the only actively maintained version. No attempts are made to achieve overlapping lifecycles of major or minor versions. Bug reports are required to be reproducible on the latest version.
 
 ## Architectures / libc
 
@@ -106,7 +88,7 @@ bundle/
   share/noctalia/assets/
 ```
 
-Noctalia resolves the asset root in this order:
+The current implementation resolves the asset root in this order:
 
 1. `NOCTALIA_ASSETS_DIR` (a warning is logged if it is set but invalid)
 2. `assets/` next to the executable
@@ -115,7 +97,7 @@ Noctalia resolves the asset root in this order:
 5. `../share/noctalia/assets` relative to the executable
 6. the compiled install path from Meson (`<prefix>/<datadir>/noctalia/assets`)
 
-A candidate is only accepted if it contains `emoji.json`, `fonts/noctalia-tabler.ttf`, `templates/builtin.toml`, and `translations/en.json`. If none qualifies, Noctalia logs a warning and uses the compiled install path.
+A candidate is only accepted if it contains `emoji.json`, `fonts/noctalia-tabler.ttf`, `templates/builtin.toml`, and `translations/en.json`. If none qualifies, The current implementation logs a warning and uses the compiled install path.
 
 Not shipped (don’t look for them in the install): AppStream / metainfo XML, man pages, systemd units.
 
@@ -182,12 +164,12 @@ Keep the `.desktop` daemon Exec unless you intentionally package a different ses
 
 ## Session conflicts
 
-On non-Plasma sessions Noctalia provides and registers:
+On non-Plasma sessions The current implementation provides and registers:
 
 - `org.freedesktop.Notifications`
 - `org.kde.StatusNotifierWatcher` (system tray host)
 
-Do not run it alongside another notification daemon or StatusNotifier host (mako, dunst, swaync, waybar-as-host, ...) unless those are disabled. On Plasma, Noctalia integrates with Plasma's notification / tray paths instead of claiming the freedesktop Notifications name.
+Do not run it alongside another notification daemon or StatusNotifier host (mako, dunst, swaync, waybar-as-host, ...) unless those are disabled. On Plasma, the shell integrates with Plasma's notification / tray paths instead of claiming the freedesktop Notifications name.
 
 ## User data paths
 
@@ -200,17 +182,11 @@ Do not run it alongside another notification daemon or StatusNotifier host (mako
 
 Override bases with `NOCTALIA_CONFIG_HOME`, `NOCTALIA_STATE_HOME`, `NOCTALIA_DATA_HOME` (each still appends `/noctalia`).
 
-## What Noctalia is not
 
-- Not a compositor, display manager, or greeter. Greeter support is [noctalia-greeter](https://github.com/noctalia-dev/noctalia-greeter).
-- Not a replacement for file managers, screen casting, or drive mounting.
-- Compositor support varies (protocols / IPC). See the compositor docs for [Niri](https://docs.noctalia.dev/noctalia/compositor-settings/niri/), [Hyprland](https://docs.noctalia.dev/noctalia/compositor-settings/hyprland/), [Sway / Scroll](https://docs.noctalia.dev/noctalia/compositor-settings/sway-scroll/), [Mango](https://docs.noctalia.dev/noctalia/compositor-settings/mango/), [Labwc](https://docs.noctalia.dev/noctalia/compositor-settings/labwc/), and [KDE Plasma](https://docs.noctalia.dev/noctalia/compositor-settings/kde/).
+## Project scope
 
-## Versioning
+Nythera is a Wayland desktop shell, not a compositor or display manager. Its packaging, naming and compatibility may change while development continues.
 
-Prefer packaging **tagged releases** rather than random `main` snapshots unless you maintain a `-git` / nightly package on purpose.
+## Versioning and contact
 
-## Contact
-
-- Issues: <https://github.com/noctalia-dev/noctalia/issues>
-- Discord: <https://discord.noctalia.dev>
+No stable Nythera release or packaging maintenance policy has been set. Report Nythera-specific issues at <https://github.com/Kangy1103/noctalia/issues>. Upstream Noctalia support channels are for the upstream project.
