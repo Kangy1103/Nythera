@@ -9,6 +9,33 @@ Bars are defined as named subtables under `[bar.*]`. Each bar is spawned on ever
 
 Widget hover tooltips open on the side of the bar facing into the screen (below a top bar, above a bottom bar, and beside a left or right bar), so they do not cover other bar widgets.
 
+## Wallpaper backing with Screen Wrap
+
+**Settings → Desktop → Screen Wrap → Wallpaper Backing** paints an aligned,
+unblurred copy of each monitor's wallpaper behind its bar tracks, including gaps
+between islands. Enable it to conceal offscreen applications behind transparent
+bars. It reuses the resident wallpaper texture and existing frame buffers; it does
+not capture the screen or add a blur pass. This option requires Screen Wrap.
+
+On Umbriel, the left backing automatically hides when a visible window wider
+than **50% of that monitor's usable width** overlaps the reserved left bar track and
+still extends into the usable area. This lets a large, partially scrolled window
+show naturally beneath the bar. Ordinary half-width columns and windows entirely
+outside the usable area remain covered. The rule checks all visible windows on
+that output, regardless of keyboard focus; hidden workspaces and minimized windows
+do not trigger it. Other edges retain their backing, and the bar and outline stay
+visible. Backing restoration waits 400 ms after the window is reported clear,
+because Umbriel reports tiled destination geometry before its movement animation
+finishes; renewed overlap cancels the pending restoration. Geometry comes from
+the existing compositor event cache, without polling.
+Other compositors retain the static backing until they provide this geometry.
+
+```toml
+[shell.screen_wrap]
+enabled = true
+wallpaper_backing = true # default: false
+```
+
 ```toml
 [bar]
 order = ["main"]              # layer-shell creation order

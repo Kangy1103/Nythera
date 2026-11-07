@@ -24,6 +24,7 @@ enum class WallpaperTransitionDirection;
 struct WallpaperInstance;
 struct PointerEvent;
 struct WaylandOutput;
+struct wl_output;
 struct wl_surface;
 
 namespace nythera::theme {
@@ -66,6 +67,10 @@ public:
 
   // Prefer a landscape image; otherwise use the first available image.
   [[nodiscard]] TextureHandle currentTexture() const;
+  // Settled, output-specific source for static foreground backing. Borrows the
+  // resident texture; consumers refresh it synchronously on changed(). No capture
+  // or transition tick is needed, and externally managed outputs return nullopt.
+  [[nodiscard]] std::optional<WallpaperDrawParams> backingSource(wl_output* output) const;
   // Path of currentTexture(); when no instance shows an image while wallpaper is enabled,
   // falls back to the palette wallpaper path so consumers still show what drives colors.
   [[nodiscard]] std::string currentPath() const;

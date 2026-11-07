@@ -169,6 +169,11 @@ namespace compositors {
     [[nodiscard]] virtual std::vector<WorkspaceWindow> workspaceWindows(const std::string& /*outputName*/ = {}) const {
       return {};
     }
+    // Cached window geometry, when the compositor supplies it. A wide window
+    // overlapping the reserved left bar track still has content in the work area.
+    [[nodiscard]] virtual bool hasVisibleLeftUnderlap(
+        const std::string& /*outputName*/, int /*usableLeft*/, int /*usableWidth*/
+    ) const { return false; }
     // True when ext-foreign-toplevel identifiers produced by this compositor
     // are exact compositor window IDs suitable for focus/close actions and
     // stable taskbar identity. Backends return true when they can join those

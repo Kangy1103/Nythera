@@ -189,6 +189,21 @@ bool UmbrielWorkspaceBackend::closeWindowById(const std::string& windowId) {
   return m_runtime.requestAction("window-close", {{"window", windowId}});
 }
 
+bool UmbrielWorkspaceBackend::hasVisibleLeftUnderlap(
+    const std::string& outputName, int usableLeft, int usableWidth
+) const {
+  if (outputName.empty() || usableWidth <= 0) return false;
+  const auto prefix = outputName + ":";
+  return std::ranges::any_of(m_windows, [&](const auto& entry) {
+    const auto& window = entry.second;
+    return window.visible && window.workspaceId.starts_with(prefix)
+        && (!window.minimizeState || !window.minimizeState->minimized)
+        && static_cast<std::int64_t>(window.width) * 2 > usableWidth
+        && window.x < usableLeft
+        && static_cast<std::int64_t>(window.x) + window.width > usableLeft;
+  });
+}
+
 std::optional<WindowMinimizeState> UmbrielWorkspaceBackend::windowMinimizeState(std::string_view windowId) const {
   if (!m_runtime.available()) {
     return std::nullopt;
@@ -229,7 +244,9 @@ void UmbrielWorkspaceBackend::handleEvent(std::string_view event, const nlohmann
       for (auto& [windowId, window] : m_windows) {
         (void)windowId;
         changed |= window.minimizeState.has_value();
+        changed |= window.visible;
         window.minimizeState.reset();
+        window.visible = false;
       }
       if (changed) {
         notifyChanged();
@@ -256,6 +273,8 @@ void UmbrielWorkspaceBackend::handleEvent(std::string_view event, const nlohmann
       window.active = entry.value("active", false);
       window.x = entry.value("x", 0);
       window.y = entry.value("y", 0);
+      window.width = entry.value("w", 0);
+      window.visible = entry.value("visible", false);
       window.minimizeState = parseMinimizeState(entry);
       if (window.active && !focused.has_value()) {
         focused = id;

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/Nythera%20Neon%20Nebula%20Emblem.png" alt="Nythera neon nebula emblem" width="360">
+</p>
+
 # Nythera
 
 Nythera is my personal fork of [Noctalia](https://github.com/noctalia-dev/noctalia), a native Wayland desktop shell written in C++.

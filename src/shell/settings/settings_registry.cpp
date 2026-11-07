@@ -1651,7 +1651,7 @@ namespace settings {
         "screen corners radius"
     ));
 
-    // Display-owned frame: one global control and per-output overrides.
+    // Display-owned frame: one global set of controls.
     const auto addFrameControls = [&](std::vector<std::string> path, const ScreenWrapConfig& frame) {
       auto p = path;
       p.push_back("enabled");
@@ -1660,6 +1660,15 @@ namespace settings {
           "Wrap all enabled bars on every display in one shared outline per display", p, ToggleSetting{frame.enabled},
           "screen frame wrap monitor"
       ));
+      p = path;
+      p.push_back("wallpaper_backing");
+      auto backing = makeEntry(
+          SettingsSection::Desktop, "screen-wrap", "Wallpaper Backing",
+          "Hide windows beneath bar tracks with an aligned, unblurred wallpaper copy, including gaps between islands",
+          p, ToggleSetting{frame.wallpaperBacking}, "wallpaper transparent bar offscreen backing"
+      );
+      backing.visibleWhen = [](const Config& c) { return c.shell.screenWrap.enabled; };
+      entries.push_back(std::move(backing));
       struct Control {
         const char* key;
         const char* label;

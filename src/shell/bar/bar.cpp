@@ -53,6 +53,7 @@ namespace {
     const auto applyFrame = [&](BarConfig candidate) {
       auto settings = frame;
       candidate.screenWrap = settings.enabled;
+      candidate.wrapWallpaperBacking = settings.wallpaperBacking;
       candidate.wrapWidth = settings.width;
       candidate.wrapClearance = settings.clearance;
       candidate.wrapRadius = settings.radius;
@@ -828,6 +829,7 @@ namespace {
     return a.name == b.name
         && a.transparencyMode == b.transparencyMode
         && a.screenWrap == b.screenWrap
+        && a.wrapWallpaperBacking == b.wrapWallpaperBacking
         && a.wrapWidth == b.wrapWidth
         && a.wrapClearance == b.wrapClearance
         && a.wrapJoinedCornerGap == b.wrapJoinedCornerGap
@@ -1822,6 +1824,7 @@ bool Bar::initialize(const BarServices& services) {
   m_clipboard = services.clipboard;
   m_fileWatcher = services.fileWatcher;
   m_screenshots = services.screenshots;
+  m_wallpaper = services.wallpaper;
   m_scriptApi = services.scriptApi;
 
   m_widgetFactory = std::make_unique<WidgetFactory>(services);
@@ -1878,6 +1881,7 @@ BarServices Bar::services() const {
       .clipboard = m_clipboard,
       .fileWatcher = m_fileWatcher,
       .screenshots = m_screenshots,
+      .wallpaper = m_wallpaper,
       .scriptApi = m_scriptApi,
   };
 }
@@ -2178,6 +2182,7 @@ void Bar::applyPendingWorkspaceReveal() {
 
 void Bar::refresh() {
   for (auto& inst : m_instances) {
+    if (inst->screenWrap) inst->screenWrap->updateWallpaperUnderlap(*m_platform);
     if (inst->surface != nullptr) {
       inst->surface->requestUpdate();
       if (inst->animations.hasActive() || instanceNeedsFrameTick(*inst)) {
@@ -2856,8 +2861,9 @@ void Bar::createInstance(const WaylandOutput& output, std::size_t barIndex, cons
       }
     instance->screenWrap = std::make_unique<ScreenWrap>(
         m_platform->wayland(), m_renderContext, output.output, barConfig, output.effectiveLogicalWidth(),
-        output.effectiveLogicalHeight(), sibling, barIndex
+        output.effectiveLogicalHeight(), sibling, barIndex, m_wallpaper
     );
+    instance->screenWrap->updateWallpaperUnderlap(*m_platform);
     surfaceConfig.exclusiveZone = -1;
   }
   instance->surface = std::make_unique<LayerSurface>(m_platform->wayland(), std::move(surfaceConfig));

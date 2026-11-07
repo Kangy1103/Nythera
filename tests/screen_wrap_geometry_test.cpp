@@ -1,4 +1,6 @@
 #include "render/core/screen_frame_geometry.h"
+#include "compositors/umbriel/umbriel_runtime.h"
+#include "compositors/umbriel/umbriel_workspace_backend.h"
 #include "shell/bar/dynamic_island_style.h"
 #include "shell/bar/screen_wrap_geometry.h"
 #include "shell/bar/wrap_layout.h"
@@ -11,6 +13,75 @@
 #include <utility>
 
 int main() {
+  {
+    // Exercise actual IPC snapshot parsing, output filtering and geometry-only
+    // change notifications, without connecting to or moving any real windows.
+    compositors::umbriel::UmbrielRuntime runtime;
+    UmbrielWorkspaceBackend backend(runtime);
+    int changes = 0;
+    backend.setWindowChangeCallback([&] { ++changes; });
+    auto window = nlohmann::json{{"id", "wide"}, {"workspace", "DP-3:1"},
+        {"x", 99}, {"w", 500}, {"visible", true}, {"active", false},
+        {"minimized", false}, {"minimizable", true}};
+    const auto underlap = [&] {
+      backend.handleEvent("windows", nlohmann::json::array({window}));
+      return backend.hasVisibleLeftUnderlap("DP-3", 140, 1000);
+    };
+    assert(!underlap()); // exactly half-width retains its backing
+    const int before = changes;
+    window["w"] = 501;
+    assert(underlap() && changes > before); // width-only changes wake the bar
+    window["x"] = 100;
+    assert(underlap()); // crossed the screen edge, still underneath the bar
+    window["x"] = 139;
+    assert(underlap()); // keep backing hidden through the last overlapping pixel
+    window["x"] = 140;
+    assert(!underlap()); // restore only after the complete bar track is clear
+    window["x"] = -800;
+    window["w"] = 900;
+    assert(!underlap()); // only an offscreen remnant beneath the bar
+    window["x"] = -759;
+    assert(underlap()); // actual content reaches into usable space
+    window["visible"] = false;
+    assert(!underlap()); // inactive workspace / hidden window
+    window["visible"] = true;
+    window["minimized"] = true;
+    assert(!underlap());
+    window["minimized"] = false;
+    window["workspace"] = "DP-1:1";
+    assert(!underlap()); // independent monitors, regardless of focus
+    window["workspace"] = "DP-3:1";
+    window["x"] = -1600;
+    window["w"] = 700;
+    backend.handleEvent("windows", nlohmann::json::array({window}));
+    assert(backend.hasVisibleLeftUnderlap("DP-3", -1460, 1000));
+    backend.handleStreamReset();
+    assert(!backend.hasVisibleLeftUnderlap("DP-3", -1460, 1000));
+    backend.setWindowChangeCallback({});
+  }
+  {
+    // Back the full stable track, including empty island gaps. Panel expansion
+    // never enters this geometry, and corners belong to exactly one rectangle.
+    const auto tracks = screen_wrap::wallpaperBackingRects(1000, 600, {50, 30, 20, 40});
+    assert(tracks[0].width == 1000 && tracks[0].height == 50);
+    assert(tracks[3].x == 0 && tracks[3].y == 50 && tracks[3].width == 40 && tracks[3].height == 530);
+    assert(tracks[1].x == 970 && tracks[1].width == 30);
+    assert(tracks[2].y == 580 && tracks[2].height == 20);
+    for (int y = 0; y < 600; ++y) {
+      for (int x = 0; x < 1000; ++x) {
+        int hits = 0;
+        for (const auto& r : tracks)
+          hits += x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
+        assert(hits == static_cast<int>(x < 40 || x >= 970 || y < 50 || y >= 580));
+      }
+    }
+    const auto leftOnly = screen_wrap::wallpaperBackingRects(1000, 600, {0, 0, 0, 40});
+    assert(leftOnly[3].width == 40 && leftOnly[3].height == 600);
+    assert(leftOnly[0].height == 0 && leftOnly[1].width == 0 && leftOnly[2].height == 0);
+    const auto tiny = screen_wrap::wallpaperBackingRects(10, 10, {50, 50, 50, 50});
+    for (const auto& r : tiny)
+      assert(r.x >= 0 && r.y >= 0 && r.x + r.width <= 10 && r.y + r.height <= 10);
+  }
   {
     BarConfig top, left;
     top.position = "top"; top.screenWrap = true; top.thickness = 50;
@@ -314,6 +385,13 @@ int main() {
 
   {
     const auto entries = settings::buildSettingsRegistry(config, &bar, nullptr);
+    const auto backing = std::ranges::find(entries,
+        std::vector<std::string>{"shell", "screen_wrap", "wallpaper_backing"}, &settings::SettingEntry::path);
+    assert(backing != entries.end());
+    Config visibility;
+    assert(!backing->visibleWhen(visibility));
+    visibility.shell.screenWrap.enabled = true;
+    assert(backing->visibleWhen(visibility));
     assert(
         std::ranges::find(
             entries, std::vector<std::string>{"shell", "screen_wrap", "enabled"}, &settings::SettingEntry::path

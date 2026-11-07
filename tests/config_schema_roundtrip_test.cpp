@@ -1183,6 +1183,7 @@ int main() {
     const auto table = toml::parse(R"(
 [screen_wrap]
 enabled = true
+wallpaper_backing = true
 width = 9
 radius = 24
 joined_corner_gap = 17
@@ -1193,6 +1194,7 @@ join_distance = 0
     Diagnostics diag;
     readInto(table, shell, shellSchema(), "shell", diag);
     if (!shell.screenWrap.enabled
+        || !shell.screenWrap.wallpaperBacking
         || shell.screenWrap.width != 9
         || shell.screenWrap.joinedCornerGap != 17
         || shell.screenWrap.freeCornerGap != 0

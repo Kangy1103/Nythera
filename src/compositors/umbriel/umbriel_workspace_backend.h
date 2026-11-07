@@ -47,6 +47,9 @@ public:
   [[nodiscard]] std::unordered_map<std::string, std::vector<std::string>>
   appIdsByWorkspace(const std::string& outputName = {}) const override;
   [[nodiscard]] std::vector<WorkspaceWindow> workspaceWindows(const std::string& outputName = {}) const override;
+  [[nodiscard]] bool hasVisibleLeftUnderlap(
+      const std::string& outputName, int usableLeft, int usableWidth
+  ) const override;
   [[nodiscard]] bool hasExactWindowIdentity() const noexcept override { return true; }
   [[nodiscard]] std::optional<std::string> focusedWindowId() const override;
   bool focusWindowById(const std::string& windowId, bool warpPointer = false) override;
@@ -63,6 +66,8 @@ private:
     bool active = false;
     std::int32_t x = 0;
     std::int32_t y = 0;
+    std::int32_t width = 0;
+    bool visible = false;
     std::optional<WindowMinimizeState> minimizeState;
 
     bool operator==(const Window&) const = default;

@@ -1598,6 +1598,13 @@ std::vector<WorkspaceWindowAssignment> CompositorPlatform::workspaceWindowAssign
   return result;
 }
 
+bool CompositorPlatform::hasVisibleLeftUnderlap(wl_output* output, int reservedLeft, int reservedRight) const {
+  const auto* info = findOutputByWl(output);
+  return info && m_workspaceMetadataBackend && m_workspaceMetadataBackend->hasVisibleLeftUnderlap(
+      connectorNameForOutput(output), info->logicalX + reservedLeft,
+      info->effectiveLogicalWidth() - reservedLeft - reservedRight);
+}
+
 std::vector<std::string> CompositorPlatform::openOverlayWorkspaceKeys(wl_output* outputFilter) const {
   return m_workspaces != nullptr ? m_workspaces->openOverlayWorkspaceKeys(outputFilter) : std::vector<std::string>{};
 }

@@ -911,6 +911,7 @@ void Application::initBarDockAndLayout() {
       .clipboard = &m_clipboardService,
       .fileWatcher = &m_fileWatcher,
       .screenshots = &m_screenshotService,
+      .wallpaper = &m_wallpaper,
       .scriptApi = &m_scriptApi,
   });
   m_idleInhibitor.setAnchorSurfacesProvider([this] { return m_bar.caffeineAnchorSurfaces(); });

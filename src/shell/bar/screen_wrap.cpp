@@ -1,10 +1,14 @@
 #include "shell/bar/screen_wrap.h"
 
+#include "compositors/compositor_platform.h"
 #include "core/log.h"
 #include "core/files/resource_paths.h"
 #include "core/ui_phase.h"
+#include "core/timer_manager.h"
 #include "render/scene/screen_frame_node.h"
+#include "render/scene/wallpaper_node.h"
 #include "shell/bar/wrap_layout.h"
+#include "shell/wallpaper/wallpaper.h"
 #include "ui/builders.h"
 #include "ui/controls/image.h"
 #include "ui/palette.h"
@@ -29,6 +33,9 @@ struct ScreenWrap::Shared {
   struct Strip {
     std::unique_ptr<LayerSurface> surface;
     std::unique_ptr<Node> root;
+    ScreenFrameNode* frame = nullptr;
+    std::array<Box*, 4> backingClips{};
+    std::array<WallpaperNode*, 4> wallpapers{};
     Image* cornerLogo = nullptr;
     screen_wrap::Rect rect{};
   };
@@ -39,9 +46,79 @@ struct ScreenWrap::Shared {
   std::map<std::size_t, Contribution> bars;
   std::array<Strip, 4> strips, reservations;
   ScreenFrameStyle material;
+  Wallpaper* wallpaper;
+  std::optional<WallpaperDrawParams> wallpaperSource;
+  Signal<>::ScopedConnection wallpaperChanged;
+  bool backingLogged = false;
+  bool leftWallpaperUnderlap = false;
+  Timer backingRestoreTimer;
 
-  Shared(WaylandConnection& w, RenderContext* r, wl_output* o, int x, int y)
-      : wayland(w), renderer(r), output(o), width(x), height(y) {}
+  void setLeftWallpaperUnderlap(bool underlap) {
+    leftWallpaperUnderlap = underlap;
+    for (auto& strip : strips) {
+      if (!strip.root) continue;
+      buildBacking(strip);
+      strip.surface->requestRedraw();
+    }
+  }
+
+  Shared(WaylandConnection& w, RenderContext* r, wl_output* o, int x, int y, Wallpaper* wp)
+      : wayland(w), renderer(r), output(o), width(x), height(y), wallpaper(wp) {
+    if (wallpaper) {
+      wallpaperSource = wallpaper->backingSource(output);
+      wallpaperChanged = wallpaper->changed().connect([this] {
+        wallpaperSource = wallpaper->backingSource(output);
+        for (auto& strip : strips) {
+          if (!strip.root) continue;
+          buildBacking(strip);
+          strip.surface->requestRedraw();
+        }
+      });
+    }
+  }
+
+  void buildBacking(Strip& strip) {
+    std::array<int, 4> depths{};
+    std::array<float, 4> opacities{};
+    for (const auto& [id, bar] : bars) {
+      if (!bar.config.wrapWallpaperBacking || !bar.config.enabled) continue;
+      const auto edge = screen_wrap::edgeIndex(bar.config.position);
+      depths[edge] = std::max(depths[edge], bar.config.marginEdge + bar.config.thickness);
+      opacities[edge] = std::max(opacities[edge], bar.opacity);
+    }
+    const auto rects = screen_wrap::wallpaperBackingRects(width, height, depths);
+    if (leftWallpaperUnderlap) opacities[3] = 0;
+    if (!backingLogged && wallpaperSource && std::ranges::any_of(depths, [](int depth) { return depth > 0; })) {
+      static constexpr Logger log("screen-wrap");
+      log.info("using resident wallpaper backing on {}x{} (no capture or blur)", width, height);
+      backingLogged = true;
+    }
+    for (std::size_t e = 0; e < rects.size(); ++e) {
+      auto* clip = strip.backingClips[e];
+      const auto& rect = rects[e];
+      const int x = std::max(rect.x, strip.rect.x), y = std::max(rect.y, strip.rect.y);
+      const int w = std::min(rect.x + rect.width, strip.rect.x + strip.rect.width) - x;
+      const int h = std::min(rect.y + rect.height, strip.rect.y + strip.rect.height) - y;
+      clip->setVisible(wallpaperSource.has_value() && w > 0 && h > 0 && opacities[e] > 0);
+      if (!clip->visible()) continue;
+      clip->setPosition(static_cast<float>(x - strip.rect.x), static_cast<float>(y - strip.rect.y));
+      clip->setSize(static_cast<float>(w), static_cast<float>(h));
+      clip->setOpacity(opacities[e]);
+      const auto& source = *wallpaperSource;
+      auto fill = source.fillColor;
+      fill.a = 1.0F;
+      clip->setStyle(RoundedRectStyle{.fill = fill, .fillMode = FillMode::Solid});
+      auto* node = strip.wallpapers[e];
+      node->setPosition(static_cast<float>(-x), static_cast<float>(-y));
+      node->setSize(static_cast<float>(width), static_cast<float>(height));
+      node->setSources(source.from.kind, source.from.texture, source.from.color,
+          source.from.kind, source.from.texture, source.from.color,
+          source.from.imageWidth, source.from.imageHeight, source.from.imageWidth, source.from.imageHeight);
+      node->setFillMode(static_cast<WallpaperFillMode>(source.fillMode));
+      node->setFillColor(fill);
+      node->setSpan(source.span);
+    }
+  }
 
   std::vector<InputRect> blurRegion(const screen_wrap::Rect& rect) const {
     std::vector<InputRect> result;
@@ -73,8 +150,20 @@ struct ScreenWrap::Shared {
     if (!strip.surface)
       return;
     if (!strip.root) {
-      strip.root = std::make_unique<ScreenFrameNode>();
+      strip.root = std::make_unique<Node>();
       strip.root->setHitTestVisible(false);
+      for (std::size_t e = 0; e < strip.backingClips.size(); ++e) {
+        auto clip = ui::box({});
+        clip->setClipChildren(true);
+        clip->setHitTestVisible(false);
+        auto image = std::make_unique<WallpaperNode>();
+        image->setHitTestVisible(false);
+        strip.wallpapers[e] = static_cast<WallpaperNode*>(clip->addChild(std::move(image)));
+        strip.backingClips[e] = static_cast<Box*>(strip.root->addChild(std::move(clip)));
+      }
+      auto frame = std::make_unique<ScreenFrameNode>();
+      frame->setHitTestVisible(false);
+      strip.frame = static_cast<ScreenFrameNode*>(strip.root->addChild(std::move(frame)));
       if (i == 0) {
         auto logo = ui::image({});
         logo->setHitTestVisible(false);
@@ -83,7 +172,9 @@ struct ScreenWrap::Shared {
       }
       strip.surface->setSceneRoot(strip.root.get());
     }
-    auto* node = static_cast<ScreenFrameNode*>(strip.root.get());
+    strip.root->setSize(static_cast<float>(strip.rect.width), static_cast<float>(strip.rect.height));
+    buildBacking(strip);
+    auto* node = strip.frame;
     node->setSize(static_cast<float>(strip.rect.width), static_cast<float>(strip.rect.height));
     auto style = material;
     style.offsetX = static_cast<float>(strip.rect.x);
@@ -305,9 +396,9 @@ struct ScreenWrap::Shared {
 
 ScreenWrap::ScreenWrap(
     WaylandConnection& w, RenderContext* r, wl_output* o, const BarConfig& config, int width, int height,
-    ScreenWrap* sibling, std::size_t priority
+    ScreenWrap* sibling, std::size_t priority, Wallpaper* wallpaper
 )
-    : m_shared(sibling ? sibling->m_shared : std::make_shared<Shared>(w, r, o, width, height)), m_id(priority) {
+    : m_shared(sibling ? sibling->m_shared : std::make_shared<Shared>(w, r, o, width, height, wallpaper)), m_id(priority) {
   auto& entry = m_shared->bars[m_id];
   entry.config = config;
   entry.depth = static_cast<float>(config.thickness);
@@ -324,6 +415,29 @@ ScreenWrap::~ScreenWrap() {
   }
 }
 void ScreenWrap::refreshPalette() { m_shared->refresh(); }
+void ScreenWrap::updateWallpaperUnderlap(const CompositorPlatform& platform) {
+  std::vector<BarConfig> configs;
+  std::vector<int> requests;
+  for (const auto& [id, bar] : m_shared->bars) {
+    configs.push_back(bar.config);
+    requests.push_back(bar.reservation);
+  }
+  const auto zones = screen_wrap::boundedReservations(
+      screen_wrap::reservations(configs, requests), m_shared->width, m_shared->height);
+  const bool underlap = platform.hasVisibleLeftUnderlap(m_shared->output, zones[3], zones[1]);
+  if (underlap) m_shared->backingRestoreTimer.stop();
+  if (underlap == m_shared->leftWallpaperUnderlap) return;
+  if (underlap) {
+    m_shared->setLeftWallpaperUnderlap(true);
+  } else if (!m_shared->backingRestoreTimer.active()) {
+    // Umbriel's tiled IPC geometry is the destination, not the in-flight
+    // presentation. Keep the backing out of the returning window's way while
+    // its move settles. Reentry cancels this one-shot; no animation polling.
+    m_shared->backingRestoreTimer.start(std::chrono::milliseconds(Style::animSlow), [shared = m_shared.get()] {
+      shared->setLeftWallpaperUnderlap(false);
+    });
+  }
+}
 void ScreenWrap::setOpacity(float opacity) {
   auto& b = m_shared->bars.at(m_id);
   if (b.opacity == opacity)

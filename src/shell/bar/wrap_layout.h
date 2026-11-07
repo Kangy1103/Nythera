@@ -100,4 +100,15 @@ namespace screen_wrap {
     }
     return zones;
   }
+
+  // Opaque wallpaper covers only stable bar tracks, never an expanded panel or
+  // animated island footprint. Split corners once to avoid overlapping alpha.
+  inline std::array<Rect, 4> wallpaperBackingRects(int width, int height, std::array<int, 4> depths) {
+    for (auto& depth : depths) depth = std::max(0, depth);
+    depths = boundedReservations(depths, width, height);
+    const auto [top, right, bottom, left] = depths;
+    const int middle = std::max(0, height - top - bottom);
+    return {{{0, 0, width, top}, {width - right, top, right, middle},
+             {0, height - bottom, width, bottom}, {0, top, left, middle}}};
+  }
 } // namespace screen_wrap

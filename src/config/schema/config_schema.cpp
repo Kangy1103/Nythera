@@ -2600,6 +2600,7 @@ namespace nythera::config::schema {
     const Schema<ScreenWrapConfig>& screenWrapSchema() {
       static const Schema<ScreenWrapConfig> s = {
           field(&ScreenWrapConfig::enabled, "enabled"),
+          field(&ScreenWrapConfig::wallpaperBacking, "wallpaper_backing"),
           field(&ScreenWrapConfig::width, "width", kBarWrapWidthRange),
           field(&ScreenWrapConfig::clearance, "clearance", kBarRadiusRange),
           field(&ScreenWrapConfig::radius, "radius", kBarWrapRadiusRange),

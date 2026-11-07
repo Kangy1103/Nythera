@@ -209,6 +209,7 @@ private:
   LockKeysService* m_lockKeys = nullptr;
   ClipboardService* m_clipboard = nullptr;
   ScreenshotService* m_screenshots = nullptr;
+  Wallpaper* m_wallpaper = nullptr;
   FileWatcher* m_fileWatcher = nullptr;
   scripting::ScriptApiContext* m_scriptApi = nullptr;
   std::unique_ptr<WidgetFactory> m_widgetFactory;

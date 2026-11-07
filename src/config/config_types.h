@@ -185,6 +185,7 @@ struct BarConfig {
   std::string surfaceMode = "full";
   // Derived from shell.screen_wrap per output; not persisted per bar.
   bool screenWrap = false;
+  bool wrapWallpaperBacking = false;
   std::int32_t wrapWidth = 6;
   std::int32_t wrapClearance = 0;
   std::int32_t wrapRadius = 20;
@@ -1189,6 +1190,7 @@ constexpr EnumOption<ScreenshotFormat> kScreenshotFormats[] = {
 
 struct ScreenWrapConfig {
   bool enabled = false;
+  bool wallpaperBacking = false;
   std::int32_t width = 6, clearance = 0, radius = 20, joinDistance = 80, joinedCornerGap = 12, freeCornerGap = 12;
   bool operator==(const ScreenWrapConfig&) const = default;
 };

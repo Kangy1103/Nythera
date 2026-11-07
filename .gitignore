@@ -27,3 +27,6 @@ result-*
 
 # Docs formatter dependencies
 node_modules/
+
+# AI specific files
+AGENTS.md

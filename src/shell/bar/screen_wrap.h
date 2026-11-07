@@ -8,16 +8,20 @@
 #include <array>
 #include <memory>
 
+class Wallpaper;
+class CompositorPlatform;
+
 // Per-bar contribution handle. Sibling handles on one output share the four
 // decorative buffers and one reservation per edge; outputs never share state.
 class ScreenWrap {
 public:
   ScreenWrap(
       WaylandConnection&, RenderContext*, wl_output*, const BarConfig&, int width, int height,
-      ScreenWrap* sibling = nullptr, std::size_t priority = 0
+      ScreenWrap* sibling = nullptr, std::size_t priority = 0, Wallpaper* wallpaper = nullptr
   );
   ~ScreenWrap();
   void refreshPalette();
+  void updateWallpaperUnderlap(const CompositorPlatform&);
   void setOpacity(float);
   void setLayer(LayerShellLayer);
   void setReservation(int);

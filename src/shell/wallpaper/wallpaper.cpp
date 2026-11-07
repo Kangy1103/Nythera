@@ -360,6 +360,23 @@ TextureHandle Wallpaper::currentTexture() const {
   return inst != nullptr ? inst->currentImage.texture() : TextureHandle{};
 }
 
+std::optional<WallpaperDrawParams> Wallpaper::backingSource(wl_output* output) const {
+  for (const auto& inst : m_instances) {
+    if (inst->output != output || !inst->wallpaperNode) continue;
+    const auto* node = inst->wallpaperNode;
+    const auto texture = inst->currentImage.texture();
+    if (inst->currentSourceKind == WallpaperSourceKind::Image && !texture.valid()) return std::nullopt;
+    WallpaperDrawParams source;
+    source.from = {inst->currentSourceKind, texture.id, inst->currentColor,
+                   static_cast<float>(texture.width), static_cast<float>(texture.height)};
+    source.fillMode = static_cast<float>(node->fillMode());
+    source.fillColor = node->fillColor();
+    source.span = node->spanParams();
+    return source;
+  }
+  return std::nullopt;
+}
+
 std::string Wallpaper::currentPath() const {
   if (const WallpaperInstance* inst = currentInstance(); inst != nullptr) {
     return inst->currentPath;
@@ -415,6 +432,7 @@ void Wallpaper::onGpuResourcesInvalidated() {
       inst->surface->requestRedraw();
     }
   }
+  m_changed.emit();
 }
 
 bool Wallpaper::initialize(
@@ -436,6 +454,7 @@ bool Wallpaper::initialize(
         inst->surface->requestRedraw();
       }
     }
+    m_changed.emit();
   });
 
   if (!m_config->config().wallpaper.enabled) {
@@ -475,6 +494,7 @@ void Wallpaper::reload() {
     }
     m_instances.clear();
     m_lastWallpaperConfig = wallpaperConfig;
+    m_changed.emit();
     return;
   }
 
@@ -496,6 +516,7 @@ void Wallpaper::reload() {
     updateRendererState(*inst);
     inst->surface->requestRedraw();
   }
+  m_changed.emit();
 }
 
 void Wallpaper::onOutputChange() {
@@ -518,6 +539,7 @@ void Wallpaper::onOutputChange() {
       }
     }
   }
+  m_changed.emit();
 }
 
 std::vector<WallpaperChange> Wallpaper::onStateChange() {
@@ -912,6 +934,7 @@ void Wallpaper::setOutputExternallyManaged(const std::string& connector, bool ma
       managed ? m_externallyManagedOutputs.insert(connector).second : (m_externallyManagedOutputs.erase(connector) > 0);
   if (changed && m_wallpaperEnabled && m_wayland != nullptr) {
     syncInstances();
+    m_changed.emit();
   }
 }
 
@@ -1417,6 +1440,7 @@ void Wallpaper::onImageChanged(WallpaperInstance& instance) {
   // The shown or incoming image was re-uploaded after a GPU reset.
   updateRendererState(instance);
   instance.surface->requestRedraw();
+  m_changed.emit();
 }
 
 void Wallpaper::beginWallpaperChange(

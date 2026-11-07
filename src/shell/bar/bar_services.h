@@ -25,6 +25,7 @@ class SystemMonitorService;
 class TrayService;
 class UPowerService;
 class WeatherService;
+class Wallpaper;
 class GammaService;
 
 namespace nythera::theme {
@@ -62,5 +63,6 @@ struct BarServices {
   ClipboardService* clipboard = nullptr;
   FileWatcher* fileWatcher = nullptr;
   ScreenshotService* screenshots = nullptr;
+  Wallpaper* wallpaper = nullptr;
   scripting::ScriptApiContext* scriptApi = nullptr;
 };
