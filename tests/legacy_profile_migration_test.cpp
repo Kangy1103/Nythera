@@ -31,5 +31,14 @@ int main() {
   fs::remove_all(root / "new/nested");
   fs::create_directory_symlink(root / "legacy/nested", root / "new/nested");
   assert(migrate({{root / "legacy", root / "new"}}, log).failed > 0);
+  fs::create_directories(root / "unrelated");
+  fs::create_directory_symlink(root / "unrelated", root / "target-link");
+  result = migrate({{root / "legacy", root / "target-link"}}, log);
+  assert(result.failed == 1 && result.copied == 0);
+  assert(fs::is_empty(root / "unrelated"));
+  fs::create_directory_symlink(root / "legacy", root / "source-link");
+  result = migrate({{root / "source-link", root / "from-link"}}, log);
+  assert(result.copied == 0 && !fs::exists(root / "from-link"));
+  assert(migrate({{root / "legacy/nested", root / "legacy"}}, log).failed == 1);
   fs::remove_all(root);
 }

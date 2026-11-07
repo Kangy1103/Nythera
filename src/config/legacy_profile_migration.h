@@ -32,6 +32,19 @@ namespace nythera::config::legacy_profile {
     Result result;
     for (const auto& tree : trees) {
       std::error_code ec;
+      // Check the selected roots before canonicalisation can erase a symlink.
+      if (fs::is_symlink(fs::symlink_status(tree.source, ec))) {
+        ++result.preserved;
+        log("Source symlink not imported: " + tree.source.string());
+        continue;
+      }
+      ec.clear();
+      if (fs::is_symlink(fs::symlink_status(tree.target, ec))) {
+        ++result.failed;
+        log("Refusing destination root symlink: " + tree.target.string());
+        continue;
+      }
+      ec.clear();
       const auto source = fs::weakly_canonical(tree.source, ec);
       if (ec || !fs::exists(source)) {
         log("Source absent; skipped: " + tree.source.string());
@@ -39,7 +52,9 @@ namespace nythera::config::legacy_profile {
       }
       const auto target = fs::weakly_canonical(tree.target, ec);
       const auto relative = target.lexically_relative(source);
-      if (ec || source == target || (!relative.empty() && *relative.begin() != "..")) {
+      const auto sourceRelative = source.lexically_relative(target);
+      if (ec || source == target || (!relative.empty() && *relative.begin() != "..")
+          || (!sourceRelative.empty() && *sourceRelative.begin() != "..")) {
         ++result.failed;
         log("Refusing overlapping migration paths");
         continue;
