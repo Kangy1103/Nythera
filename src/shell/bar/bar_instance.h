@@ -53,6 +53,8 @@ struct BarCapsuleRun {
   float accordionProgress = 0.0F; // 0 = collapsed, 1 = fully expanded
 };
 
+class ScreenFrameNode;
+
 struct BarInstance {
   std::uint32_t outputName = 0;
   wl_output* output = nullptr;
@@ -96,6 +98,8 @@ struct BarInstance {
   Box* bg = nullptr;
   Node* islandClip = nullptr;
   std::array<Box*, 3> islandBackgrounds{};
+  std::array<ScreenFrameSpan, 3> islandSpans{};
+  ScreenFrameNode* attachedIslandFrame = nullptr;
   float centerExtent = 0.0F;
   float centerTargetExtent = 0.0F;
   bool centerExtentInitialized = false;

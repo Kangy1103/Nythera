@@ -1,10 +1,12 @@
 #include "shell/bar/screen_wrap.h"
 
 #include "core/log.h"
+#include "core/files/resource_paths.h"
 #include "core/ui_phase.h"
 #include "render/scene/screen_frame_node.h"
 #include "shell/bar/wrap_layout.h"
 #include "ui/builders.h"
+#include "ui/controls/image.h"
 #include "ui/palette.h"
 #include "wayland/wayland_connection.h"
 
@@ -19,10 +21,15 @@ struct ScreenWrap::Shared {
     LayerShellLayer layer = LayerShellLayer::Top;
     int reservation = 0;
     InputRect hole{};
+    std::optional<ScreenFrameSpan> toolSpan;
+    int toolIslandIndex = -1;
+    ScreenFrameBackdrop backdrop;
+    float toolDepth = 0, toolBufferDepth = 0;
   };
   struct Strip {
     std::unique_ptr<LayerSurface> surface;
     std::unique_ptr<Node> root;
+    Image* cornerLogo = nullptr;
     screen_wrap::Rect rect{};
   };
   WaylandConnection& wayland;
@@ -68,6 +75,12 @@ struct ScreenWrap::Shared {
     if (!strip.root) {
       strip.root = std::make_unique<ScreenFrameNode>();
       strip.root->setHitTestVisible(false);
+      if (i == 0) {
+        auto logo = ui::image({});
+        logo->setHitTestVisible(false);
+        logo->setFit(ImageFit::Contain);
+        strip.cornerLogo = static_cast<Image*>(strip.root->addChild(std::move(logo)));
+      }
       strip.surface->setSceneRoot(strip.root.get());
     }
     auto* node = static_cast<ScreenFrameNode*>(strip.root.get());
@@ -76,6 +89,26 @@ struct ScreenWrap::Shared {
     style.offsetX = static_cast<float>(strip.rect.x);
     style.offsetY = static_cast<float>(strip.rect.y);
     node->setStyle(style);
+
+    if (strip.cornerLogo) {
+      std::vector<BarConfig> visibleBars;
+      float topOpacity = 0, leftOpacity = 0;
+      for (const auto& [id, bar] : bars) {
+        if (bar.opacity <= 0.001F) continue;
+        visibleBars.push_back(bar.config);
+        if (bar.config.position == "top") topOpacity = std::max(topOpacity, bar.opacity);
+        if (bar.config.position == "left") leftOpacity = std::max(leftOpacity, bar.opacity);
+      }
+      const auto logo = screen_wrap::topLeftBrandingRect(visibleBars);
+      const bool logoResized = strip.cornerLogo->width() != static_cast<float>(logo.width);
+      strip.cornerLogo->setVisible(logo.width > 0);
+      strip.cornerLogo->setPosition(static_cast<float>(logo.x - strip.rect.x), static_cast<float>(logo.y - strip.rect.y));
+      strip.cornerLogo->setSize(static_cast<float>(logo.width), static_cast<float>(logo.height));
+      strip.cornerLogo->setOpacity(std::min(topOpacity, leftOpacity));
+      // Shared frame surfaces otherwise request paint only. Their prepare
+      // callback (which loads the SVG) is not run for a redraw-only frame.
+      if (logo.width > 0 && (logoResized || !strip.cornerLogo->hasImage())) strip.surface->requestLayout();
+    }
 
     strip.surface->setInputRegion({});
     const bool blur =
@@ -150,12 +183,12 @@ struct ScreenWrap::Shared {
     float visible = 0;
     for (const auto& [id, b] : bars)
       visible = std::max(visible, b.opacity);
-    int rail = 1, radius = 0, outline = 0;
+    int rail = 1, radius = 0;
+    const int outline = static_cast<int>(std::ceil(primary.config.borderWidth));
     auto layer = primary.layer;
     for (const auto& [id, b] : bars) {
       rail = std::max(rail, b.config.wrapWidth);
       radius = std::max(radius, b.config.wrapRadius);
-      outline = std::max(outline, static_cast<int>(std::ceil(b.config.borderWidth)));
       if (static_cast<unsigned>(b.layer) < static_cast<unsigned>(layer))
         layer = b.layer;
     }
@@ -175,7 +208,7 @@ struct ScreenWrap::Shared {
       const float rounding = std::min(static_cast<float>(c.radius), static_cast<float>(c.thickness) / 2);
       const float join = 2 * std::min(rounding, (static_cast<float>(c.thickness) - static_cast<float>(rail)) / 2);
       screen_wrap::reserveIslandSpace(
-          geometry, c.position, static_cast<int>(std::ceil(stableDepth + std::max(0.0F, join))) + 1
+          geometry, c.position, static_cast<int>(std::ceil(std::max(stableDepth, static_cast<float>(c.marginEdge) + b.toolBufferDepth) + std::max(0.0F, join))) + 1
       );
       if (b.opacity <= 0)
         continue;
@@ -188,9 +221,11 @@ struct ScreenWrap::Shared {
       band.join = std::max(0.0F, join);
       band.spans = b.spans;
       band.fill = colorForRole(ColorRole::Surface, c.backgroundOpacity * b.opacity);
-      band.border = resolveColorSpec(c.border);
-      band.border.a *= b.opacity;
-      band.borderWidth = c.borderWidth;
+      // Geometry and fill belong to each bar, but the union has one outline.
+      // Mixing individual border widths/colours makes the perimeter disappear
+      // or change colour where a borderless sibling meets the shared rails.
+      band.border = material.border;
+      band.borderWidth = material.borderWidth;
       if (c.surfaceMode == "full") {
         const float length = band.edge == 1 || band.edge == 3 ? static_cast<float>(height) : static_cast<float>(width);
         band.spans = {ScreenFrameSpan{-stableDepth, length + stableDepth}, {}, {}};
@@ -199,6 +234,14 @@ struct ScreenWrap::Shared {
             band.spans, band.edge == 1 || band.edge == 3 ? static_cast<float>(height) : static_cast<float>(width),
             static_cast<float>(c.wrapJoinDistance), stableDepth
         );
+      }
+      if (b.toolSpan) {
+        if (b.backdrop.texture.valid()) {
+          material.backdrop = b.backdrop;
+          material.backdrop.opacity *= b.opacity;
+        }
+        appendScreenFrameTool(material.contour, band, *b.toolSpan,
+            static_cast<float>(c.marginEdge) + b.toolDepth, b.toolIslandIndex);
       }
       material.contour.bands.push_back(std::move(band));
       if (b.hole.width > 0)
@@ -233,6 +276,18 @@ struct ScreenWrap::Shared {
         );
         strip.surface->setClickThrough(true);
         strip.surface->setRenderContext(renderer);
+        strip.surface->setPrepareFrameCallback([this, i](bool, bool) {
+          auto& s = strips[i];
+          if (s.cornerLogo && s.cornerLogo->visible()) {
+            const bool hadImage = s.cornerLogo->hasImage();
+            const bool loaded = s.cornerLogo->setSourceFile(s.surface->renderTarget().renderer(),
+                paths::assetPath("nythera-logo.svg").string(), static_cast<int>(std::ceil(s.cornerLogo->width())), true);
+            if (!hadImage && loaded) {
+              static constexpr Logger log("screen-wrap");
+              log.info("loaded Nythera corner logo ({}px)", s.cornerLogo->width());
+            }
+          }
+        });
         strip.surface->setConfigureCallback([this, i](std::uint32_t, std::uint32_t) { buildStrip(i); });
         if (!strip.surface->initialize(output))
           strip.surface.reset();
@@ -311,4 +366,15 @@ void ScreenWrap::setForegroundHole(InputRect rect) {
 }
 std::vector<InputRect> ScreenWrap::blurRegion(const screen_wrap::Rect& rect) const {
   return m_shared->blurRegion(rect);
+}
+
+void ScreenWrap::setAttachedTool(std::optional<ScreenFrameSpan> span, float depth, float bufferDepth, int islandIndex,
+                                 ScreenFrameBackdrop backdrop) {
+  auto& b = m_shared->bars.at(m_id);
+  if (b.toolSpan == span && b.toolDepth == depth && b.toolBufferDepth == bufferDepth && b.toolIslandIndex == islandIndex
+      && b.backdrop == backdrop) return;
+  b.toolSpan = span; b.toolDepth = depth; b.toolBufferDepth = bufferDepth;
+  b.toolIslandIndex = islandIndex;
+  b.backdrop = backdrop;
+  m_shared->refresh();
 }

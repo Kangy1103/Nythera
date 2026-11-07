@@ -187,37 +187,48 @@ namespace {
     if (ovr.backgroundOpacity) {
       resolved.backgroundOpacity = *ovr.backgroundOpacity;
     }
-    if (ovr.transparencyMode) resolved.transparencyMode = *ovr.transparencyMode;
-    if (ovr.surfaceMode) resolved.surfaceMode = *ovr.surfaceMode;
-    if (ovr.screenWrap)
-      resolved.screenWrap = *ovr.screenWrap;
-    if (ovr.wrapWidth)
-      resolved.wrapWidth = *ovr.wrapWidth;
-    if (ovr.wrapClearance)
-      resolved.wrapClearance = *ovr.wrapClearance;
-    if (ovr.wrapRadius)
-      resolved.wrapRadius = *ovr.wrapRadius;
-    if (ovr.wrapJoinDistance)
-      resolved.wrapJoinDistance = *ovr.wrapJoinDistance;
-    if (ovr.dynamicNotifications) resolved.dynamicNotifications = *ovr.dynamicNotifications;
-    if (ovr.dynamicTimers) resolved.dynamicTimers = *ovr.dynamicTimers;
-    if (ovr.dynamicAlarms) resolved.dynamicAlarms = *ovr.dynamicAlarms;
-    if (ovr.dynamicCalls) resolved.dynamicCalls = *ovr.dynamicCalls;
-    if (ovr.dynamicTimerSeconds) resolved.dynamicTimerSeconds = *ovr.dynamicTimerSeconds;
-    if (ovr.dynamicAlarmTime) resolved.dynamicAlarmTime = *ovr.dynamicAlarmTime;
-    if (ovr.dynamicSnoozeSeconds) resolved.dynamicSnoozeSeconds = *ovr.dynamicSnoozeSeconds;
-    if (ovr.dynamicActivityIndicators) resolved.dynamicActivityIndicators = *ovr.dynamicActivityIndicators;
-    if (ovr.dynamicPrivacy) resolved.dynamicPrivacy = *ovr.dynamicPrivacy;
-    if (ovr.dynamicDevices) resolved.dynamicDevices = *ovr.dynamicDevices;
-    if (ovr.dynamicVisualizer) resolved.dynamicVisualizer = *ovr.dynamicVisualizer;
-    if (ovr.dynamicMedia) resolved.dynamicMedia = *ovr.dynamicMedia;
-    if (ovr.dynamicVolume) resolved.dynamicVolume = *ovr.dynamicVolume;
-    if (ovr.dynamicBrightness) resolved.dynamicBrightness = *ovr.dynamicBrightness;
-    if (ovr.dynamicHoverExpand) resolved.dynamicHoverExpand = *ovr.dynamicHoverExpand;
-    if (ovr.dynamicDwellMs) resolved.dynamicDwellMs = *ovr.dynamicDwellMs;
-    if (ovr.dynamicWidth) resolved.dynamicWidth = *ovr.dynamicWidth;
-    if (ovr.dynamicClockFormat) resolved.dynamicClockFormat = *ovr.dynamicClockFormat;
-    if (ovr.dynamicCenter) resolved.dynamicCenter = *ovr.dynamicCenter;
+    if (ovr.transparencyMode)
+      resolved.transparencyMode = *ovr.transparencyMode;
+    if (ovr.surfaceMode)
+      resolved.surfaceMode = *ovr.surfaceMode;
+    if (ovr.dynamicNotifications)
+      resolved.dynamicNotifications = *ovr.dynamicNotifications;
+    if (ovr.dynamicTimers)
+      resolved.dynamicTimers = *ovr.dynamicTimers;
+    if (ovr.dynamicAlarms)
+      resolved.dynamicAlarms = *ovr.dynamicAlarms;
+    if (ovr.dynamicCalls)
+      resolved.dynamicCalls = *ovr.dynamicCalls;
+    if (ovr.dynamicTimerSeconds)
+      resolved.dynamicTimerSeconds = *ovr.dynamicTimerSeconds;
+    if (ovr.dynamicAlarmTime)
+      resolved.dynamicAlarmTime = *ovr.dynamicAlarmTime;
+    if (ovr.dynamicSnoozeSeconds)
+      resolved.dynamicSnoozeSeconds = *ovr.dynamicSnoozeSeconds;
+    if (ovr.dynamicActivityIndicators)
+      resolved.dynamicActivityIndicators = *ovr.dynamicActivityIndicators;
+    if (ovr.dynamicPrivacy)
+      resolved.dynamicPrivacy = *ovr.dynamicPrivacy;
+    if (ovr.dynamicDevices)
+      resolved.dynamicDevices = *ovr.dynamicDevices;
+    if (ovr.dynamicVisualizer)
+      resolved.dynamicVisualizer = *ovr.dynamicVisualizer;
+    if (ovr.dynamicMedia)
+      resolved.dynamicMedia = *ovr.dynamicMedia;
+    if (ovr.dynamicVolume)
+      resolved.dynamicVolume = *ovr.dynamicVolume;
+    if (ovr.dynamicBrightness)
+      resolved.dynamicBrightness = *ovr.dynamicBrightness;
+    if (ovr.dynamicHoverExpand)
+      resolved.dynamicHoverExpand = *ovr.dynamicHoverExpand;
+    if (ovr.dynamicDwellMs)
+      resolved.dynamicDwellMs = *ovr.dynamicDwellMs;
+    if (ovr.dynamicWidth)
+      resolved.dynamicWidth = *ovr.dynamicWidth;
+    if (ovr.dynamicClockFormat)
+      resolved.dynamicClockFormat = *ovr.dynamicClockFormat;
+    if (ovr.dynamicCenter)
+      resolved.dynamicCenter = *ovr.dynamicCenter;
     if (ovr.compositorBlur) {
       resolved.compositorBlur = *ovr.compositorBlur;
     }
@@ -1293,7 +1304,7 @@ bool ConfigService::markSetupWizardCompleted() {
   // The bundled wallpaper is served via firstRunWallpaperPath() until setup
   // completes. Persist it so finishing the wizard does not clear the desktop.
   if (!hasConfiguredWallpaper()) {
-    const auto bundled = paths::assetPath("nythera-wallpaper.png");
+    const auto bundled = paths::assetPath("nythera-wallpaper.jpeg");
     std::error_code ec;
     if (std::filesystem::exists(bundled, ec)) {
       setWallpaperPath(std::nullopt, bundled.string());
@@ -2262,7 +2273,7 @@ std::string ConfigService::firstRunWallpaperPath() const {
   if (hasConfiguredWallpaper()) {
     return {};
   }
-  const auto path = paths::assetPath("nythera-wallpaper.png");
+  const auto path = paths::assetPath("nythera-wallpaper.jpeg");
   std::error_code ec;
   if (!std::filesystem::exists(path, ec)) {
     return {};

@@ -230,7 +230,6 @@ All event toggles, clock format, hover activation and dwell time are in **Bar �
 ```toml
 [bar.default]
 surface_mode = "dynamic"
-screen_wrap = true
 dynamic_media = true
 dynamic_volume = true
 dynamic_brightness = true
@@ -244,6 +243,9 @@ dynamic_clock_format = "%H:%M"
 dynamic_timer_seconds = 300
 dynamic_alarm_time = "08:00"
 dynamic_snooze_seconds = 300
+
+[shell.screen_wrap]
+enabled = true
 ```
 
 The separate custom Clock & timers page has been removed with the duplicate expanded views. The shared session controller and its existing commands remain available for configured widget actions/keybinds:
@@ -264,56 +266,42 @@ Call integration remains notification-backed. It cannot infer real ongoing state
 
 `nythera msg bar-island-toggle [bar-name] [monitor-selector]` opens/closes the corresponding native tool. Manual hide/show remains supported; automatic/smart hiding is not applied to Dynamic Island. The bar's thickness remains reserved if requested, with native tool content overlaying windows. The island uses a narrow edge strip; the normal native host owns the tool surface. This does not require a full-screen transparent island buffer.
 
+### Native panels attached to islands
+
+In Floating Islands mode, attached native panels first widen their owning island to the exact panel span over 200 ms, then slide the native tool out at full width over another 200 ms. Closing reverses that order. This applies to all three lanes, including keyboard/IPC opening, on every bar edge. The expanded island and tool use a single contour with straight shared sides and curved joins into Screen Wrap; without Screen Wrap the same replacement contour is used. Registered panels retain their tabs and controls, widgets stay in place, and reserved window space does not change. Floating placement, Full Bar and Dynamic Island retain their existing opening behaviour.
+
+**Panels → Effects → Snapshot Blur** controls the one-shot desktop backdrop for attached, floating, Dynamic Island and persistent plugin panels. It defaults to On. **Blur Strength** (0–20, default 12) appears only while enabled; 0 shows a sharp captured image. Strength changes reblur the same retained image without recapturing. Enabling takes effect on the next panel opening; disabling also clears an open panel's captured image.
+
+Capture is asynchronous and bounded to 200 ms, with the ordinary backdrop as fallback. Images stay in memory only until the panel closes. Snapshot surfaces use `nythera-snapshot-panel` (joined wrapped tools keep `nythera-joined-tool`), so the normal compositor rules forcing live blur on `nythera-panel`/`nythera-attached-panel` do not add a second blur pass. No compositor rules are changed. Window placement and panel shape remain independent of the snapshot setting.
+
+Active Window recognises an open Control Center and displays its name and Nythera icon. Other shell panels retain the last application while keyboard focus is temporarily outside ordinary windows. Closing restores normal application tracking. This does not retain stale application labels on genuinely empty desktops.
+
 ### Screen wrap
 
-Screen Wrap is shared **per output**, rather than allocating a frame for every bar. Participating bars retain widgets, ordering, layouts and materials and contribute tracks/island spans to one contour. A single fill/outline joins adjacent top/left and other tracks without doubled borders. Different bar materials blend at their junction; the first configured wrapped bar supplies the common thin-rail material. Frame width/rounding use the largest participating request. Separate displays have separate owners. The current GPU contour supports up to 32 bar tracks per output.
-
-**Bar → Effects → Window Clearance** (`wrap_clearance`, 0–500 logical pixels, default **0**) adds space between the stable frame/bar footprint and application work area, including per-monitor overrides. **Reserve Space** enables the request. A transparent, non-interactive reservation surface handles each edge; requests combine by maximum, not addition. Positive clearance also reserves the thin rails on otherwise unused edges. Zero keeps the previous reservation behaviour. Visual surfaces ignore exclusive zones and stay at physical edges. Same-edge tracks and corner-safe widget insets derive from configured thickness, never animated extents. Existing saved margins remain available outside wrap mode; Opposite Edge Margin still contributes to the work-area request.
-
-Requests that cannot fit an output are bounded to leave a nonempty work area and logged. Reservations are compositor requests, not window movement commands. Umbriel's scrolling columns, floating and fullscreen windows may extend past the usable area; Nythera cannot force their clipping or placement. Dynamic Island foreground surfaces now request only their visible thickness: the old left surface included unused contour padding. Curves remain in shared click-through frame buffers. There is no opaque mask or arbitrary monitor offset.
-
-
-**Bar → Effects → Screen Wrap** connects the bar to a rounded frame around the display. It works with Full Bar, Floating Islands and Dynamic Island, on any bar edge, and can be overridden per monitor. **Frame Width** controls the thin rails (1–32 logical pixels, capped at half the bar thickness); **Frame Rounding** controls the desktop opening (0–100 logical pixels).
+**Desktop → Screen Wrap** controls one shared frame for each display. One global set of controls applies to every output; there are no monitor-specific Screen Wrap settings. When enabled, **every enabled bar on that output participates automatically**, whether Full Bar, Floating Islands or Dynamic Island. No bar has its own wrap toggle.
 
 ```toml
-[bar.default]
-screen_wrap = true
-wrap_width = 6
-wrap_radius = 20
+[shell.screen_wrap]
+enabled = true
+width = 6
+radius = 20
+clearance = 0
+joined_corner_gap = 12
+free_corner_gap = 12
+join_distance = 80
+
 ```
 
-Full Bar becomes the thick edge of the frame. Islands join the narrow rail on their chosen edge and keep their configured contents and size animations. The frame uses the bar's palette, background opacity, border and compositor-blur settings. It has no independently hardcoded colours or widgets. Use one wrapped bar per monitor.
+The same settings are available in the GUI, with Reset restoring inheritance. Frame Width (1–32), Frame Rounding (0–100), Window Clearance (0–500) and Corner Join Distance (0–500) use logical pixels. These values belong to the display, rather than competing requests from individual bars. Frame dimensions are hidden when the effective display frame is disabled.
 
-While wrapped, the bar attaches to its selected edge, its drop shadow is suppressed, and its ends leave room for the frame. These are runtime adjustments: switching wrap off restores the saved margins, corners and shadow settings. The rails are click-through. With Window Clearance zero, only configured bar tracks reserve work area; positive clearance includes the other rails too. The frame remains visible while any participant is shown.
+Bars retain their own widgets, materials, mode, edge and animations. Same-edge bars occupy stable adjoining tracks. **Joined Corner Gap** and **Free Corner Gap** (each 0–500 logical pixels, default 12) control the two cases independently: the joined gap is added to the adjoining bar thickness; the free gap is added only to the frame rail width. Saved unwrapped Ends Margin does not limit this control. Their contours extend back to the shared screen-edge frame before the single outline is drawn, so an inward track does not draw a second outer boundary. The first configured participating bar supplies the rails' palette/material and the border colour/width for the entire shared perimeter. Individual bar fills remain independent, but do not replace or blend away sections of that outline. No colours or widgets are hardcoded.
 
-The renderer uses four disjoint edge buffers rather than a full-screen transparent buffer. Frame surfaces survive an individual participant being removed, and are released with the last participant or when output geometry changes. Placing independently configurable widgets on the other frame edges remains a separate design step.
+Four disjoint, click-through edge buffers paint the shared fill and outline. They survive removal of one bar and disappear when the last enabled participant is removed or wrapping is disabled. Additional ordinary bars can put configurable widgets on any edge. Wrapped runtime geometry suppresses independent shadows and preserves saved unwrapped margins/corners for restoration when wrap is switched off.
 
-Wrapped Islands share one continuous contour with the frame. Rounded junctions follow the bar's existing Corner Radius, including during island resizing, so the frame outline does not run through the islands. Widget ordering is unchanged; configured neighbouring tracks determine stable corner-safe content insets.
+Reserve Space remains a per-bar choice. Clearance is a display setting: while any bar reserves space, all frame rails are reserved even at zero clearance. Clearance adds one logical pixel per step beyond that footprint, without a special jump at zero, and requests are bounded to retain a nonempty work area. Reservations stay independent of island/panel animation. They request compositor work area; they do not force scrolling, floating or fullscreen windows to stop at it.
 
-**Bar → Effects → Corner Join Distance** (`wrap_join_distance`, also available per monitor) controls whether the outer start/end islands merge into the adjacent screen corners. The default is **80 logical pixels**, twice the original 40px gap. Islands farther away retain the outer gap and curved rail junction; `0` disables corner merging. The centre island never merges into a screen corner. The same rule applies to the upper/lower ends of vertical bars.
+Old per-bar `screen_wrap` / `wrap_*` settings migrate to `[shell.screen_wrap]` in version 18. Version 19 retains the global settings, removes frame monitor overrides and splits the former `corner_gap` into `joined_corner_gap` and `free_corner_gap`, preserving its value in both. Old bar keys are removed from the settings sidecar and normalised out of base configuration on read.
 
-Grouped Workspaces/Taskbar animates its own extent, group capsules and application
-positions when workspace contents change. The containing island and following
-widgets track that extent directly, using the same 300 ms cubic easing as Active
-Window. Horizontal bars animate width; vertical bars animate height. Existing
-global Motion enable/speed settings apply, with no additional toggle.
-
-
-Shadow blur, offset, and alpha are global under `[shell.shadow]`. Bars only expose `shadow = true|false`.
-
-`contact_shadow = true` adds a dark gradient at the seam between an attached panel and the bar, giving the panel a slight lifted-off-the-bar feel. It is independent of `shadow` and only takes effect on attached panels; the change applies on the next panel open.
-
-`panel_overlap` controls how many logical pixels an attached panel is pulled into the bar so the two surfaces share an edge instead of leaving a hairline gap. The ideal value depends on your compositor and the output's fractional scale (it comes down to physical-pixel rounding), so it is tunable rather than fixed. The default is `1`. If you see a faint seam line, try `0`; if a gap appears, raise it. Negative values push the panel away from the bar. Because the right value tracks fractional scale, you can set it per monitor with a `[bar.<name>.monitor.*]` override on a mixed-scale multi-monitor setup. In the Settings GUI it lives under **Bar → Layout → Advanced**.
-
-`capsule_thickness` sets the widget capsule size across the bar (its height on a horizontal bar, width on a vertical bar) as a fraction of the bar thickness. The default is `0.76`; `1.0` makes capsules fill the full bar thickness and lower values shrink them, leaving more margin on either side. It applies to every capsule on the bar regardless of per-widget content scale. In the Settings GUI it lives under **Bar → Capsules**.
-
-`font_scale` multiplies widget text independently of icons, spacing, and other content. Its default is `1.0`, and its range is `0.2`–`2.5`. The effective text scale is the widget's normal content scale multiplied by the bar's `font_scale` and the widget's optional `font_scale`. It can also be set per monitor with a `[bar.<name>.monitor.*]` override; in Settings, select the monitor nested under the bar and use **Layout → Font Scale**.
-
-`font_family` sets the typeface for this bar's widget labels. Leave it empty (the default) to inherit the global `[shell] font_family`. A single widget can override it with `[widget.<name>] font_family`, and it can be set per monitor with a `[bar.<name>.monitor.*]` override. The Settings GUI exposes a searchable font picker under **Bar → Widgets**, with a per-widget picker in each widget's settings.
-
-`border_width` draws an inside outline using `border`. Attached panels stay borderless so they remain visually clean against the bar.
-
----
 
 ## Auto-hide
 

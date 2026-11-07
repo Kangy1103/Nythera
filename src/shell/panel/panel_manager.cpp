@@ -1,5 +1,6 @@
 #include "shell/panel/panel_manager.h"
 #include "shell/bar/dynamic_island_style.h"
+#include "shell/panel/panel_snapshot.h"
 
 #include "compositors/compositor_platform.h"
 #include "config/config_service.h"
@@ -37,6 +38,7 @@
 #include <algorithm>
 #include <cmath>
 #include <format>
+#include <limits>
 #include <optional>
 #include <string>
 #include <utility>
@@ -100,15 +102,16 @@ namespace {
     const bool barIsRight = barConfig.position == "right";
     const bool barIsVertical = barIsLeft || barIsRight;
     const std::int32_t mEdge = std::max(0, barConfig.marginEdge);
-    const std::int32_t mEnds = std::max(0, barConfig.marginEnds);
+    const std::int32_t mStart = std::max(0, barConfig.screenWrap ? barConfig.wrapStartInset : barConfig.marginEnds);
+    const std::int32_t mEnd = std::max(0, barConfig.screenWrap ? barConfig.wrapEndInset : barConfig.marginEnds);
     const std::int32_t thickness = std::max(0, barConfig.thickness);
 
     const std::int32_t left =
-        barIsRight ? std::max(0, outputWidth - mEdge - thickness) : (barIsVertical ? mEdge : mEnds);
+        barIsRight ? std::max(0, outputWidth - mEdge - thickness) : (barIsVertical ? mEdge : mStart);
     const std::int32_t top =
-        barIsBottom ? std::max(0, outputHeight - mEdge - thickness) : (barIsVertical ? mEnds : mEdge);
-    const std::int32_t right = barIsVertical ? left + thickness : std::max(left, outputWidth - mEnds);
-    const std::int32_t bottom = barIsVertical ? std::max(top, outputHeight - mEnds) : top + thickness;
+        barIsBottom ? std::max(0, outputHeight - mEdge - thickness) : (barIsVertical ? mStart : mEdge);
+    const std::int32_t right = barIsVertical ? left + thickness : std::max(left, outputWidth - mEnd);
+    const std::int32_t bottom = barIsVertical ? std::max(top, outputHeight - mEnd) : top + thickness;
 
     return BarVisibleRect{
         .left = left,
@@ -382,6 +385,7 @@ namespace {
 PanelManager::PanelManager() { s_instance = this; }
 
 PanelManager::~PanelManager() {
+  m_panelSnapshot.reset();
   m_captureCloseTimer.stop();
   if (m_captureCloseFrame != nullptr) {
     wl_callback_destroy(m_captureCloseFrame);
@@ -632,6 +636,11 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
   m_activePanel = it->second.get();
   m_activePanelId = panelId;
   m_islandPresentation = request.fromDynamicIsland;
+  m_regularIslandAttachment = false;
+  m_stagedIslandReveal = false;
+  m_attachedIslandIndex = -1;
+  m_attachedCompactSpan = {};
+  m_attachedIslandExpansionProgress = 0.0F;
   m_islandHoverOpen = request.fromDynamicIsland && request.islandHoverOpen;
   m_islandPinned = request.fromDynamicIsland && !request.islandHoverOpen;
   m_islandCompactExtent = request.islandCompactExtent;
@@ -675,6 +684,8 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
       resolvedOutputWidth > 0 ? resolvedOutputWidth : static_cast<std::int32_t>(panelWidth);
   const std::int32_t outputHeight =
       resolvedOutputHeight > 0 ? resolvedOutputHeight : static_cast<std::int32_t>(panelHeight);
+  m_islandOutputWidth = outputWidth;
+  m_islandOutputHeight = outputHeight;
 
   const auto clampMargin = [](float desired, std::int32_t panelSize, std::int32_t outputSize,
                               std::int32_t padding) -> std::int32_t {
@@ -713,6 +724,36 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
   const bool useFloatingAnchor = !useCenterScreenLayout
       && request.hasAnchorPosition
       && openNearClickEnabled(m_activePanel, m_activePanelId, m_config);
+  if (!request.fromDynamicIsland && activePlacement == PanelPlacement::Attached && !useCenterScreenLayout
+      && (barConfig.surfaceMode == "islands" || (barConfig.surfaceMode == "full" && barConfig.screenWrap))
+      && m_barFrameProvider) {
+    const auto frame = m_barFrameProvider(request.output, m_sourceBarName);
+    const bool side = barConfig.position == "left" || barConfig.position == "right";
+    const float anchor = request.hasAnchorPosition ? (side ? request.anchorY : request.anchorX)
+                                                  : static_cast<float>(side ? outputHeight : outputWidth) / 2;
+    float nearest = std::numeric_limits<float>::max();
+    for (const auto& band : frame.contour.bands) if (band.name == m_sourceBarName) {
+      for (std::size_t i = 0; i < band.spans.size(); ++i) {
+        const auto span = band.spans[i];
+        if (span.end <= span.begin) continue;
+        const float distance = std::abs(anchor - std::clamp(anchor, span.begin, span.end));
+        if (distance < nearest) {
+          nearest = distance;
+          m_attachedIslandIndex = static_cast<int>(i);
+          m_attachedCompactSpan = span;
+        }
+      }
+      m_stagedIslandReveal = barConfig.surfaceMode == "islands" && m_attachedIslandIndex >= 0;
+      break;
+    }
+    if (m_attachedIslandIndex >= 0) {
+      m_islandPresentation = m_regularIslandAttachment = true;
+      m_islandCompactExtent = m_attachedCompactSpan.end - m_attachedCompactSpan.begin;
+      m_islandFrameProvider = [this, output = request.output, name = m_sourceBarName] {
+        return m_barFrameProvider ? m_barFrameProvider(output, name) : ScreenFrameStyle{};
+      };
+    }
+  }
   const auto barRect = resolveBarVisibleRect(barConfig, outputWidth, outputHeight);
   // A content-fitted slot reserves the panel's maximum height up front, so it must fit
   // on the panel's side of a horizontal bar; otherwise the placement clamps would push it
@@ -944,7 +985,7 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
   }
 
   auto surfaceConfig = LayerSurfaceConfig{
-      .nameSpace = "nythera-panel",
+      .nameSpace = m_config->config().shell.panel.snapshotBlur ? "nythera-snapshot-panel" : "nythera-panel",
       .layer = floatingPanelLayer,
       .anchor = standaloneAnchor,
       .width = requestedSurfaceWidth,
@@ -1003,6 +1044,7 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
     m_attachedBackgroundOpacity = 1.0F;
     m_attachedContactShadow = false;
     m_attachedRevealProgress = 1.0F;
+    m_attachedIslandExpansionProgress = 0.0F;
     m_detachedRevealProgress = 1.0F;
     m_attachedRevealDirection = AttachedRevealDirection::Down;
     m_detachedRevealDirection = AttachedRevealDirection::Down;
@@ -1012,6 +1054,10 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
     m_attachedPanelGeometry.reset();
     m_contentFit = {};
     m_attachedToBar = false;
+    m_regularIslandAttachment = false;
+    m_stagedIslandReveal = false;
+    m_attachedIslandIndex = -1;
+    m_attachedCompactSpan = {};
     m_attachedOpenAnimationPending = false;
   };
 
@@ -1159,6 +1205,7 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
                                                        : m_activePanel->attachedBackgroundOpacityOverride();
     m_attachedContactShadow = !m_islandPresentation && barConfig.contactShadow;
     m_attachedRevealProgress = 0.0F;
+    m_attachedIslandExpansionProgress = 0.0F;
     m_attachedRevealDirection = attached_panel::revealDirection(barPosition);
     m_keyboardRelaxTimer.stop();
     m_attachedBarPosition = std::string(barPosition);
@@ -1239,7 +1286,8 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
     }
 
     auto attachedConfig = LayerSurfaceConfig{
-        .nameSpace = "nythera-attached-panel",
+        .nameSpace = m_regularIslandAttachment && barConfig.screenWrap ? "nythera-joined-tool"
+            : m_config->config().shell.panel.snapshotBlur ? "nythera-snapshot-panel" : "nythera-attached-panel",
         .layer = panelLayer,
         .anchor = attachedAnchor,
         .width = surfaceWidth,
@@ -1271,6 +1319,8 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
     if (ok) {
       m_output = request.output;
       m_wlSurface = m_surface->wlSurface();
+      m_panelScreenRect = {visualX, visualY, static_cast<int>(panelWidth), static_cast<int>(panelHeight)};
+      capturePanelBackdrop();
       m_surface->setInputRegion(
           {InputRect{m_panelInsetX, m_panelInsetY, static_cast<int>(panelWidth), static_cast<int>(panelHeight)}}
       );
@@ -1310,6 +1360,7 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
     m_attachedBackgroundOpacity = 1.0F;
     m_attachedContactShadow = false;
     m_attachedRevealProgress = 1.0F;
+    m_attachedIslandExpansionProgress = 0.0F;
     m_detachedRevealProgress = 1.0F;
     m_attachedRevealDirection = AttachedRevealDirection::Down;
     m_detachedRevealDirection = AttachedRevealDirection::Down;
@@ -1317,6 +1368,10 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
     m_attachedBarPosition.clear();
     m_attachedPanelGeometry.reset();
     m_contentFit.attachedSlotGeometry.reset();
+    m_regularIslandAttachment = false;
+    m_stagedIslandReveal = false;
+    m_attachedIslandIndex = -1;
+    m_attachedCompactSpan = {};
     m_attachedOpenAnimationPending = false;
     kLog.warn("panel manager: attached layer-shell failed for \"{}\", falling back to standalone", panelId);
     if (m_panelLayer != floatingPanelLayer) {
@@ -1341,6 +1396,7 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
   m_attachedBackgroundOpacity = 1.0F;
   m_attachedContactShadow = false;
   m_attachedRevealProgress = 1.0F;
+  m_attachedIslandExpansionProgress = 0.0F;
   // This path publishes the compositor blur region before the first scene build.
   // Keep detached panels hidden until buildScene applies the opening reveal.
   m_detachedRevealProgress = 0.0F;
@@ -1367,6 +1423,8 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
 
   m_output = request.output;
   m_wlSurface = m_surface->wlSurface();
+  m_panelScreenRect = detachedPanelInputRect;
+  capturePanelBackdrop();
   m_surface->setInputRegion(
       {InputRect{m_panelInsetX, m_panelInsetY, static_cast<int>(panelWidth), static_cast<int>(panelHeight)}}
   );
@@ -1553,18 +1611,45 @@ void PanelManager::closePanel(bool animateClose) {
     const std::uint64_t gen = ++m_destroyGeneration;
     if (m_attachedToBar && m_attachedRevealClipNode != nullptr) {
       m_animations.cancelForOwner(m_attachedRevealClipNode);
-      m_animations.animate(
-          m_attachedRevealProgress, 0.0F, Style::animNormal, Easing::EaseInOutQuad,
-          [this](float v) { applyAttachedReveal(v); },
-          [this, gen] {
-            DeferredCall::callLater([this, gen] {
-              if (m_destroyGeneration == gen) {
-                destroyPanel();
-              }
-            });
-          },
-          m_attachedRevealClipNode
-      );
+      const auto destroyAfterClose = [this, gen] {
+        DeferredCall::callLater([this, gen] {
+          if (m_destroyGeneration == gen) {
+            destroyPanel();
+          }
+        });
+      };
+      if (m_stagedIslandReveal) {
+        const auto collapseIsland = [this, gen, destroyAfterClose] {
+          if (m_destroyGeneration != gen || !m_closing) {
+            return;
+          }
+          if (m_attachedIslandExpansionProgress <= 0.001F) {
+            destroyAfterClose();
+            return;
+          }
+          m_animations.animate(
+              m_attachedIslandExpansionProgress, 0.0F, Style::animNormal, Easing::EaseInOutQuad,
+              [this](float v) {
+                m_attachedIslandExpansionProgress = v;
+                applyAttachedReveal(m_attachedRevealProgress);
+              },
+              destroyAfterClose, m_attachedRevealClipNode
+          );
+        };
+        if (m_attachedRevealProgress > 0.001F) {
+          m_animations.animate(
+              m_attachedRevealProgress, 0.0F, Style::animNormal, Easing::EaseInOutQuad,
+              [this](float v) { applyAttachedReveal(v); }, collapseIsland, m_attachedRevealClipNode
+          );
+        } else {
+          collapseIsland();
+        }
+      } else {
+        m_animations.animate(
+            m_attachedRevealProgress, 0.0F, Style::animNormal, Easing::EaseInOutQuad,
+            [this](float v) { applyAttachedReveal(v); }, destroyAfterClose, m_attachedRevealClipNode
+        );
+      }
     } else {
       m_animations.cancelForOwner(m_sceneRoot.get());
       m_animations.animate(
@@ -1662,6 +1747,8 @@ void PanelManager::destroyPanel() {
   if (m_attachedToBar && m_attachedPanelGeometryCallback && m_output != nullptr) {
     m_attachedPanelGeometryCallback(m_output, m_sourceBarName, std::nullopt);
   }
+  m_panelSnapshot.reset();
+  m_detachedOpenAnimationPending = false;
   // Defensive: closePanel deactivates first, but destroyPanel can also be
   // reached directly when openPanel preempts an open panel.
   deactivateOutsideClickHandlers();
@@ -1712,6 +1799,7 @@ void PanelManager::destroyPanel() {
   m_attachedBackgroundOpacity = 1.0F;
   m_attachedContactShadow = false;
   m_attachedRevealProgress = 1.0F;
+  m_attachedIslandExpansionProgress = 0.0F;
   m_detachedRevealProgress = 1.0F;
   m_attachedRevealDirection = AttachedRevealDirection::Down;
   m_detachedRevealDirection = AttachedRevealDirection::Down;
@@ -1721,6 +1809,10 @@ void PanelManager::destroyPanel() {
   m_attachedPanelGeometry.reset();
   m_contentFit = {};
   m_attachedToBar = false;
+  m_regularIslandAttachment = false;
+  m_stagedIslandReveal = false;
+  m_attachedIslandIndex = -1;
+  m_attachedCompactSpan = {};
   m_attachedOpenAnimationPending = false;
   if (m_platform != nullptr) {
     m_platform->stopKeyRepeat();
@@ -2324,7 +2416,10 @@ void PanelManager::applyAttachedReveal(float progress) {
   float clipX = 0.0F, clipY = 0.0F, clipW = w, clipH = h;
   if (m_islandPresentation && m_attachedRevealContentNode != nullptr) {
     const float extent = side ? panelH : panelW;
-    const float cross = m_islandCompactExtent + (extent - m_islandCompactExtent) * m_attachedRevealProgress;
+    const float surfaceExtent = side ? h : w;
+    const float cross = attached_panel::mainAxisRevealClipExtent(
+        surfaceExtent, m_islandCompactExtent, extent, m_attachedRevealProgress, m_stagedIslandReveal
+    );
     const float inset = ((side ? h : w) - cross) / 2.0F;
     clipX = side ? 0.0F : inset;
     clipY = side ? inset : 0.0F;
@@ -2333,6 +2428,16 @@ void PanelManager::applyAttachedReveal(float progress) {
     m_attachedRevealClipNode->setPosition(clipX, clipY);
     m_attachedRevealClipNode->setFrameSize(side ? w : cross, side ? cross : h);
     m_attachedRevealContentNode->setPosition(contentX - (side ? 0.0F : inset), contentY - (side ? inset : 0.0F));
+  }
+  if (m_stagedIslandReveal && m_attachedRevealContentNode != nullptr) {
+    const auto clip = attached_panel::stagedPanelBodyClip(
+        m_attachedRevealDirection, w, h, static_cast<float>(m_panelInsetX), static_cast<float>(m_panelInsetY),
+        panelW, panelH
+    );
+    clipX = clip.x; clipY = clip.y; clipW = clip.width; clipH = clip.height;
+    m_attachedRevealClipNode->setPosition(clipX, clipY);
+    m_attachedRevealClipNode->setFrameSize(clipW, clipH);
+    m_attachedRevealContentNode->setPosition(contentX - clipX, contentY - clipY);
   }
   if (m_panelShadowNode != nullptr) {
     m_panelShadowNode->setOpacity(m_attachedRevealProgress);
@@ -2355,21 +2460,60 @@ void PanelManager::applyAttachedReveal(float progress) {
       contour.edge = m_attachedBarPosition == "right" ? 1 : m_attachedBarPosition == "bottom" ? 2 : m_attachedBarPosition == "left" ? 3 : 0;
       const float extent = side ? panelH : panelW;
       const float cross = std::lerp(m_islandCompactExtent, extent, m_attachedRevealProgress);
+      const float islandProgress = m_stagedIslandReveal ? m_attachedIslandExpansionProgress : m_attachedRevealProgress;
       const float center = side ? m_islandSurfaceY + static_cast<float>(m_panelInsetY) + panelH / 2
                                 : m_islandSurfaceX + static_cast<float>(m_panelInsetX) + panelW / 2;
       contour.islands[1] = {center - cross / 2, center + cross / 2};
+      if (m_regularIslandAttachment) {
+        const float begin = side ? m_islandSurfaceY + static_cast<float>(m_panelInsetY)
+                                 : m_islandSurfaceX + static_cast<float>(m_panelInsetX);
+        contour.islands[1] = {
+            std::lerp(m_attachedCompactSpan.begin, begin, islandProgress),
+            std::lerp(m_attachedCompactSpan.end, begin + extent, islandProgress)};
+      }
       const float opacity = std::lerp(m_islandBarOpacity, m_attachedBackgroundOpacity, m_attachedRevealProgress);
-      m_islandFrame->setVisible(m_attachedRevealProgress > 0.001F);
+      const bool islandVisible = m_stagedIslandReveal
+          ? islandProgress > 0.001F || m_attachedRevealProgress > 0.001F
+          : m_attachedRevealProgress > 0.001F;
+      m_islandFrame->setVisible(!(m_regularIslandAttachment && m_islandBar.screenWrap) && islandVisible);
       m_islandFrame->setSize(w, h);
       auto shared = m_islandFrameProvider ? m_islandFrameProvider() : ScreenFrameStyle{};
       if (!shared.contour.bands.empty()) {
-        for (auto& band : shared.contour.bands) if (band.name == m_sourceBarName) {
-          band.spans = contour.islands;
-          band.depth = static_cast<float>(m_islandBar.marginEdge) + contour.depth;
-          band.fill = colorForRole(ColorRole::Surface, opacity);
+        if (m_regularIslandAttachment) {
+          // The bar's helper band removes its join stroke inside the neck only.
+          std::erase_if(shared.contour.bands, [this](const auto& band) {
+            return band.name == m_sourceBarName + ":panel";
+          });
+          // Use the same replacement contour as the bar, including when the
+          // unwrapped native host owns the portion below the bar edge.
+          for (auto& band : shared.contour.bands) if (band.name == m_sourceBarName) {
+            band.spans[static_cast<std::size_t>(m_attachedIslandIndex)] = {
+                std::min(m_attachedCompactSpan.begin, contour.islands[1].begin),
+                std::max(m_attachedCompactSpan.end, contour.islands[1].end)};
+            appendScreenFrameTool(shared.contour, band, contour.islands[1],
+                static_cast<float>(m_islandBar.marginEdge) + contour.depth, m_attachedIslandIndex);
+            break;
+          }
+          const float edgeDepth = static_cast<float>(m_islandBar.marginEdge + m_islandBar.thickness);
+          if (contour.edge == 0) shared.exclusion = {0, 0, static_cast<float>(m_islandOutputWidth), edgeDepth};
+          else if (contour.edge == 3) shared.exclusion = {0, 0, edgeDepth, static_cast<float>(m_islandOutputHeight)};
+          else if (contour.edge == 2) shared.exclusion = {0, static_cast<float>(m_islandOutputHeight) - edgeDepth,
+              static_cast<float>(m_islandOutputWidth), edgeDepth};
+          else shared.exclusion = {static_cast<float>(m_islandOutputWidth) - edgeDepth, 0, edgeDepth,
+              static_cast<float>(m_islandOutputHeight)};
+        } else {
+          for (auto& band : shared.contour.bands) if (band.name == m_sourceBarName) {
+            band.spans = contour.islands;
+            band.depth = static_cast<float>(m_islandBar.marginEdge) + contour.depth;
+            band.fill = colorForRole(ColorRole::Surface, opacity);
+          }
+          shared.exclusion = {};
+        }
+        if (m_panelSnapshot) {
+          shared.backdrop = m_panelSnapshot->backdrop();
+          shared.backdrop.bounds = {m_islandSurfaceX, m_islandSurfaceY, w, h};
         }
         shared.offsetX = m_islandSurfaceX; shared.offsetY = m_islandSurfaceY;
-        shared.exclusion = {};
         m_islandFrame->setStyle(shared);
       } else {
         m_islandFrame->setStyle({contour, colorForRole(ColorRole::Surface, opacity), resolveColorSpec(m_islandBar.border),
@@ -2438,6 +2582,7 @@ void PanelManager::applyDetachedReveal(float progress) {
   if (m_contentNode != nullptr) {
     m_contentNode->setOpacity(panelRevealContentOpacity(m_detachedRevealProgress));
   }
+  syncPanelBackdrop();
   applyPanelCompositorBlur(
       m_panelInsetX, m_panelInsetY, static_cast<int>(m_panelVisualWidth), static_cast<int>(m_panelVisualHeight),
       static_cast<int>(std::lround(clipX)), static_cast<int>(std::lround(clipY)), static_cast<int>(std::lround(clipW)),
@@ -2445,7 +2590,42 @@ void PanelManager::applyDetachedReveal(float progress) {
   );
 }
 
+void PanelManager::capturePanelBackdrop() {
+  if (!m_config || !m_config->config().shell.panel.snapshotBlur || !m_renderContext || !m_output) return;
+  m_snapshotOriginX = static_cast<float>(m_panelScreenRect.x - m_panelInsetX);
+  m_snapshotOriginY = static_cast<float>(m_panelScreenRect.y - m_panelInsetY);
+  const auto frame = m_barFrameProvider ? m_barFrameProvider(m_output, m_sourceBarName) : ScreenFrameStyle{};
+  const auto region = panelSnapshotRegion(
+      {m_panelScreenRect.x, m_panelScreenRect.y, m_panelScreenRect.width, m_panelScreenRect.height},
+      m_islandOutputWidth, m_islandOutputHeight, frame.contour);
+  m_panelSnapshot = std::make_unique<PanelSnapshot>(m_platform->wayland(), *m_renderContext);
+  m_panelSnapshot->capture(m_output, region, m_config->config().shell.panel.snapshotBlurStrength, [this] {
+    if (m_closing || !m_surface) return;
+    syncPanelBackdrop();
+    m_surface->requestRedraw();
+  });
+}
+
+void PanelManager::syncPanelBackdrop() {
+  if (!m_bgNode) return;
+  auto backdrop = m_panelSnapshot ? m_panelSnapshot->backdrop() : ScreenFrameBackdrop{};
+  // Ordinary attached and floating panels keep their existing per-corner shape;
+  // joined islands are painted by their shared screen-frame contour instead.
+  if (m_islandFrame) backdrop = {};
+  else {
+    backdrop.source[0] -= m_snapshotOriginX + m_bgNode->x();
+    backdrop.source[1] -= m_snapshotOriginY + m_bgNode->y();
+  }
+  static_cast<Box*>(m_bgNode)->setBackdrop(backdrop);
+}
+
 void PanelManager::startAttachedOpenAnimation() {
+  if (m_panelSnapshot && m_panelSnapshot->pending()) return;
+  if (m_detachedOpenAnimationPending && !m_attachedToBar && m_sceneRoot && !m_closing) {
+    m_detachedOpenAnimationPending = false;
+    m_animations.animate(0.0F, 1.0F, Style::animNormal, Easing::EaseOutCubic,
+        [this](float v) { applyDetachedReveal(v); }, {}, m_sceneRoot.get());
+  }
   if (!m_attachedOpenAnimationPending || !m_attachedToBar || m_attachedRevealClipNode == nullptr || m_closing) {
     return;
   }
@@ -2456,6 +2636,26 @@ void PanelManager::startAttachedOpenAnimation() {
   }
 
   m_attachedOpenAnimationPending = false;
+  if (m_stagedIslandReveal) {
+    m_animations.animate(
+        m_attachedIslandExpansionProgress, 1.0F, Style::animNormal, Easing::EaseOutCubic,
+        [this](float v) {
+          m_attachedIslandExpansionProgress = v;
+          applyAttachedReveal(m_attachedRevealProgress);
+        },
+        [this] {
+          if (m_closing || !m_regularIslandAttachment || m_attachedRevealClipNode == nullptr) {
+            return;
+          }
+          m_animations.animate(
+              m_attachedRevealProgress, 1.0F, Style::animNormal, Easing::EaseOutCubic,
+              [this](float v) { applyAttachedReveal(v); }, {}, m_attachedRevealClipNode
+          );
+        },
+        m_attachedRevealClipNode
+    );
+    return;
+  }
   m_animations.animate(
       m_attachedRevealProgress, 1.0F, Style::animNormal, Easing::EaseOutCubic,
       [this](float v) { applyAttachedReveal(v); }, {}, m_attachedRevealClipNode
@@ -2468,7 +2668,8 @@ void PanelManager::publishAttachedPanelGeometry(float revealProgress) {
   }
 
   const float progress = std::clamp(revealProgress, 0.0F, 1.0F);
-  if (progress <= 0.001F) {
+  const float islandProgress = m_stagedIslandReveal ? m_attachedIslandExpansionProgress : progress;
+  if (progress <= 0.001F && islandProgress <= 0.001F) {
     m_attachedPanelGeometryCallback(m_output, m_sourceBarName, std::nullopt);
     return;
   }
@@ -2481,6 +2682,40 @@ void PanelManager::publishAttachedPanelGeometry(float revealProgress) {
     geometry.islandExtent = (vertical ? geometry.height : geometry.width) - 2.0F * geometry.cornerRadius;
     geometry.islandDepth = static_cast<float>(m_islandBar.thickness) + (vertical ? geometry.width : geometry.height) * progress;
     geometry.islandSurface = {m_islandSurfaceX, m_islandSurfaceY, static_cast<float>(m_surface->width()), static_cast<float>(m_surface->height())};
+    if (m_regularIslandAttachment) {
+      const float panelBegin = vertical ? m_islandSurfaceY + static_cast<float>(m_panelInsetY)
+                                        : m_islandSurfaceX + static_cast<float>(m_panelInsetX);
+      const float panelExtent = vertical ? static_cast<float>(m_panelVisualHeight) : static_cast<float>(m_panelVisualWidth);
+      geometry.islandIndex = m_attachedIslandIndex;
+      auto target = ScreenFrameSpan{panelBegin, panelBegin + panelExtent};
+      if (m_islandBar.screenWrap) target = joinedPanelFrameSpan(target,
+          static_cast<float>(vertical ? m_islandOutputHeight : m_islandOutputWidth),
+          static_cast<float>(m_islandBar.wrapJoinDistance), static_cast<float>(m_islandBar.thickness));
+      geometry.islandToolSpan = {
+          std::lerp(m_attachedCompactSpan.begin, target.begin, islandProgress),
+          std::lerp(m_attachedCompactSpan.end, target.end, islandProgress)};
+      // The expanded island and native tool share their sides. The frame
+      // supplies the curved junction, rather than an extra stepped shoulder.
+      geometry.islandSpan = {
+          std::lerp(m_attachedCompactSpan.begin, std::min(m_attachedCompactSpan.begin, target.begin), islandProgress),
+          std::lerp(m_attachedCompactSpan.end, std::max(m_attachedCompactSpan.end, target.end), islandProgress)};
+      geometry.islandSurface = {m_islandSurfaceX + static_cast<float>(m_panelInsetX),
+          m_islandSurfaceY + static_cast<float>(m_panelInsetY),
+          static_cast<float>(m_panelVisualWidth), static_cast<float>(m_panelVisualHeight)};
+      geometry.backdrop = m_panelSnapshot ? m_panelSnapshot->backdrop() : ScreenFrameBackdrop{};
+      if (geometry.backdrop.texture.valid()) {
+        const float begin = geometry.islandToolSpan[0], end = geometry.islandToolSpan[1];
+        const float depth = static_cast<float>(m_islandBar.marginEdge) + geometry.islandDepth;
+        const float shoulder = static_cast<float>(m_islandBar.radius) * 2;
+        const float outer = static_cast<float>(m_islandBar.marginEdge);
+        if (!vertical) geometry.backdrop.bounds = {begin - shoulder,
+            m_attachedBarPosition == "bottom" ? static_cast<float>(m_islandOutputHeight) - depth : outer,
+            end - begin + shoulder * 2, depth - outer};
+        else geometry.backdrop.bounds = {
+            m_attachedBarPosition == "right" ? static_cast<float>(m_islandOutputWidth) - depth : outer,
+            begin - shoulder, depth - outer, end - begin + shoulder * 2};
+      }
+    }
   }
 
   // The bar-side concave bulges only enter the visible clip during the last
@@ -2554,6 +2789,10 @@ void PanelManager::applyPanelCompositorBlur(
     return;
   }
 
+  if (m_regularIslandAttachment && m_islandBar.screenWrap) {
+    m_surface->clearBlurRegion(); // the shared frame owns the single blurred backdrop
+    return;
+  }
   if (m_islandPresentation && m_islandFrame != nullptr) {
     if (m_platform->wayland().hasBackgroundEffectBlur()) {
       std::vector<InputRect> region;
@@ -2562,7 +2801,13 @@ void PanelManager::applyPanelCompositorBlur(
         for (int y = 0; y < static_cast<int>(m_surface->height()); ++y) {
           int begin = -1;
           for (int x = 0; x <= static_cast<int>(m_surface->width()); ++x) {
-            const bool inside = x < static_cast<int>(m_surface->width()) && screenFrameDistance(style.contour, static_cast<float>(x) + style.offsetX + 0.5F, static_cast<float>(y) + style.offsetY + 0.5F) < 0;
+            const float gx = static_cast<float>(x) + style.offsetX + 0.5F;
+            const float gy = static_cast<float>(y) + style.offsetY + 0.5F;
+            const auto& hole = style.exclusion;
+            const bool excluded = hole[2] > 0 && gx >= hole[0] && gx < hole[0] + hole[2]
+                && gy >= hole[1] && gy < hole[1] + hole[3];
+            const bool inside = x < static_cast<int>(m_surface->width()) && !excluded
+                && screenFrameDistance(style.contour, gx, gy) < 0;
             if (inside && begin < 0) begin = x;
             if (!inside && begin >= 0) { region.push_back({begin, y, x - begin, 1}); begin = -1; }
           }
@@ -2702,6 +2947,19 @@ void PanelManager::applyAttachedDecorationStyle() {
 }
 
 void PanelManager::onConfigReloaded() {
+  if (m_panelSnapshot && m_config) {
+    if (!m_config->config().shell.panel.snapshotBlur) {
+      // Clear borrowed frame/Box references before releasing the GPU image.
+      if (m_attachedPanelGeometryCallback && m_output)
+        m_attachedPanelGeometryCallback(m_output, m_sourceBarName, std::nullopt);
+      if (m_bgNode) static_cast<Box*>(m_bgNode)->setBackdrop({});
+      if (m_islandFrame) { auto style = m_islandFrame->style(); style.backdrop = {}; m_islandFrame->setStyle(style); }
+      m_panelSnapshot.reset();
+    } else m_panelSnapshot->setStrength(m_config->config().shell.panel.snapshotBlurStrength);
+    syncPanelBackdrop();
+    if (m_attachedToBar) applyAttachedReveal(m_attachedRevealProgress);
+  }
+
   m_persistentHost.onConfigReloaded();
   if (!isOpen() || m_config == nullptr || m_activePanel == nullptr) {
     return;
@@ -2814,7 +3072,7 @@ void PanelManager::buildScene(std::uint32_t width, std::uint32_t height) {
     }
     m_sceneRoot->setSize(w, h);
 
-    if (m_islandPresentation && m_islandBar.screenWrap) {
+    if (m_islandPresentation && (m_islandBar.screenWrap || m_regularIslandAttachment)) {
       auto frame = std::make_unique<ScreenFrameNode>();
       frame->setHitTestVisible(false);
       m_islandFrame = static_cast<ScreenFrameNode*>(m_sceneRoot->addChild(std::move(frame)));
@@ -2916,10 +3174,7 @@ void PanelManager::buildScene(std::uint32_t width, std::uint32_t height) {
       m_attachedOpenAnimationPending = true;
     } else {
       applyDetachedReveal(0.0F);
-      m_animations.animate(
-          0.0F, 1.0F, Style::animNormal, Easing::EaseOutCubic, [this](float v) { applyDetachedReveal(v); }, {},
-          m_sceneRoot.get()
-      );
+      m_detachedOpenAnimationPending = true;
     }
 
     m_surface->setSceneRoot(m_sceneRoot.get());
@@ -3038,10 +3293,11 @@ void PanelManager::placePanelChrome() {
       else if (m_attachedBarPosition == "bottom") extension.bottom = neck;
       else if (m_attachedBarPosition == "left") extension.left = neck;
       else extension.right = neck;
-      m_bgNode->setVisible(!m_islandBar.screenWrap && m_attachedRevealProgress > 0.001F);
+      m_bgNode->setVisible(m_islandFrame == nullptr && m_attachedRevealProgress > 0.001F);
     }
     m_bgNode->setPosition(bgX - extension.left, bgY - extension.top);
     m_bgNode->setSize(bgW + extension.left + extension.right, bgH + extension.top + extension.bottom);
+    syncPanelBackdrop();
   }
 
   if (m_panelContactShadowNode != nullptr) {

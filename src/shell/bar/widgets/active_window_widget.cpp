@@ -6,6 +6,7 @@
 #include "render/animation/animation_manager.h"
 #include "render/scene/input_area.h"
 #include "render/scene/node.h"
+#include "shell/panel/panel_manager.h"
 #include "system/app_identity.h"
 #include "system/desktop_entry.h"
 #include "system/internal_app_metadata.h"
@@ -261,6 +262,25 @@ void ActiveWindowWidget::syncState(Renderer& renderer) {
     appId = current->appId;
     if (title.empty()) {
       title = appId;
+    }
+  }
+
+  if (current) {
+    m_retainedIdentifier = identifier;
+    m_retainedTitle = title;
+    m_retainedAppId = appId;
+  }
+  if (auto* panels = PanelManager::current(); panels && panels->isOpen()) {
+    if (panels->isOpenPanel("control-center")) {
+      identifier = "nythera-panel:control-center";
+      title = i18n::tr("settings.navigation.sections.control-center");
+      appId = "dev.nythera.Nythera";
+      emptyState = false;
+    } else if (emptyState && !m_retainedIdentifier.empty()) {
+      identifier = m_retainedIdentifier;
+      title = m_retainedTitle;
+      appId = m_retainedAppId;
+      emptyState = false;
     }
   }
 

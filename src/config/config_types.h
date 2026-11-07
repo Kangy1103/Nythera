@@ -85,11 +85,6 @@ struct BarMonitorOverride {
   std::optional<float> backgroundOpacity;
   std::optional<BarTransparencyMode> transparencyMode;
   std::optional<std::string> surfaceMode;
-  std::optional<bool> screenWrap;
-  std::optional<std::int32_t> wrapWidth;
-  std::optional<std::int32_t> wrapClearance;
-  std::optional<std::int32_t> wrapRadius;
-  std::optional<std::int32_t> wrapJoinDistance;
   std::optional<bool> dynamicNotifications;
   std::optional<bool> dynamicTimers;
   std::optional<bool> dynamicAlarms;
@@ -188,11 +183,14 @@ struct BarConfig {
   // Bar background presentation: "full" draws one continuous bar surface; "islands"
   // draws one background around each complete start/centre/end section.
   std::string surfaceMode = "full";
+  // Derived from shell.screen_wrap per output; not persisted per bar.
   bool screenWrap = false;
   std::int32_t wrapWidth = 6;
   std::int32_t wrapClearance = 0;
   std::int32_t wrapRadius = 20;
   std::int32_t wrapJoinDistance = 80;
+  std::int32_t wrapJoinedCornerGap = 12, wrapFreeCornerGap = 12;
+  std::int32_t wrapStartInset = 0, wrapEndInset = 0;
   bool dynamicNotifications = true;
   bool dynamicTimers = true;
   bool dynamicAlarms = true;
@@ -1189,6 +1187,12 @@ constexpr EnumOption<ScreenshotFormat> kScreenshotFormats[] = {
     {ScreenshotFormat::Jxl, "jxl", "settings.options.screenshot.format.jxl"},
 };
 
+struct ScreenWrapConfig {
+  bool enabled = false;
+  std::int32_t width = 6, clearance = 0, radius = 20, joinDistance = 80, joinedCornerGap = 12, freeCornerGap = 12;
+  bool operator==(const ScreenWrapConfig&) const = default;
+};
+
 struct ShellConfig {
   struct AnimationConfig {
     bool enabled = true;
@@ -1206,6 +1210,8 @@ struct ShellConfig {
 
   struct PanelConfig {
     PanelTransparencyMode transparencyMode = PanelTransparencyMode::Solid;
+    bool snapshotBlur = true;
+    float snapshotBlurStrength = 12.0F;
     bool borders = true; // outline on floating panel surfaces
     ColorSpec borderColor = colorSpecFromRole(ColorRole::OutlineVariant);
     float borderWidth = Style::borderWidth;
@@ -1462,6 +1468,7 @@ struct ShellConfig {
   WindowSwitcherConfig windowSwitcher;
   KeyboardLayoutConfig keyboardLayout;
   ScreenCornersConfig screenCorners;
+  ScreenWrapConfig screenWrap;
   MprisConfig mpris;
   ScreenshotConfig screenshot;
   PrivacyConfig privacy;
@@ -1560,32 +1567,22 @@ struct SystemConfig {
         nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::CpuUsage).activityDefault;
     double cpuUsageCriticalThreshold =
         nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::CpuUsage).criticalDefault;
-    double cpuTempActivityThreshold =
-        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::CpuTemp).activityDefault;
-    double cpuTempCriticalThreshold =
-        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::CpuTemp).criticalDefault;
-    double cpuFreqActivityThreshold =
-        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::CpuFreq).activityDefault;
-    double cpuFreqCriticalThreshold =
-        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::CpuFreq).criticalDefault;
-    double gpuTempActivityThreshold =
-        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::GpuTemp).activityDefault;
-    double gpuTempCriticalThreshold =
-        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::GpuTemp).criticalDefault;
+    double cpuTempActivityThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::CpuTemp).activityDefault;
+    double cpuTempCriticalThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::CpuTemp).criticalDefault;
+    double cpuFreqActivityThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::CpuFreq).activityDefault;
+    double cpuFreqCriticalThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::CpuFreq).criticalDefault;
+    double gpuTempActivityThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::GpuTemp).activityDefault;
+    double gpuTempCriticalThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::GpuTemp).criticalDefault;
     double gpuUsageActivityThreshold =
         nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::GpuUsage).activityDefault;
     double gpuUsageCriticalThreshold =
         nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::GpuUsage).criticalDefault;
-    double gpuVramActivityThreshold =
-        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::GpuVram).activityDefault;
-    double gpuVramCriticalThreshold =
-        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::GpuVram).criticalDefault;
+    double gpuVramActivityThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::GpuVram).activityDefault;
+    double gpuVramCriticalThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::GpuVram).criticalDefault;
     double ramPctActivityThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::RamPct).activityDefault;
     double ramPctCriticalThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::RamPct).criticalDefault;
-    double swapPctActivityThreshold =
-        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::SwapPct).activityDefault;
-    double swapPctCriticalThreshold =
-        nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::SwapPct).criticalDefault;
+    double swapPctActivityThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::SwapPct).activityDefault;
+    double swapPctCriticalThreshold = nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::SwapPct).criticalDefault;
     double diskUsedPctActivityThreshold =
         nythera::sysmon::thresholdProfile(nythera::sysmon::Stat::DiskUsedPct).activityDefault;
     double diskUsedPctCriticalThreshold =

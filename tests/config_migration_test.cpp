@@ -1026,9 +1026,7 @@ radius = -10
 
     toml::table future = toml::parse("config_version = 999");
     nythera::config::schema::Diagnostics futureDiag;
-    expect(
-        !nythera::config::storedConfigVersion(future, futureDiag).has_value(), "future config_version was accepted"
-    );
+    expect(!nythera::config::storedConfigVersion(future, futureDiag).has_value(), "future config_version was accepted");
     expect(futureDiag.hasErrors(), "future config_version did not produce an error");
     expect(futureDiag.hasFatalErrors(), "future config_version was not document-fatal");
 
@@ -1127,7 +1125,39 @@ radius = -10
 
 } // namespace
 
+void checkDisplayFrameMigration() {
+  auto root = toml::parse(R"(
+config_version = 17
+[shell.screen_wrap]
+corner_gap = 9
+[bar.default]
+screen_wrap = true
+wrap_width = 9
+[bar.default.monitor.DP-1]
+screen_wrap = false
+[bar.second]
+screen_wrap = false
+wrap_width = 6
+)");
+  nythera::config::schema::Diagnostics diag;
+  auto version = nythera::config::applyPendingConfigMigrations(root, {}, 17, diag);
+  expect(version == 19, "display frame migration version");
+  expect(root["shell"]["screen_wrap"]["joined_corner_gap"].value<int>() == 9, "joined gap migration lost value");
+  expect(root["shell"]["screen_wrap"]["free_corner_gap"].value<int>() == 9, "free gap migration lost value");
+  expect(!root["shell"]["screen_wrap"]["corner_gap"], "retired corner gap retained");
+  expect(root["shell"]["screen_wrap"]["enabled"].value<bool>() == true, "display frame enable lost");
+  expect(root["shell"]["screen_wrap"]["width"].value<int>() == 9, "default frame width lost");
+  expect(!root["shell"]["screen_wrap"]["monitor"], "retired frame monitor overrides retained");
+  expect(!root["bar"]["default"]["screen_wrap"], "old per-bar toggle retained");
+  root["shell"]["screen_wrap"].as_table()->insert_or_assign("enabled", false);
+  root["bar"]["default"].as_table()->insert_or_assign("screen_wrap", true);
+  nythera::config::LegacyConfigIssues issues;
+  nythera::config::normalizeLegacyConfig(root, issues);
+  expect(root["shell"]["screen_wrap"]["enabled"].value<bool>() == false, "new explicit setting overwritten");
+}
+
 int main() {
+  checkDisplayFrameMigration();
   checkNegativeRadiusMigration();
   checkExtremeNegativeRadius();
   checkCustomScheduleMigration();

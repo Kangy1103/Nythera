@@ -2,6 +2,7 @@
 
 #include "render/animation/animation_manager.h"
 #include "render/scene/input_dispatcher.h"
+#include "render/core/screen_frame_geometry.h"
 #include "ui/dialogs/layer_popup_host.h"
 #include "wayland/layer_surface.h"
 
@@ -19,6 +20,7 @@ class ConfigService;
 class Node;
 class Panel;
 class RenderContext;
+class PanelSnapshot;
 struct KeyboardEvent;
 struct PointerEvent;
 struct wl_output;
@@ -65,6 +67,7 @@ public:
   void onIconThemeChanged();
   void refresh();
   void setPanelClosedCallback(std::function<void()> callback);
+  void setBarFrameProvider(std::function<ScreenFrameStyle(wl_output*)> provider) { m_barFrameProvider = std::move(provider); }
 
 private:
   struct Instance {
@@ -77,6 +80,8 @@ private:
     InputDispatcher inputDispatcher;
     std::unique_ptr<LayerSurface> surface;
     std::unique_ptr<Node> sceneRoot;
+    std::unique_ptr<PanelSnapshot> snapshot;
+    float screenX = 0, screenY = 0;
     Node* contentNode = nullptr;
     Box* bgNode = nullptr;
     Box* shadowNode = nullptr;
@@ -94,6 +99,7 @@ private:
   void buildScene(Instance& instance, std::uint32_t width, std::uint32_t height);
   void prepareFrame(Instance& instance, bool needsUpdate, bool needsLayout);
   void layoutScene(Instance& instance, std::uint32_t width, std::uint32_t height);
+  void syncSnapshot(Instance& instance);
   [[nodiscard]] Instance* findInstance(std::string_view id) noexcept;
   [[nodiscard]] Instance* findInstanceForSurface(wl_surface* surface) noexcept;
   void destroyInstance(std::vector<std::unique_ptr<Instance>>::iterator it);
@@ -104,4 +110,5 @@ private:
   std::unordered_map<std::string, std::unique_ptr<Panel>> m_panels;
   std::vector<std::unique_ptr<Instance>> m_instances;
   std::function<void()> m_panelClosedCallback;
+  std::function<ScreenFrameStyle(wl_output*)> m_barFrameProvider;
 };

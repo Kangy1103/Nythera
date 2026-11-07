@@ -1,8 +1,11 @@
 #pragma once
 
 #include "render/core/render_styles.h"
+#include "render/core/screen_frame_geometry.h"
 
+#include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <string_view>
 
@@ -16,9 +19,13 @@ enum class AttachedRevealDirection : std::uint8_t {
 struct AttachedPanelGeometry {
   // Dynamic-island hosts follow this same reveal instead of starting a second animation.
   float revealProgress = 1.0F;
+  int islandIndex = -1;
+  std::array<float, 2> islandToolSpan{};
+  std::array<float, 2> islandSpan{}; // animated output-local span for ordinary islands
   float islandExtent = 0.0F;
   float islandDepth = 0.0F;
   std::array<float, 4> islandSurface{}; // output-local backdrop ownership rectangle
+  ScreenFrameBackdrop backdrop;
   float x = 0.0F;
   float y = 0.0F;
   float width = 0.0F;
@@ -33,6 +40,38 @@ struct AttachedPanelGeometry {
 };
 
 namespace attached_panel {
+
+  [[nodiscard]] inline float mainAxisRevealClipExtent(
+      float surfaceExtent, float compactExtent, float panelExtent, float progress, bool keepPanelFullWidth
+  ) noexcept {
+    if (keepPanelFullWidth) {
+      return surfaceExtent;
+    }
+    return std::lerp(compactExtent, panelExtent, std::clamp(progress, 0.0F, 1.0F));
+  }
+
+  struct RevealClipRect {
+    float x = 0, y = 0, width = 0, height = 0;
+  };
+
+  // The panel keeps its full cross-axis extent. Its slide may reveal only the
+  // body side of the bar: no control pixels may enter the island's neck.
+  [[nodiscard]] inline RevealClipRect stagedPanelBodyClip(
+      AttachedRevealDirection direction, float surfaceWidth, float surfaceHeight,
+      float insetX, float insetY, float panelWidth, float panelHeight
+  ) noexcept {
+    switch (direction) {
+    case AttachedRevealDirection::Down:
+      return {0, insetY, surfaceWidth, std::max(0.0F, surfaceHeight - insetY)};
+    case AttachedRevealDirection::Up:
+      return {0, 0, surfaceWidth, std::clamp(insetY + panelHeight, 0.0F, surfaceHeight)};
+    case AttachedRevealDirection::Right:
+      return {insetX, 0, std::max(0.0F, surfaceWidth - insetX), surfaceHeight};
+    case AttachedRevealDirection::Left:
+      return {0, 0, std::clamp(insetX + panelWidth, 0.0F, surfaceWidth), surfaceHeight};
+    }
+    return {};
+  }
 
   [[nodiscard]] inline CornerShapes cornerShapes(std::string_view barPosition) {
     if (barPosition == "bottom") {

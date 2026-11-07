@@ -1492,6 +1492,8 @@ namespace nythera::config::schema {
     const Schema<ShellConfig::PanelConfig>& shellPanelSchema() {
       static const Schema<ShellConfig::PanelConfig> s = {
           enumField(&ShellConfig::PanelConfig::transparencyMode, "transparency_mode", kPanelTransparencyModes),
+          field(&ShellConfig::PanelConfig::snapshotBlur, "snapshot_blur"),
+          field(&ShellConfig::PanelConfig::snapshotBlurStrength, "snapshot_blur_strength", kPanelSnapshotBlurStrengthRange),
           field(&ShellConfig::PanelConfig::borders, "borders"),
           colorField(&ShellConfig::PanelConfig::borderColor, "border_color"),
           field(&ShellConfig::PanelConfig::borderWidth, "border_width", kPanelBorderWidthRange),
@@ -1608,6 +1610,8 @@ namespace nythera::config::schema {
       };
       return s;
     }
+
+    const Schema<ScreenWrapConfig>& screenWrapSchema();
 
     const Schema<ShellConfig::ScreenCornersConfig>& shellScreenCornersSchema() {
       static const Schema<ShellConfig::ScreenCornersConfig> s = {
@@ -1866,6 +1870,7 @@ namespace nythera::config::schema {
         subTable(&ShellConfig::keyboardLayout, "keyboard_layout", shellKeyboardLayoutSchema()),
         subTable(&ShellConfig::windowSwitcher, "window_switcher", shellWindowSwitcherSchema()),
         subTable(&ShellConfig::screenCorners, "screen_corners", shellScreenCornersSchema()),
+        subTable(&ShellConfig::screenWrap, "screen_wrap", screenWrapSchema()),
         subTable(&ShellConfig::mpris, "mpris", shellMprisSchema()),
         subTable(&ShellConfig::screenshot, "screenshot", shellScreenshotSchema()),
         subTable(&ShellConfig::privacy, "privacy", shellPrivacySchema()),
@@ -2124,8 +2129,7 @@ namespace nythera::config::schema {
     // Clamp ranges shared by the concrete BarConfig fields and the parallel
     // optional BarMonitorOverride fields, declared once so the two schemas can't
     // drift apart.
-    constexpr Range<std::int64_t> kBarWrapWidthRange{1, 32};
-    constexpr Range<std::int64_t> kBarWrapRadiusRange{0, 100};
+
     constexpr Range<std::int64_t> kBarThicknessRange{10, 300};
     constexpr Range<std::int64_t> kBarRadiusRange{0, 500};
     constexpr Range<std::int64_t> kBarPanelOverlapRange{-2, 3};
@@ -2372,7 +2376,9 @@ namespace nythera::config::schema {
               if (*v == "full" || *v == "islands" || *v == "dynamic") {
                 out.surfaceMode = *v;
               } else {
-                diag.warn(joinPath(parentPath, "surface_mode"), "expected full, islands or dynamic, got \"" + *v + "\"");
+                diag.warn(
+                    joinPath(parentPath, "surface_mode"), "expected full, islands or dynamic, got \"" + *v + "\""
+                );
               }
             } else {
               warnWrongType(tbl, "surface_mode", parentPath, diag, "a string");
@@ -2588,6 +2594,25 @@ namespace nythera::config::schema {
     return s;
   }
 
+  namespace {
+    constexpr Range<std::int64_t> kBarWrapWidthRange{1, 32};
+    constexpr Range<std::int64_t> kBarWrapRadiusRange{0, 100};
+    const Schema<ScreenWrapConfig>& screenWrapSchema() {
+      static const Schema<ScreenWrapConfig> s = {
+          field(&ScreenWrapConfig::enabled, "enabled"),
+          field(&ScreenWrapConfig::width, "width", kBarWrapWidthRange),
+          field(&ScreenWrapConfig::clearance, "clearance", kBarRadiusRange),
+          field(&ScreenWrapConfig::radius, "radius", kBarWrapRadiusRange),
+          field(&ScreenWrapConfig::joinedCornerGap, "joined_corner_gap", kBarRadiusRange),
+          field(&ScreenWrapConfig::freeCornerGap, "free_corner_gap", kBarRadiusRange),
+          field(&ScreenWrapConfig::joinDistance, "join_distance", kBarRadiusRange),
+
+      };
+      return s;
+    }
+
+  } // namespace
+
   const Schema<BarConfig>& barFieldsSchema() {
     static const Schema<BarConfig> s = {
         field(&BarConfig::enabled, "enabled"),
@@ -2601,11 +2626,6 @@ namespace nythera::config::schema {
         field(&BarConfig::backgroundOpacity, "background_opacity", kBarOpacityRange),
         enumField(&BarConfig::transparencyMode, "transparency_mode", kBarTransparencyModes),
         barSurfaceModeField(),
-        field(&BarConfig::screenWrap, "screen_wrap"),
-        field(&BarConfig::wrapWidth, "wrap_width", kBarWrapWidthRange),
-        field(&BarConfig::wrapClearance, "wrap_clearance", kBarRadiusRange),
-        field(&BarConfig::wrapRadius, "wrap_radius", kBarWrapRadiusRange),
-        field(&BarConfig::wrapJoinDistance, "wrap_join_distance", kBarRadiusRange),
         field(&BarConfig::dynamicNotifications, "dynamic_notifications"),
         field(&BarConfig::dynamicTimers, "dynamic_timers"),
         field(&BarConfig::dynamicAlarms, "dynamic_alarms"),
@@ -2721,18 +2741,17 @@ namespace nythera::config::schema {
                 tbl.insert_or_assign("surface_mode", *in.surfaceMode);
             }
         ),
-        optionalBoolField(&BarMonitorOverride::screenWrap, "screen_wrap"),
-        optionalIntField(&BarMonitorOverride::wrapWidth, "wrap_width", kBarWrapWidthRange),
-        optionalIntField(&BarMonitorOverride::wrapClearance, "wrap_clearance", kBarRadiusRange),
-        optionalIntField(&BarMonitorOverride::wrapRadius, "wrap_radius", kBarWrapRadiusRange),
-        optionalIntField(&BarMonitorOverride::wrapJoinDistance, "wrap_join_distance", kBarRadiusRange),
         optionalBoolField(&BarMonitorOverride::dynamicNotifications, "dynamic_notifications"),
         optionalBoolField(&BarMonitorOverride::dynamicTimers, "dynamic_timers"),
         optionalBoolField(&BarMonitorOverride::dynamicAlarms, "dynamic_alarms"),
         optionalBoolField(&BarMonitorOverride::dynamicCalls, "dynamic_calls"),
-        optionalIntField(&BarMonitorOverride::dynamicTimerSeconds, "dynamic_timer_seconds", Range<std::int64_t>{1, 86400}),
+        optionalIntField(
+            &BarMonitorOverride::dynamicTimerSeconds, "dynamic_timer_seconds", Range<std::int64_t>{1, 86400}
+        ),
         field(&BarMonitorOverride::dynamicAlarmTime, "dynamic_alarm_time"),
-        optionalIntField(&BarMonitorOverride::dynamicSnoozeSeconds, "dynamic_snooze_seconds", Range<std::int64_t>{1, 86400}),
+        optionalIntField(
+            &BarMonitorOverride::dynamicSnoozeSeconds, "dynamic_snooze_seconds", Range<std::int64_t>{1, 86400}
+        ),
         optionalBoolField(&BarMonitorOverride::dynamicActivityIndicators, "dynamic_activity_indicators"),
         optionalBoolField(&BarMonitorOverride::dynamicPrivacy, "dynamic_privacy"),
         optionalBoolField(&BarMonitorOverride::dynamicDevices, "dynamic_devices"),

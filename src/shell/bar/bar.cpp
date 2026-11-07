@@ -1,6 +1,5 @@
 #include "shell/bar/bar.h"
-#include "notification/notification_manager.h"
-#include <sstream>
+#include "render/scene/screen_frame_node.h"
 
 #include "compositors/compositor_platform.h"
 #include "config/config_service.h"
@@ -12,16 +11,17 @@
 #include "idle/idle_inhibitor.h"
 #include "ipc/ipc_arg_parse.h"
 #include "ipc/ipc_service.h"
+#include "notification/notification_manager.h"
 #include "render/render_context.h"
 #include "render/scene/input_area.h"
 #include "shell/bar/bar_corner_shape.h"
 #include "shell/bar/bar_reserved_zone.h"
-#include "shell/bar/wrap_layout.h"
 #include "shell/bar/widget.h"
 #include "shell/bar/widget_gesture_defaults.h"
 #include "shell/bar/widgets/plugin_widget.h"
 #include "shell/bar/widgets/taskbar_widget.h"
 #include "shell/bar/widgets/tray_widget.h"
+#include "shell/bar/wrap_layout.h"
 #include "shell/panel/panel_manager.h"
 #include "shell/surface/shadow.h"
 #include "shell/tooltip/tooltip_manager.h"
@@ -37,6 +37,7 @@
 #include <linux/input-event-codes.h>
 #include <optional>
 #include <ranges>
+#include <sstream>
 #include <unordered_set>
 #include <wayland-client-core.h>
 #include <wayland-client-protocol.h>
@@ -45,8 +46,22 @@ namespace {
 
   constexpr Logger kLog("bar");
 
-  BarConfig resolveBarForOutput(const BarConfig& bar, const WaylandOutput& output, const std::vector<BarConfig>& bars) {
-    auto resolved = ConfigService::resolveForOutput(bar, output);
+  BarConfig resolveBarForOutput(
+      const BarConfig& bar, const WaylandOutput& output, const std::vector<BarConfig>& bars,
+      const ScreenWrapConfig& frame
+  ) {
+    const auto applyFrame = [&](BarConfig candidate) {
+      auto settings = frame;
+      candidate.screenWrap = settings.enabled;
+      candidate.wrapWidth = settings.width;
+      candidate.wrapClearance = settings.clearance;
+      candidate.wrapRadius = settings.radius;
+      candidate.wrapJoinDistance = settings.joinDistance;
+      candidate.wrapJoinedCornerGap = settings.joinedCornerGap;
+      candidate.wrapFreeCornerGap = settings.freeCornerGap;
+      return candidate;
+    };
+    auto resolved = applyFrame(ConfigService::resolveForOutput(bar, output));
     if (resolved.surfaceMode == "dynamic") {
       resolved.autoHide = resolved.smartAutoHide = false;
       resolved.shadow = false;
@@ -57,19 +72,51 @@ namespace {
       std::vector<BarConfig> participants;
       std::size_t selected = 0;
       for (const auto& definition : bars) {
-        auto candidate = ConfigService::resolveForOutput(definition, output);
+        auto candidate = applyFrame(ConfigService::resolveForOutput(definition, output));
         candidate.wrapWidth = std::min(candidate.wrapWidth, std::max(1, candidate.thickness / 2));
-        if (candidate.name == bar.name) selected = participants.size();
+        if (candidate.name == bar.name)
+          selected = participants.size();
         participants.push_back(std::move(candidate));
       }
       const auto layout = screen_wrap::tracks(participants, selected);
       resolved.marginEdge = layout.offset;
-      resolved.marginEnds = layout.endInset;
+      resolved.wrapStartInset = layout.startInset;
+      resolved.wrapEndInset = layout.endInset;
       resolved.concaveEdgeCorners = false;
       resolved.shadow = false;
     }
     return resolved;
   }
+  ScreenFrameStyle frameForInstance(const BarInstance& instance) {
+    if (instance.screenWrap) return instance.screenWrap->style();
+    ScreenFrameStyle style;
+    const auto& c = instance.barConfig;
+    style.contour.width = static_cast<float>(instance.outputLogicalWidth);
+    style.contour.height = static_cast<float>(instance.outputLogicalHeight);
+    style.contour.rail = -1; // unwrapped: islands only
+    style.fill = colorForRole(ColorRole::Surface, c.backgroundOpacity);
+    style.border = resolveColorSpec(c.border);
+    style.borderWidth = c.borderWidth;
+    ScreenFrameBand band;
+    band.name = c.name;
+    band.edge = screen_wrap::edgeIndex(c.position);
+    band.edgeAttached = false;
+    band.outer = static_cast<float>(c.marginEdge);
+    band.depth = band.outer + static_cast<float>(c.thickness);
+    band.radius = static_cast<float>(c.radius);
+    band.fill = style.fill; band.border = style.border; band.borderWidth = style.borderWidth;
+    band.spans = instance.islandSpans;
+    if (const auto& attached = instance.attachedPanelGeometry;
+        attached && attached->islandIndex >= 0 && attached->islandDepth > static_cast<float>(c.thickness) + 0.001F) {
+      appendScreenFrameTool(style.contour, band,
+          {attached->islandToolSpan[0], attached->islandToolSpan[1]},
+          band.outer + attached->islandDepth, attached->islandIndex);
+      style.backdrop = attached->backdrop;
+    }
+    style.contour.bands.push_back(band);
+    return style;
+  }
+
   constexpr std::chrono::milliseconds kWorkspaceRevealDebounce{80};
   constexpr std::chrono::milliseconds kWorkspacePeekHold{450};
   constexpr std::int32_t kAutoHideTriggerPx = 3;
@@ -689,7 +736,8 @@ namespace {
     const bool vertical = (barConfig.position == "left" || barConfig.position == "right");
     const bool isBottom = barConfig.position == "bottom";
     const bool isRight = barConfig.position == "right";
-    const std::int32_t mEnds = barConfig.marginEnds;
+    const std::int32_t mStart = barConfig.screenWrap ? barConfig.wrapStartInset : barConfig.marginEnds;
+    const std::int32_t mEnd = barConfig.screenWrap ? barConfig.wrapEndInset : barConfig.marginEnds;
     const std::int32_t mEdge = barConfig.marginEdge;
     const auto sb = shell::surface_shadow::bleed(barConfig.shadow, shadowConfig);
     const int edgeGutter = barAutoHideEdgeGutter(barConfig);
@@ -706,8 +754,8 @@ namespace {
 
     BarSurfaceSpec spec;
     if (!vertical) {
-      spec.marginLeft = std::max(0, mEnds - sb.left - insetL);
-      spec.marginRight = std::max(0, mEnds - sb.right - insetR);
+      spec.marginLeft = std::max(0, mStart - sb.left - insetL);
+      spec.marginRight = std::max(0, mEnd - sb.right - insetR);
       if (isBottom) {
         if (edgeGutter > 0) {
           // Surface reaches the screen edge (no layer margin); the margin is folded
@@ -729,8 +777,8 @@ namespace {
         }
       }
     } else {
-      spec.marginTop = std::max(0, mEnds - sb.up - insetT);
-      spec.marginBottom = std::max(0, mEnds - sb.down - insetB);
+      spec.marginTop = std::max(0, mStart - sb.up - insetT);
+      spec.marginBottom = std::max(0, mEnd - sb.down - insetB);
       if (isRight) {
         if (edgeGutter > 0) {
           spec.surfaceWidth = static_cast<std::uint32_t>(sb.left + concaveBulge + barConfig.thickness + edgeGutter);
@@ -775,12 +823,17 @@ namespace {
   ) {
     const bool sameShadowSurface =
         (!a.shadow && !b.shadow) || shell::surface_shadow::sameSurfaceMetrics(previousShadow, nextShadow);
-    if ((a.surfaceMode == "dynamic" || b.surfaceMode == "dynamic") && a != b) return false;
+    if ((a.surfaceMode == "dynamic" || b.surfaceMode == "dynamic") && a != b)
+      return false;
     return a.name == b.name
         && a.transparencyMode == b.transparencyMode
         && a.screenWrap == b.screenWrap
         && a.wrapWidth == b.wrapWidth
         && a.wrapClearance == b.wrapClearance
+        && a.wrapJoinedCornerGap == b.wrapJoinedCornerGap
+        && a.wrapFreeCornerGap == b.wrapFreeCornerGap
+        && a.wrapStartInset == b.wrapStartInset
+        && a.wrapEndInset == b.wrapEndInset
         && a.wrapRadius == b.wrapRadius
         && a.wrapJoinDistance == b.wrapJoinDistance
         && (!a.screenWrap || a.radius == b.radius)
@@ -836,7 +889,8 @@ namespace {
       float innerSurfaceExtension = 0.0F
   ) {
     const auto barThickness = static_cast<float>(cfg.thickness);
-    const auto marginEnds = static_cast<float>(cfg.marginEnds);
+    const auto marginStart = static_cast<float>(cfg.screenWrap ? cfg.wrapStartInset : cfg.marginEnds);
+    const auto marginEnd = static_cast<float>(cfg.screenWrap ? cfg.wrapEndInset : cfg.marginEnds);
     const auto marginEdge = static_cast<float>(cfg.marginEdge);
     const bool isBottom = cfg.position == "bottom";
     const bool isRight = cfg.position == "right";
@@ -859,7 +913,7 @@ namespace {
 
     if (isVertical) {
       // Vertical bar: edge gap is left/right, ends inset is top/bottom.
-      const float y = std::min(marginEnds, bleedUp) + insetT;
+      const float y = std::min(marginStart, bleedUp) + insetT;
       float x = isRight ? (bleedLeft + concaveBulge) : std::min(marginEdge, bleedLeft);
       if (const int gutter = barAutoHideEdgeGutter(cfg); gutter > 0) {
         // The gutter equals marginEdge and sits between the screen edge and the bar.
@@ -877,12 +931,12 @@ namespace {
           .x = x,
           .y = y,
           .width = barThickness,
-          .height = surfaceHeight - y - std::min(marginEnds, bleedDown) - insetB,
+          .height = surfaceHeight - y - std::min(marginEnd, bleedDown) - insetB,
       };
     }
 
     // Horizontal bar: edge gap is top/bottom, ends inset is left/right.
-    const float x = std::min(marginEnds, bleedLeft) + insetL;
+    const float x = std::min(marginStart, bleedLeft) + insetL;
     float y = isBottom ? (bleedUp + concaveBulge) : std::min(marginEdge, bleedUp);
     if (const int gutter = barAutoHideEdgeGutter(cfg); gutter > 0) {
       if (isBottom) {
@@ -896,7 +950,7 @@ namespace {
     return {
         .x = x,
         .y = y,
-        .width = surfaceWidth - x - std::min(marginEnds, bleedRight) - insetR,
+        .width = surfaceWidth - x - std::min(marginEnd, bleedRight) - insetR,
         .height = barThickness,
     };
   }
@@ -1044,20 +1098,23 @@ namespace {
   std::vector<InputRect> islandRegions(const BarInstance& instance) {
     std::vector<InputRect> regions;
     for (const auto* bg : instance.islandBackgrounds) {
-      if (bg == nullptr || !bg->visible()) continue;
+      if (bg == nullptr || !bg->visible())
+        continue;
       float x = 0, y = 0;
       Node::absolutePosition(bg, x, y);
       auto strips = Surface::tessellateRoundedRect(
           static_cast<int>(std::lround(x)), static_cast<int>(std::lround(y)),
           static_cast<int>(std::lround(bg->width())), static_cast<int>(std::lround(bg->height())),
-          std::min(static_cast<float>(instance.barConfig.radius), std::min(bg->width(), bg->height()) * 0.5F));
+          std::min(static_cast<float>(instance.barConfig.radius), std::min(bg->width(), bg->height()) * 0.5F)
+      );
       regions.insert(regions.end(), strips.begin(), strips.end());
     }
     return regions;
   }
 
   void layoutBarSections(
-      BarInstance& instance, Renderer& renderer, float barAreaW, float barAreaH, float padding, bool isVertical
+      BarInstance& instance, Renderer& renderer, float barAreaW, float barAreaH, float padding, bool isVertical,
+      const ShellConfig::ShadowConfig& shadow
   ) {
     const float slotCross = isVertical ? barAreaW : barAreaH;
 
@@ -1243,7 +1300,8 @@ namespace {
       // The section owns the surface in this mode; capsule groups retain layout and hover only.
       for (auto* runs : {&instance.startCapsuleRuns, &instance.centerCapsuleRuns, &instance.endCapsuleRuns}) {
         for (auto& run : *runs) {
-          if (run.bg != nullptr) run.bg->setVisible(false);
+          if (run.bg != nullptr)
+            run.bg->setVisible(false);
           run.hasPaintedCapsuleBackground = false;
         }
       }
@@ -1309,8 +1367,10 @@ namespace {
 
     if (islands) {
       for (auto* section : {instance.startSection, instance.centerSection, instance.endSection}) {
-        if (isVertical) section->setPadding(6.0F, 0.0F, 6.0F, 0.0F);
-        else section->setPadding(0.0F, 6.0F, 0.0F, 6.0F);
+        if (isVertical)
+          section->setPadding(6.0F, 0.0F, 6.0F, 0.0F);
+        else
+          section->setPadding(0.0F, 6.0F, 0.0F, 6.0F);
       }
     } else {
       instance.centerSection->setPadding(0.0F);
@@ -1332,14 +1392,16 @@ namespace {
 
     const float barMidline = contentMainStart + contentMainSpan * 0.5F;
     const float centerContentMain = isVertical ? instance.centerSection->height() : instance.centerSection->width();
-    const float outerMain = std::max(isVertical ? instance.startSection->height() : instance.startSection->width(),
-                                     isVertical ? instance.endSection->height() : instance.endSection->width());
+    const float outerMain = std::max(
+        isVertical ? instance.startSection->height() : instance.startSection->width(),
+        isVertical ? instance.endSection->height() : instance.endSection->width()
+    );
     const float centerBudget = instance.barConfig.dynamicCenter
-        ? std::max(0.0F, contentMainSpan - 2.0F * (outerMain + 8.0F)) : contentMainSpan;
+        ? std::max(0.0F, contentMainSpan - 2.0F * (outerMain + 8.0F))
+        : contentMainSpan;
     const float targetMain = std::min(centerBudget, centerContentMain);
-    const bool contentAnimatesSize = std::ranges::any_of(instance.centerWidgets, [](const auto& widget) {
-      return widget->animatesBarSize();
-    });
+    const bool contentAnimatesSize =
+        std::ranges::any_of(instance.centerWidgets, [](const auto& widget) { return widget->animatesBarSize(); });
     if (!instance.centerExtentInitialized || !instance.barConfig.dynamicCenter || contentAnimatesSize) {
       instance.animations.cancelForOwner(instance.centerSlot);
       instance.centerExtent = targetMain;
@@ -1348,15 +1410,20 @@ namespace {
     } else if (std::abs(targetMain - instance.centerTargetExtent) > 0.5F) {
       instance.centerTargetExtent = targetMain;
       instance.animations.cancelForOwner(instance.centerSlot);
-      instance.animations.animate(instance.centerExtent, targetMain, Style::animNormal * 1.5F, Easing::EaseInOutCubic,
+      instance.animations.animate(
+          instance.centerExtent, targetMain, Style::animNormal * 1.5F, Easing::EaseInOutCubic,
           [inst = &instance](float value) {
             inst->centerExtent = value;
-            if (inst->surface != nullptr) inst->surface->requestLayout();
-          }, {}, instance.centerSlot);
-      if (instance.surface != nullptr) instance.surface->requestFrameTick();
+            if (inst->surface != nullptr)
+              inst->surface->requestLayout();
+          },
+          {}, instance.centerSlot
+      );
+      if (instance.surface != nullptr)
+        instance.surface->requestFrameTick();
     }
-    const float centerNaturalMain = instance.barConfig.dynamicCenter
-        ? std::min(centerBudget, instance.centerExtent) : centerContentMain;
+    const float centerNaturalMain =
+        instance.barConfig.dynamicCenter ? std::min(centerBudget, instance.centerExtent) : centerContentMain;
 
     float centerSlotStart;
     float centerSlotMain;
@@ -1428,7 +1495,8 @@ namespace {
     }
 
     for (auto* widgets : {&instance.startWidgets, &instance.centerWidgets, &instance.endWidgets}) {
-      for (auto& widget : *widgets) widget->finishBarLayout();
+      for (auto& widget : *widgets)
+        widget->finishBarLayout();
     }
 
     std::array<ScreenFrameSpan, 3> frameSpans{};
@@ -1436,7 +1504,8 @@ namespace {
     const std::array<Flex*, 3> sections{instance.startSection, instance.centerSection, instance.endSection};
     for (std::size_t i = 0; i < slots.size(); ++i) {
       auto* bg = instance.islandBackgrounds[i];
-      if (bg == nullptr) continue;
+      if (bg == nullptr)
+        continue;
       auto* slot = slots[i];
       auto* section = sections[i];
       const bool content = std::ranges::any_of(section->children(), [](const auto& child) {
@@ -1444,8 +1513,7 @@ namespace {
       });
       const float begin = std::max(0.0F, isVertical ? section->y() : section->x());
       const float slotMain = isVertical ? slot->height() : slot->width();
-      const float size = std::max(0.0F, std::min(slotMain - begin,
-          isVertical ? section->height() : section->width()));
+      const float size = std::max(0.0F, std::min(slotMain - begin, isVertical ? section->height() : section->width()));
       bg->setVisible(islands && content && size > 0.0F);
       const float paintedBegin = i == 1 ? 0.0F : begin;
       const float paintedSize = i == 1 ? slotMain : size;
@@ -1477,13 +1545,60 @@ namespace {
       }
       bg->setRadii(radii);
       if (bg->visible()) {
-        const float mainStart =
-            static_cast<float>(instance.barConfig.marginEnds) + (isVertical ? slot->y() : slot->x()) + paintedBegin;
+        const float inset = static_cast<float>(
+            instance.barConfig.screenWrap ? instance.barConfig.wrapStartInset : instance.barConfig.marginEnds
+        );
+        const float mainStart = inset + (isVertical ? slot->y() : slot->x()) + paintedBegin;
         frameSpans[i] = {mainStart, mainStart + paintedSize};
       }
     }
-    if (instance.screenWrap)
+    const auto& attached = instance.attachedPanelGeometry;
+    const bool joining = attached && attached->islandIndex >= 0;
+    if (joining) {
+      const auto index = static_cast<std::size_t>(attached->islandIndex);
+      const auto widgets = frameSpans[index];
+      frameSpans[index] = {std::min(widgets.begin, attached->islandSpan[0]),
+                           std::max(widgets.end, attached->islandSpan[1])};
+    }
+    instance.islandSpans = frameSpans;
+    if (instance.screenWrap) {
       instance.screenWrap->setIslands(frameSpans);
+      // Widening alone must not union a second bar-depth rectangle into the
+      // backdrop: smooth-union would push its bottom edge out into a bulge.
+      const bool hasToolBody = joining
+          && attached->islandDepth > static_cast<float>(instance.barConfig.thickness) + 0.001F;
+      instance.screenWrap->setAttachedTool(hasToolBody
+          ? std::optional<ScreenFrameSpan>{{attached->islandToolSpan[0], attached->islandToolSpan[1]}}
+          : std::nullopt, joining ? attached->islandDepth : 0,
+          joining ? static_cast<float>(instance.barConfig.thickness) + attached->islandSurface[isVertical ? 2 : 3] : 0,
+          joining && instance.barConfig.surfaceMode == "islands" ? attached->islandIndex : -1,
+          joining ? attached->backdrop : ScreenFrameBackdrop{});
+      // One shared backdrop owns both neck and tool; the native host paints controls only.
+      instance.screenWrap->setForegroundHole({});
+    } else {
+      if (joining && !instance.attachedIslandFrame) {
+        auto node = std::make_unique<ScreenFrameNode>();
+        node->setZIndex(-1);
+        node->setHitTestVisible(false);
+        instance.attachedIslandFrame = static_cast<ScreenFrameNode*>(instance.islandClip->addChild(std::move(node)));
+      }
+      if (instance.attachedIslandFrame) {
+        instance.attachedIslandFrame->setVisible(joining);
+        if (joining) {
+          auto style = frameForInstance(instance);
+          const auto spec = computeBarSurfaceSpec(instance.barConfig, shadow);
+          float clipX = 0, clipY = 0;
+          Node::absolutePosition(instance.islandClip, clipX, clipY);
+          style.offsetX = static_cast<float>(instance.barConfig.position == "right"
+              ? instance.outputLogicalWidth - spec.marginRight - instance.surface->width() : spec.marginLeft) + clipX;
+          style.offsetY = static_cast<float>(instance.barConfig.position == "bottom"
+              ? instance.outputLogicalHeight - spec.marginBottom - instance.surface->height() : spec.marginTop) + clipY;
+          instance.attachedIslandFrame->setSize(instance.islandClip->width(), instance.islandClip->height());
+          instance.attachedIslandFrame->setStyle(style);
+          for (auto* bg : instance.islandBackgrounds) if (bg) bg->setVisible(false);
+        }
+      }
+    }
 
     applyBarWidgetHitTargets(instance.startSection, instance.startSlot, isVertical);
     applyBarWidgetHitTargets(instance.centerSection, instance.centerSlot, isVertical);
@@ -1714,6 +1829,7 @@ bool Bar::initialize(const BarServices& services) {
   m_lastBars = m_config->config().bars;
   m_lastWidgets = m_config->config().widgets;
   m_lastShadow = m_config->config().shell.shadow;
+  m_lastScreenWrap = m_config->config().shell.screenWrap;
   m_lastPlugins = m_config->config().plugins;
   m_config->addReloadCallback(
       [this] {
@@ -1721,6 +1837,7 @@ bool Bar::initialize(const BarServices& services) {
         if (cfg.bars == m_lastBars
             && cfg.widgets == m_lastWidgets
             && cfg.shell.shadow == m_lastShadow
+            && cfg.shell.screenWrap == m_lastScreenWrap
             && cfg.plugins == m_lastPlugins) {
           return;
         }
@@ -1791,6 +1908,7 @@ void Bar::reload() {
   m_lastBars = m_config->config().bars;
   m_lastWidgets = m_config->config().widgets;
   m_lastShadow = m_config->config().shell.shadow;
+  m_lastScreenWrap = m_config->config().shell.screenWrap;
   m_lastPlugins = m_config->config().plugins;
   m_widgetFactory = std::make_unique<WidgetFactory>(services());
 
@@ -1832,8 +1950,10 @@ void Bar::reload() {
     if (outIt == outputs.end()) {
       return true;
     }
-    if (inst.screenWrap && inst.barIndex != it->second.second) return true;
-    auto resolved = resolveBarForOutput(*it->second.first, *outIt, m_config->config().bars);
+    if (inst.screenWrap && inst.barIndex != it->second.second)
+      return true;
+    auto resolved =
+        resolveBarForOutput(*it->second.first, *outIt, m_config->config().bars, m_config->config().shell.screenWrap);
     if (!resolved.enabled) {
       return true;
     }
@@ -1877,7 +1997,8 @@ void Bar::reload() {
       return destroy();
     }
 
-    auto resolved = resolveBarForOutput(*it->second.first, *outIt, m_config->config().bars);
+    auto resolved =
+        resolveBarForOutput(*it->second.first, *outIt, m_config->config().bars, m_config->config().shell.screenWrap);
     if (!resolved.enabled) {
       return destroy();
     }
@@ -2276,14 +2397,16 @@ void Bar::syncBarSurfaceChrome(BarInstance& instance) {
     syncBarExclusiveZone(instance);
     const bool visible = !m_overlayDisplaySuppressed && instance.hideOpacity > 0;
     instance.dynamicIsland->setVisible(visible);
-    if (instance.screenWrap) instance.screenWrap->setOpacity(visible ? 1.0F : 0.0F);
+    if (instance.screenWrap)
+      instance.screenWrap->setOpacity(visible ? 1.0F : 0.0F);
     return;
   }
   syncBarExclusiveZone(instance);
   if (instance.screenWrap)
     instance.screenWrap->setOpacity(m_overlayDisplaySuppressed ? 0.0F : instance.hideOpacity);
   applyBarCompositorBlur(instance);
-  if (instance.barConfig.surfaceMode == "islands") syncBarAutoHideInputRegion(instance);
+  if (instance.barConfig.surfaceMode == "islands")
+    syncBarAutoHideInputRegion(instance);
 }
 
 std::optional<LayerPopupParentContext> Bar::popupParentContextForSurface(wl_surface* surface) const noexcept {
@@ -2472,6 +2595,13 @@ void Bar::setAttachedPanelGeometry(
   }
 
   instance->attachedPanelGeometry = geometry;
+  // Drop borrowed snapshot textures before the panel releases their GPU storage;
+  // the next deferred bar layout may not have run when close completes.
+  if (!geometry) {
+    if (instance->screenWrap) instance->screenWrap->setAttachedTool(std::nullopt);
+    if (instance->attachedIslandFrame) instance->attachedIslandFrame->setVisible(false);
+  }
+  if (instance->surface) instance->surface->requestLayout();
   if (instance->dynamicIsland) {
     instance->dynamicIsland->setNativePanelGeometry(geometry);
     return;
@@ -2483,6 +2613,11 @@ void Bar::setAttachedPanelGeometry(
     );
     instance->surface->requestRedraw();
   }
+}
+
+ScreenFrameStyle Bar::frameForBar(wl_output* output, std::string_view name) const {
+  const auto* instance = instanceForBar(output, name);
+  return instance ? frameForInstance(*instance) : ScreenFrameStyle{};
 }
 
 void Bar::beginAttachedPopup(wl_surface* surface) {
@@ -2659,7 +2794,7 @@ void Bar::syncInstances() {
         return inst->outputName == output.name && inst->barIndex == barIdx;
       });
       if (!exists) {
-        auto resolved = resolveBarForOutput(bars[barIdx], output, bars);
+        auto resolved = resolveBarForOutput(bars[barIdx], output, bars, m_config->config().shell.screenWrap);
         if (!resolved.enabled) {
           continue;
         }
@@ -2708,12 +2843,17 @@ void Bar::createInstance(const WaylandOutput& output, std::size_t barIndex, cons
       .prewarmBlur = barConfig.compositorBlur,
   };
 
-  if (barConfig.surfaceMode == "dynamic") surfaceConfig = DynamicIsland::surfaceConfig(barConfig, output.effectiveLogicalWidth(), output.effectiveLogicalHeight());
+  if (barConfig.surfaceMode == "dynamic")
+    surfaceConfig =
+        DynamicIsland::surfaceConfig(barConfig, output.effectiveLogicalWidth(), output.effectiveLogicalHeight());
 
   if (barConfig.screenWrap) {
     ScreenWrap* sibling = nullptr;
     for (const auto& other : m_instances)
-      if (other->output == output.output && other->screenWrap) { sibling = other->screenWrap.get(); break; }
+      if (other->output == output.output && other->screenWrap) {
+        sibling = other->screenWrap.get();
+        break;
+      }
     instance->screenWrap = std::make_unique<ScreenWrap>(
         m_platform->wayland(), m_renderContext, output.output, barConfig, output.effectiveLogicalWidth(),
         output.effectiveLogicalHeight(), sibling, barIndex
@@ -2725,9 +2865,10 @@ void Bar::createInstance(const WaylandOutput& output, std::size_t barIndex, cons
 
   auto* inst = instance.get();
   if (barConfig.surfaceMode == "dynamic") {
-    instance->dynamicIsland = std::make_unique<DynamicIsland>(services(), barConfig, *instance->surface,
-        instance->animations, instance->screenWrap.get(), output.output,
-        output.effectiveLogicalWidth(), output.effectiveLogicalHeight());
+    instance->dynamicIsland = std::make_unique<DynamicIsland>(
+        services(), barConfig, *instance->surface, instance->animations, instance->screenWrap.get(), output.output,
+        output.effectiveLogicalWidth(), output.effectiveLogicalHeight()
+    );
     instance->surface->setAnimationManager(&instance->animations);
     instance->surface->setConfigureCallback([inst](std::uint32_t, std::uint32_t) { inst->surface->requestUpdate(); });
     instance->surface->setPrepareFrameCallback([this, inst](bool update, bool) {
@@ -2735,7 +2876,8 @@ void Bar::createInstance(const WaylandOutput& output, std::size_t barIndex, cons
       UiPhaseScope phase(UiPhase::Layout);
       inst->dynamicIsland->prepare(inst->surface->renderTarget().renderer(), update);
     });
-    if (!instance->surface->initialize(output.output)) return;
+    if (!instance->surface->initialize(output.output))
+      return;
     instance->surface->setInputRegion({});
     syncBarExclusiveZone(*instance);
     m_surfaceMap[instance->surface->wlSurface()] = instance.get();
@@ -2768,7 +2910,8 @@ void Bar::createInstance(const WaylandOutput& output, std::size_t barIndex, cons
 
 void Bar::destroyInstance(std::uint32_t outputName) {
   std::erase_if(m_instances, [outputName, this](const auto& inst) {
-    if (inst->outputName != outputName) return false;
+    if (inst->outputName != outputName)
+      return false;
     if (inst->surface != nullptr) {
       m_surfaceMap.erase(inst->surface->wlSurface());
     }
@@ -2890,7 +3033,6 @@ void Bar::populateWidgets(BarInstance& instance) {
   createWidgets(instance.barConfig.startWidgets, instance.startWidgets);
   createWidgets(instance.barConfig.centerWidgets, instance.centerWidgets);
   createWidgets(instance.barConfig.endWidgets, instance.endWidgets);
-
 }
 
 void Bar::attachWidgetsToSections(BarInstance& instance) {
@@ -3445,7 +3587,8 @@ void Bar::applyBackgroundPalette(BarInstance& instance) {
   auto style = instance.bg->style();
   const bool islands = instance.barConfig.surfaceMode == "islands";
   for (auto* bg : instance.islandBackgrounds) {
-    if (bg == nullptr) continue;
+    if (bg == nullptr)
+      continue;
     bg->setFill(
         colorForRole(ColorRole::Surface, instance.barConfig.screenWrap ? 0.0F : instance.barConfig.backgroundOpacity)
     );
@@ -3860,7 +4003,7 @@ void Bar::buildScene(BarInstance& instance, std::uint32_t width, std::uint32_t h
   }
   applyBarShadowStyle(instance, shadowConfig, w, h);
 
-  layoutBarSections(instance, renderer, barAreaW, barAreaH, padding, isVertical);
+  layoutBarSections(instance, renderer, barAreaW, barAreaH, padding, isVertical, m_config->config().shell.shadow);
 
   float contentLeft = barAreaX;
   float contentTop = barAreaY;
@@ -3922,11 +4065,12 @@ void Bar::updateWidgets(BarInstance& instance) {
   updateSection(instance.startWidgets);
   updateSection(instance.centerWidgets);
   updateSection(instance.endWidgets);
-  layoutBarSections(instance, renderer, barAreaW, barAreaH, padding, isVertical);
+  layoutBarSections(instance, renderer, barAreaW, barAreaH, padding, isVertical, m_config->config().shell.shadow);
   if (instance.barConfig.deadZone.clickThrough || instance.barConfig.surfaceMode == "islands") {
     syncBarAutoHideInputRegion(instance);
   }
-  if (instance.barConfig.surfaceMode == "islands") applyBarCompositorBlur(instance);
+  if (instance.barConfig.surfaceMode == "islands")
+    applyBarCompositorBlur(instance);
 }
 
 void Bar::prepareFrame(BarInstance& instance, bool needsUpdate, bool needsLayout) {
@@ -3968,13 +4112,14 @@ void Bar::prepareFrame(BarInstance& instance, bool needsUpdate, bool needsLayout
     for (auto& widget : instance.endWidgets) {
       widget->layout(renderer, barAreaW, barAreaH);
     }
-    layoutBarSections(instance, renderer, barAreaW, barAreaH, padding, isVertical);
+    layoutBarSections(instance, renderer, barAreaW, barAreaH, padding, isVertical, m_config->config().shell.shadow);
   }
   // Click-through input follows the widgets, which move whenever a widget resizes.
   if (instance.barConfig.deadZone.clickThrough || instance.barConfig.surfaceMode == "islands") {
     syncBarAutoHideInputRegion(instance);
   }
-  if (instance.barConfig.surfaceMode == "islands") applyBarCompositorBlur(instance);
+  if (instance.barConfig.surfaceMode == "islands")
+    applyBarCompositorBlur(instance);
 }
 
 bool Bar::onPointerEvent(const PointerEvent& event) {
@@ -3997,10 +4142,13 @@ bool Bar::onPointerEvent(const PointerEvent& event) {
     };
     return routeGroup(instance.startWidgets) || routeGroup(instance.centerWidgets) || routeGroup(instance.endWidgets);
   };
-  if (targetInstance == nullptr && event.type == PointerEvent::Type::Leave) targetInstance = m_hoveredInstance;
+  if (targetInstance == nullptr && event.type == PointerEvent::Type::Leave)
+    targetInstance = m_hoveredInstance;
   if (targetInstance != nullptr && targetInstance->dynamicIsland) {
-    if (event.type == PointerEvent::Type::Enter) m_hoveredInstance = targetInstance;
-    if (event.type == PointerEvent::Type::Leave) m_hoveredInstance = nullptr;
+    if (event.type == PointerEvent::Type::Enter)
+      m_hoveredInstance = targetInstance;
+    if (event.type == PointerEvent::Type::Leave)
+      m_hoveredInstance = nullptr;
     return targetInstance->dynamicIsland->onPointerEvent(event);
   }
   if (targetInstance != nullptr) {
@@ -4618,20 +4766,26 @@ void Bar::registerIpc(IpcService& ipc) {
   });
 
   ipc.bind(nythera::cli::msg::islandActivity, [this](const std::string& args) -> std::string {
-    std::istringstream input(args); std::string command, value, extra; input >> command >> value;
-    if (input >> extra) return "error: expected action and optional value\n";
-    for (const auto& instance : m_instances) if (instance->dynamicIsland && instance->output == m_platform->preferredInteractiveOutput())
-      return instance->dynamicIsland->activityCommand(command,value) ? "ok\n" : "error: invalid action/value or event disabled\n";
+    std::istringstream input(args);
+    std::string command, value, extra;
+    input >> command >> value;
+    if (input >> extra)
+      return "error: expected action and optional value\n";
+    for (const auto& instance : m_instances)
+      if (instance->dynamicIsland && instance->output == m_platform->preferredInteractiveOutput())
+        return instance->dynamicIsland->activityCommand(command, value)
+            ? "ok\n"
+            : "error: invalid action/value or event disabled\n";
     return "error: no Dynamic Island on focused output\n";
   });
-  ipc.bind(nythera::cli::msg::barIslandToggle, [this](const std::string& args) { return toggleDynamicIslandIpc(args); });
+  ipc.bind(nythera::cli::msg::barIslandToggle, [this](const std::string& args) {
+    return toggleDynamicIslandIpc(args);
+  });
   ipc.bind(nythera::cli::msg::barShow, [this](const std::string& args) -> std::string { return showBarIpc(args); });
 
   ipc.bind(nythera::cli::msg::barHide, [this](const std::string& args) -> std::string { return hideBarIpc(args); });
 
-  ipc.bind(nythera::cli::msg::barToggle, [this](const std::string& args) -> std::string {
-    return toggleBarIpc(args);
-  });
+  ipc.bind(nythera::cli::msg::barToggle, [this](const std::string& args) -> std::string { return toggleBarIpc(args); });
 
   ipc.bind(nythera::cli::msg::barReserveToggle, [this](const std::string& args) -> std::string {
     return toggleBarReserveSpaceIpc(args);
@@ -4647,7 +4801,8 @@ void Bar::registerIpc(IpcService& ipc) {
 }
 
 bool Bar::routeDynamicFeedback(const OsdContent& content) {
-  if (!m_platform || m_overlayDisplaySuppressed) return false;
+  if (!m_platform || m_overlayDisplaySuppressed)
+    return false;
   wl_output* output = m_platform->preferredInteractiveOutput();
   bool handled = false;
   for (const auto& instance : m_instances) {
@@ -4659,39 +4814,55 @@ bool Bar::routeDynamicFeedback(const OsdContent& content) {
 
 std::string Bar::toggleDynamicIslandIpc(std::string_view args) {
   std::optional<std::string> barName, selector;
-  if (const auto error = parseBarVisibilityIpcArgs("bar-island-toggle", args, barName, selector)) return *error;
+  if (const auto error = parseBarVisibilityIpcArgs("bar-island-toggle", args, barName, selector))
+    return *error;
   std::vector<BarInstance*> targets;
-  if (const auto error = collectBarIpcInstances(barName, selector, targets)) return *error;
+  if (const auto error = collectBarIpcInstances(barName, selector, targets))
+    return *error;
   bool found = false;
-  for (auto* instance : targets) if (instance->dynamicIsland) {
-    instance->dynamicIsland->toggleExpanded(); found = true;
-  }
+  for (auto* instance : targets)
+    if (instance->dynamicIsland) {
+      instance->dynamicIsland->toggleExpanded();
+      found = true;
+    }
   return found ? "ok\n" : "error: selected bar is not in Dynamic Island mode\n";
 }
 
 bool Bar::routeDynamicNotification(const Notification& n, NotificationEvent event) {
-  if (!m_platform) return false;
+  if (!m_platform)
+    return false;
   bool handled = false;
   for (const auto& instance : m_instances) {
-    if (!instance->dynamicIsland) continue;
-    if (event == NotificationEvent::Closed || (!m_overlayDisplaySuppressed && !instance->ipcLayoutReleased && (event == NotificationEvent::Updated || (!handled && instance->output == m_platform->preferredInteractiveOutput()))))
-      handled = instance->dynamicIsland->notification(n,event) || handled;
+    if (!instance->dynamicIsland)
+      continue;
+    if (event == NotificationEvent::Closed
+        || (!m_overlayDisplaySuppressed
+            && !instance->ipcLayoutReleased
+            && (event == NotificationEvent::Updated
+                || (!handled && instance->output == m_platform->preferredInteractiveOutput()))))
+      handled = instance->dynamicIsland->notification(n, event) || handled;
   }
   return handled;
 }
 
 void Bar::setIslandAlertCallback(std::function<void()> sound) {
-  m_activities.alert = [this,sound=std::move(sound)](bool timerFired, bool alarmFired) {
+  m_activities.alert = [this, sound = std::move(sound)](bool timerFired, bool alarmFired) {
     bool timerVisible = false, alarmVisible = false;
     for (const auto& instance : m_instances) {
-      if (!instance->dynamicIsland || instance->ipcLayoutReleased || m_overlayDisplaySuppressed) continue;
+      if (!instance->dynamicIsland || instance->ipcLayoutReleased || m_overlayDisplaySuppressed)
+        continue;
       timerVisible |= instance->output == m_activities.timerTarget && instance->barConfig.dynamicTimers;
       alarmVisible |= instance->output == m_activities.alarmTarget && instance->barConfig.dynamicAlarms;
     }
     if (m_notifications) {
-      if (timerFired && !timerVisible) m_notifications->addInternal("Cyberpunk Shell", "Timer finished", "Your countdown has finished", Urgency::Normal, 0);
-      if (alarmFired && !alarmVisible) m_notifications->addInternal("Cyberpunk Shell", "Alarm", "Your scheduled alarm is due", Urgency::Normal, 0);
+      if (timerFired && !timerVisible)
+        m_notifications->addInternal(
+            "Cyberpunk Shell", "Timer finished", "Your countdown has finished", Urgency::Normal, 0
+        );
+      if (alarmFired && !alarmVisible)
+        m_notifications->addInternal("Cyberpunk Shell", "Alarm", "Your scheduled alarm is due", Urgency::Normal, 0);
     }
-    if (sound) sound();
+    if (sound)
+      sound();
   };
 }

@@ -361,6 +361,7 @@ void RenderContext::renderNode(
   case NodeType::Rect: {
     const auto* rect = static_cast<const RectNode*>(node);
     auto style = rect->style();
+    style.backdrop.opacity *= effectiveOpacity;
     style.fill.a *= effectiveOpacity;
     style.border.a *= effectiveOpacity;
     for (auto& stop : style.gradientStops) {
@@ -460,6 +461,7 @@ void RenderContext::renderNode(
   }
   case NodeType::ScreenFrame: {
     auto style = static_cast<const ScreenFrameNode*>(node)->style();
+    style.backdrop.opacity *= effectiveOpacity;
     style.fill.a *= effectiveOpacity;
     style.border.a *= effectiveOpacity;
     m_backend->drawScreenFrame(sw, sh, node->width(), node->height(), style, worldTransform);

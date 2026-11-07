@@ -31,6 +31,10 @@ void Box::setFill(const ColorSpec& color) {
 }
 
 void Box::setFill(const Color& color) { setFill(fixedColorSpec(color)); }
+void Box::setBackdrop(const ScreenFrameBackdrop& backdrop) {
+  m_style.backdrop = backdrop;
+  syncStyle();
+}
 
 void Box::setBorder(const ColorSpec& color, float width) {
   m_border = color;

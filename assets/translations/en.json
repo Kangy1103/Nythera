@@ -1481,6 +1481,7 @@
         "profile": "Profile",
         "providers": "Providers",
         "screen-corners": "Screen Corners",
+        "screen-wrap": "Screen Wrap",
         "screen-time": "Screen Time",
         "screenshot": "Screenshot",
         "screenshot-annotation": "Annotation",
@@ -2051,7 +2052,7 @@
         },
         "screen-wrap": {
           "label": "Screen Wrap",
-          "description": "Connect the bar sections with a rounded frame around the screen. Works with Full Bar and Islands; attaches the bar to its chosen edge while enabled. Use one wrapped bar per monitor."
+          "description": "Wrap every enabled bar on the display in one shared rounded frame. Supports Full Bar, Islands and Dynamic Island, with per-monitor overrides."
         },
         "wrap-clearance": {
           "label": "Window Clearance",
@@ -3045,6 +3046,14 @@
         "shadow": {
           "description": "Cast the global surface shadow from panel surfaces"
         },
+        "snapshot-blur": {
+          "label": "Snapshot Blur",
+          "description": "Capture the desktop once when a panel opens and keep a blurred, frozen backdrop until it closes. Off uses the normal panel backdrop."
+        },
+        "snapshot-blur-strength": {
+          "label": "Blur Strength",
+          "description": "Blur applied to the captured backdrop; 0 keeps it sharp. Changes reblur the same image without taking another capture."
+        },
         "transparency-mode": {
           "description": "Panel glass style, including floating and Dynamic Island panel opacity and card translucency",
           "label": "Transparency"
@@ -3987,6 +3996,10 @@
             "description": "Hide one or all bars and release their layout gaps",
             "label": "Hide bar"
           },
+          "bar-island-toggle": {
+            "description": "Expand or collapse the Dynamic Island native tool panel.",
+            "label": "Toggle Dynamic Island"
+          },
           "bar-layer-set": {
             "description": "Set one or all bar layers",
             "label": "Set bar layer"
@@ -4071,6 +4084,14 @@
             "description": "Set palette source and selection in settings.toml (builtin name, wallpaper generator scheme, community id, or custom scheme folder name)",
             "label": "Set color scheme"
           },
+          "config-get": {
+            "description": "Read a shell configuration value by its path.",
+            "label": "Read configuration value"
+          },
+          "config-set": {
+            "description": "Change a shell configuration value by its path.",
+            "label": "Set configuration value"
+          },
           "config-reload": {
             "description": "Reload the config file",
             "label": "Reload config"
@@ -4130,6 +4151,10 @@
           "greeter-sync": {
             "description": "Sync wallpaper, colors, and monitor layout to Nythera Greeter",
             "label": "Sync greeter appearance"
+          },
+          "island-activity": {
+            "description": "Start, pause, resume or cancel the shared session timer or alarm.",
+            "label": "Control timer or alarm"
           },
           "keyboard-backlight-down": {
             "description": "Decrease all keyboard backlights by 5%",
@@ -4268,11 +4293,11 @@
             "label": "Close panel"
           },
           "panel-open": {
-            "description": "Open a panel by id, optionally with context (e.g. launcher /emo, control-center audio)",
+            "description": "Open Control Center, Launcher or another panel. Enter control-center in the argument field for Control Center; optionally add a tab, such as control-center audio.",
             "label": "Open panel"
           },
           "panel-toggle": {
-            "description": "Toggle a panel by id, optionally with context (e.g. launcher /emo, control-center audio)",
+            "description": "Show or hide Control Center, Launcher or another panel. Enter control-center in the argument field for Control Center.",
             "label": "Toggle panel"
           },
           "plugin": {

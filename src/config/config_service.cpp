@@ -1018,34 +1018,42 @@ BarConfig ConfigService::resolveForOutput(const BarConfig& base, const WaylandOu
       resolved.surfaceMode = *ovr.surfaceMode;
     if (ovr.dynamicCenter)
       resolved.dynamicCenter = *ovr.dynamicCenter;
-    if (ovr.screenWrap)
-      resolved.screenWrap = *ovr.screenWrap;
-    if (ovr.wrapWidth)
-      resolved.wrapWidth = *ovr.wrapWidth;
-    if (ovr.wrapClearance)
-      resolved.wrapClearance = *ovr.wrapClearance;
-    if (ovr.wrapRadius)
-      resolved.wrapRadius = *ovr.wrapRadius;
-    if (ovr.wrapJoinDistance)
-      resolved.wrapJoinDistance = *ovr.wrapJoinDistance;
-    if (ovr.dynamicNotifications) resolved.dynamicNotifications = *ovr.dynamicNotifications;
-    if (ovr.dynamicTimers) resolved.dynamicTimers = *ovr.dynamicTimers;
-    if (ovr.dynamicAlarms) resolved.dynamicAlarms = *ovr.dynamicAlarms;
-    if (ovr.dynamicCalls) resolved.dynamicCalls = *ovr.dynamicCalls;
-    if (ovr.dynamicTimerSeconds) resolved.dynamicTimerSeconds = *ovr.dynamicTimerSeconds;
-    if (ovr.dynamicAlarmTime) resolved.dynamicAlarmTime = *ovr.dynamicAlarmTime;
-    if (ovr.dynamicSnoozeSeconds) resolved.dynamicSnoozeSeconds = *ovr.dynamicSnoozeSeconds;
-    if (ovr.dynamicActivityIndicators) resolved.dynamicActivityIndicators = *ovr.dynamicActivityIndicators;
-    if (ovr.dynamicPrivacy) resolved.dynamicPrivacy = *ovr.dynamicPrivacy;
-    if (ovr.dynamicDevices) resolved.dynamicDevices = *ovr.dynamicDevices;
-    if (ovr.dynamicVisualizer) resolved.dynamicVisualizer = *ovr.dynamicVisualizer;
-    if (ovr.dynamicMedia) resolved.dynamicMedia = *ovr.dynamicMedia;
-    if (ovr.dynamicVolume) resolved.dynamicVolume = *ovr.dynamicVolume;
-    if (ovr.dynamicBrightness) resolved.dynamicBrightness = *ovr.dynamicBrightness;
-    if (ovr.dynamicHoverExpand) resolved.dynamicHoverExpand = *ovr.dynamicHoverExpand;
-    if (ovr.dynamicDwellMs) resolved.dynamicDwellMs = *ovr.dynamicDwellMs;
-    if (ovr.dynamicWidth) resolved.dynamicWidth = *ovr.dynamicWidth;
-    if (ovr.dynamicClockFormat) resolved.dynamicClockFormat = *ovr.dynamicClockFormat;
+    if (ovr.dynamicNotifications)
+      resolved.dynamicNotifications = *ovr.dynamicNotifications;
+    if (ovr.dynamicTimers)
+      resolved.dynamicTimers = *ovr.dynamicTimers;
+    if (ovr.dynamicAlarms)
+      resolved.dynamicAlarms = *ovr.dynamicAlarms;
+    if (ovr.dynamicCalls)
+      resolved.dynamicCalls = *ovr.dynamicCalls;
+    if (ovr.dynamicTimerSeconds)
+      resolved.dynamicTimerSeconds = *ovr.dynamicTimerSeconds;
+    if (ovr.dynamicAlarmTime)
+      resolved.dynamicAlarmTime = *ovr.dynamicAlarmTime;
+    if (ovr.dynamicSnoozeSeconds)
+      resolved.dynamicSnoozeSeconds = *ovr.dynamicSnoozeSeconds;
+    if (ovr.dynamicActivityIndicators)
+      resolved.dynamicActivityIndicators = *ovr.dynamicActivityIndicators;
+    if (ovr.dynamicPrivacy)
+      resolved.dynamicPrivacy = *ovr.dynamicPrivacy;
+    if (ovr.dynamicDevices)
+      resolved.dynamicDevices = *ovr.dynamicDevices;
+    if (ovr.dynamicVisualizer)
+      resolved.dynamicVisualizer = *ovr.dynamicVisualizer;
+    if (ovr.dynamicMedia)
+      resolved.dynamicMedia = *ovr.dynamicMedia;
+    if (ovr.dynamicVolume)
+      resolved.dynamicVolume = *ovr.dynamicVolume;
+    if (ovr.dynamicBrightness)
+      resolved.dynamicBrightness = *ovr.dynamicBrightness;
+    if (ovr.dynamicHoverExpand)
+      resolved.dynamicHoverExpand = *ovr.dynamicHoverExpand;
+    if (ovr.dynamicDwellMs)
+      resolved.dynamicDwellMs = *ovr.dynamicDwellMs;
+    if (ovr.dynamicWidth)
+      resolved.dynamicWidth = *ovr.dynamicWidth;
+    if (ovr.dynamicClockFormat)
+      resolved.dynamicClockFormat = *ovr.dynamicClockFormat;
     if (ovr.compositorBlur)
       resolved.compositorBlur = *ovr.compositorBlur;
     if (ovr.border)
@@ -1148,7 +1156,8 @@ BarConfig ConfigService::resolveForOutput(const BarConfig& base, const WaylandOu
     break; // first match wins
   }
 
-  resolved.backgroundOpacity = barBackgroundOpacityForTransparencyMode(resolved.transparencyMode, resolved.backgroundOpacity);
+  resolved.backgroundOpacity =
+      barBackgroundOpacityForTransparencyMode(resolved.transparencyMode, resolved.backgroundOpacity);
   return resolved;
 }
 

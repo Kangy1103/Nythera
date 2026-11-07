@@ -1,10 +1,10 @@
 #pragma once
 
 #include "core/timer_manager.h"
-#include "shell/bar/island_activities.h"
 #include "ipc/ipc_invocation_context.h"
 #include "shell/bar/bar_instance.h"
 #include "shell/bar/bar_services.h"
+#include "shell/bar/island_activities.h"
 #include "shell/bar/widget_action_dispatcher.h"
 #include "shell/bar/widget_factory.h"
 #include "ui/dialogs/layer_popup_host.h"
@@ -123,6 +123,7 @@ public:
   // bars that have finished sliding into their resting position.
   [[nodiscard]] bool isAttachedPanelBarSettled(wl_output* output, std::string_view barName) const noexcept;
   void revealAutoHideForAttachedPanel(wl_output* output, std::string_view barName);
+  [[nodiscard]] ScreenFrameStyle frameForBar(wl_output*, std::string_view) const;
   void beginAttachedPopup(wl_surface* surface);
   void endAttachedPopup(wl_surface* surface);
 
@@ -222,6 +223,7 @@ private:
   std::vector<BarConfig> m_lastBars;
   std::unordered_map<std::string, WidgetConfig> m_lastWidgets;
   ShellConfig::ShadowConfig m_lastShadow;
+  ScreenWrapConfig m_lastScreenWrap;
   // Plugin enable/disable changes which widget types resolve, so a plugins-only
   // config change must also rebuild widgets.
   PluginsConfig m_lastPlugins;

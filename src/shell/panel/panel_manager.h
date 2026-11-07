@@ -24,6 +24,7 @@ class CompositorPlatform;
 class ContextMenuPopup;
 class SelectDropdownPopup;
 class Box;
+class PanelSnapshot;
 class ScreenFrameNode;
 class IpcService;
 class FocusGrab;
@@ -97,6 +98,12 @@ public:
   void setPanelOpenedCallback(std::function<void()> callback);
   void setAttachedPanelAvailabilityCallback(std::function<bool(wl_output*, std::string_view)> callback);
   void setBarConfigProvider(std::function<std::optional<BarConfig>(wl_output*, std::string_view)> provider);
+  void setBarFrameProvider(std::function<ScreenFrameStyle(wl_output*, std::string_view)> provider) {
+    m_barFrameProvider = std::move(provider);
+    m_persistentHost.setBarFrameProvider([this](wl_output* output) {
+      return m_barFrameProvider(output, "");
+    });
+  }
   void setAttachedPanelBarSettledCallback(std::function<bool(wl_output*, std::string_view)> callback);
   // Called when an auto-hide bar finishes revealing for an attached panel open.
   void onAttachedBarRevealSettled(wl_output* output, std::string_view barName);
@@ -311,23 +318,35 @@ private:
   float m_attachedBackgroundOpacity = 1.0F;
   bool m_attachedContactShadow = false;
   float m_attachedRevealProgress = 1.0F;
+  float m_attachedIslandExpansionProgress = 0.0F;
   float m_detachedRevealProgress = 1.0F;
   AttachedRevealDirection m_attachedRevealDirection = AttachedRevealDirection::Down;
   AttachedRevealDirection m_detachedRevealDirection = AttachedRevealDirection::Down;
   Timer m_keyboardRelaxTimer;
   Timer m_captureCloseTimer;
+  void capturePanelBackdrop();
+  void syncPanelBackdrop();
+  std::unique_ptr<PanelSnapshot> m_panelSnapshot;
+  InputRect m_panelScreenRect{};
+  float m_snapshotOriginX = 0, m_snapshotOriginY = 0;
+  bool m_detachedOpenAnimationPending = false;
   wl_callback* m_captureCloseFrame = nullptr;
   std::function<void()> m_afterCaptureClose;
   std::string m_attachedBarPosition; // "top" / "bottom" / "left" / "right" while attached, empty otherwise
   std::string m_sourceBarName;       // name of the bar that opened the current panel
   std::optional<AttachedPanelGeometry> m_attachedPanelGeometry;
   bool m_islandPresentation = false;
+  bool m_regularIslandAttachment = false;
+  bool m_stagedIslandReveal = false;
+  int m_attachedIslandIndex = -1;
+  ScreenFrameSpan m_attachedCompactSpan{};
   bool m_islandHoverOpen = false;
   bool m_islandPinned = false;
   float m_islandCompactExtent = 112.0F;
   float m_islandBarOpacity = 1.0F;
   BarConfig m_islandBar;
   std::function<ScreenFrameStyle()> m_islandFrameProvider;
+  std::function<ScreenFrameStyle(wl_output*, std::string_view)> m_barFrameProvider;
   float m_islandSurfaceX = 0, m_islandSurfaceY = 0;
   int m_islandOutputWidth = 0, m_islandOutputHeight = 0;
   bool m_pointerInside = false;

@@ -56,4 +56,6 @@ private:
   GLint m_shadowExclusionLogicalInsetLocation = -1;
   GLint m_shadowExclusionRadiiLocation = -1;
   GLint m_transformLocation = -1;
+  GLint m_backdropLocation = -1, m_backdropSourceLocation = -1;
+  GLint m_backdropOpacityLocation = -1, m_hasBackdropLocation = -1;
 };

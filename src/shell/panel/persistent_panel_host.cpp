@@ -7,6 +7,7 @@
 #include "render/render_context.h"
 #include "render/scene/node.h"
 #include "shell/panel/panel.h"
+#include "shell/panel/panel_snapshot.h"
 #include "shell/panel/panel_surface_style.h"
 #include "shell/screen_position.h"
 #include "shell/surface/shadow.h"
@@ -217,7 +218,7 @@ void PersistentPanelHost::open(const std::string& id, wl_output* output, std::st
   instance->fillHeight = fillHeight;
 
   auto surfaceConfig = LayerSurfaceConfig{
-      .nameSpace = "nythera-panel",
+      .nameSpace = m_config->config().shell.panel.snapshotBlur ? "nythera-snapshot-panel" : "nythera-panel",
       .layer = panel->layer(),
       .anchor = anchor,
       .width = requestedWidth,
@@ -251,6 +252,30 @@ void PersistentPanelHost::open(const std::string& id, wl_output* output, std::st
       raw->panel->onFrameTick(deltaMs);
     }
   });
+
+  const auto origin = [](std::uint32_t anchors, std::uint32_t start, std::uint32_t end,
+                         int first, int last, int extent, int size) {
+    if ((anchors & start) != 0) return first;
+    if ((anchors & end) != 0) return extent - size - last;
+    return (extent - size) / 2;
+  };
+  instance->screenX = static_cast<float>(origin(anchor, LayerShellAnchor::Left, LayerShellAnchor::Right,
+      marginLeft, marginRight, outputWidth, static_cast<int>(fallbackWidth)));
+  instance->screenY = static_cast<float>(origin(anchor, LayerShellAnchor::Top, LayerShellAnchor::Bottom,
+      marginTop, marginBottom, outputHeight, static_cast<int>(fallbackHeight)));
+  if (m_config->config().shell.panel.snapshotBlur) {
+    const auto frame = m_barFrameProvider ? m_barFrameProvider(output) : ScreenFrameStyle{};
+    const auto region = panelSnapshotRegion(
+        {static_cast<int>(instance->screenX) + instance->insetX,
+         static_cast<int>(instance->screenY) + instance->insetY, static_cast<int>(panelWidth), static_cast<int>(panelHeight)},
+        outputWidth, outputHeight, frame.contour);
+    instance->snapshot = std::make_unique<PanelSnapshot>(m_platform->wayland(), *m_renderContext);
+    instance->snapshot->capture(output, region, m_config->config().shell.panel.snapshotBlurStrength, [this, raw] {
+      syncSnapshot(*raw);
+      if (raw->sceneRoot) raw->sceneRoot->setOpacity(1.0F);
+      if (raw->surface) raw->surface->requestRedraw();
+    });
+  }
 
   if (!instance->surface->initialize(output)) {
     kLog.warn("failed to initialize surface for \"{}\"", id);
@@ -297,6 +322,7 @@ void PersistentPanelHost::destroyInstance(std::vector<std::unique_ptr<Instance>>
   instance->bgNode = nullptr;
   instance->shadowNode = nullptr;
   instance->sceneRoot.reset();
+  instance->snapshot.reset();
   instance->surface.reset();
   if (m_platform != nullptr) {
     m_platform->stopKeyRepeat();
@@ -325,6 +351,7 @@ void PersistentPanelHost::buildScene(Instance& instance, std::uint32_t width, st
   instance.sceneRoot = ui::node({});
   instance.sceneRoot->setAnimationManager(&instance.animations);
   instance.sceneRoot->setSize(static_cast<float>(width), static_cast<float>(height));
+  instance.sceneRoot->setOpacity(instance.snapshot && instance.snapshot->pending() ? 0.0F : 1.0F);
 
   const auto& shadowConfig = m_config->config().shell.shadow;
   if (hasDecoration && shell::surface_shadow::enabled(true, shadowConfig)) {
@@ -383,6 +410,14 @@ void PersistentPanelHost::buildScene(Instance& instance, std::uint32_t width, st
   }
 }
 
+void PersistentPanelHost::syncSnapshot(Instance& instance) {
+  if (!instance.bgNode) return;
+  auto backdrop = instance.snapshot ? instance.snapshot->backdrop() : ScreenFrameBackdrop{};
+  backdrop.source[0] -= instance.screenX + instance.bgNode->x();
+  backdrop.source[1] -= instance.screenY + instance.bgNode->y();
+  instance.bgNode->setBackdrop(backdrop);
+}
+
 void PersistentPanelHost::layoutScene(Instance& instance, std::uint32_t width, std::uint32_t height) {
   if (instance.sceneRoot == nullptr || instance.panel == nullptr) {
     return;
@@ -435,6 +470,7 @@ void PersistentPanelHost::layoutScene(Instance& instance, std::uint32_t width, s
   if (instance.bgNode != nullptr) {
     instance.bgNode->setPosition(panelX, panelY);
     instance.bgNode->setSize(panelW, panelH);
+    syncSnapshot(instance);
   }
 
   const float padding = instance.panel->hasDecoration() ? instance.panel->contentScale() * Style::panelPadding : 0.0F;
@@ -615,6 +651,14 @@ void PersistentPanelHost::onConfigReloaded() {
   for (auto& instance : m_instances) {
     if (instance->panel == nullptr) {
       continue;
+    }
+    if (instance->snapshot) {
+      if (!m_config->config().shell.panel.snapshotBlur) {
+        if (instance->bgNode) instance->bgNode->setBackdrop({});
+        instance->snapshot.reset();
+        if (instance->sceneRoot) instance->sceneRoot->setOpacity(1.0F);
+      } else instance->snapshot->setStrength(m_config->config().shell.panel.snapshotBlurStrength);
+      syncSnapshot(*instance);
     }
     const float backgroundOpacity = shell::panel_surface::backgroundOpacity(m_config);
     instance->panel->setContentScale(shell::panel_surface::contentScale(m_config));

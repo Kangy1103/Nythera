@@ -27,6 +27,11 @@ uniform vec4 u_frame; // width, height, rail, opening radius
 uniform vec3 u_shape; // island depth, island radius, junction smoothing
 uniform vec2 u_offset;
 uniform vec4 u_exclusion;
+uniform sampler2D u_backdrop;
+uniform vec4 u_backdrop_source;
+uniform vec4 u_backdrop_bounds;
+uniform int u_has_backdrop;
+uniform float u_backdrop_opacity;
 uniform int u_edge;
 uniform vec2 u_islands[3];
 uniform vec4 u_fill;
@@ -38,6 +43,7 @@ uniform vec4 u_band_meta[32]; // join, border width, third span
 uniform vec4 u_band_spans[32]; // first two spans
 uniform vec4 u_band_fill[32];
 uniform vec4 u_band_border[32];
+uniform vec4 u_band_neck[32]; // neck span, neck depth, compound enabled
 varying vec2 v_local;
 float roundedDistance(vec2 p, vec2 halfSize, float r) {
   r = min(r, min(halfSize.x, halfSize.y));
@@ -48,7 +54,7 @@ void main() {
   vec2 p = v_local + u_offset;
   if (u_exclusion.z > 0.0 && p.x >= u_exclusion.x && p.y >= u_exclusion.y
       && p.x < u_exclusion.x + u_exclusion.z && p.y < u_exclusion.y + u_exclusion.w) discard;
-  float d = -roundedDistance(p - u_frame.xy * 0.5, u_frame.xy * 0.5 - u_frame.z, u_frame.w);
+  float d = u_frame.z < 0.0 ? 1e6 : -roundedDistance(p - u_frame.xy * 0.5, u_frame.xy * 0.5 - u_frame.z, u_frame.w);
   float crossSize = (u_edge == 1 || u_edge == 3) ? u_frame.x : u_frame.y;
   vec2 uv = p;
   if (u_edge == 1) uv = vec2(p.y, u_frame.x - p.x);
@@ -74,12 +80,23 @@ void main() {
     if (shape.x == 1.0) buv = vec2(p.y, u_frame.x - p.x);
     else if (shape.x == 2.0) buv.y = u_frame.y - p.y;
     else if (shape.x == 3.0) buv = p.yx;
-    float outer = shape.y > 0.0 ? shape.y : -(side ? u_frame.x : u_frame.y);
+    float outer = shape.y < 0.0 ? -(side ? u_frame.x : u_frame.y) : shape.y;
     for (int j = 0; j < 3; ++j) {
       vec2 span = j == 0 ? u_band_spans[b].xy : j == 1 ? u_band_spans[b].zw : meta.zw;
       if (span.y <= span.x) continue;
       float bd = roundedDistance(buv - vec2((span.x + span.y) * 0.5, (shape.z + outer) * 0.5),
           vec2((span.y - span.x) * 0.5, (shape.z - outer) * 0.5), shape.w);
+      vec4 neck = u_band_neck[b];
+      if (neck.w > 0.0) {
+        float nd = roundedDistance(buv - vec2((neck.x + neck.y) * 0.5, (neck.z + outer) * 0.5),
+            vec2((neck.y - neck.x) * 0.5, (neck.z - outer) * 0.5), shape.w);
+        float nh = meta.x > 0.0 ? max(meta.x - abs(bd - nd), 0.0) / meta.x : 0.0;
+        bd = min(bd, nd) - nh * nh * meta.x * 0.25;
+        vec2 bounds = vec2(min(span.x, neck.x), max(span.y, neck.y));
+        float depth = max(shape.z, neck.z);
+        bd = max(bd, roundedDistance(buv - vec2((bounds.x + bounds.y) * 0.5, (depth + outer) * 0.5),
+            vec2((bounds.y - bounds.x) * 0.5, (depth - outer) * 0.5), 0.0));
+      }
       float blend = meta.x > 0.0 ? clamp(0.5 + (d - bd) / (2.0 * meta.x), 0.0, 1.0) : (bd < d ? 1.0 : 0.0);
       float h = meta.x > 0.0 ? max(meta.x - abs(d - bd), 0.0) / meta.x : 0.0;
       d = min(d, bd) - h * h * meta.x * 0.25;
@@ -93,6 +110,12 @@ void main() {
   if (coverage <= 0.0) discard;
   float stroke = materialWidth > 0.0 ? clamp(0.5 + (d + materialWidth) / aa, 0.0, 1.0) : 0.0;
   vec4 fill = vec4(materialFill.rgb * materialFill.a, materialFill.a);
+  if (u_has_backdrop != 0 && p.x >= u_backdrop_bounds.x && p.y >= u_backdrop_bounds.y
+      && p.x < u_backdrop_bounds.x + u_backdrop_bounds.z && p.y < u_backdrop_bounds.y + u_backdrop_bounds.w) {
+    vec2 uv = clamp((p - u_backdrop_source.xy) / u_backdrop_source.zw, vec2(0.0), vec2(1.0));
+    vec3 captured = texture2D(u_backdrop, uv).rgb;
+    fill = vec4(mix(captured, materialFill.rgb, materialFill.a) * u_backdrop_opacity, u_backdrop_opacity);
+  }
   vec4 border = vec4(materialBorder.rgb * materialBorder.a, materialBorder.a);
   gl_FragColor = mix(fill, border, stroke) * coverage;
 }
@@ -114,6 +137,11 @@ void ScreenFrameProgram::ensureInitialized() {
   m_shapeLocation = glGetUniformLocation(m_program.id(), "u_shape");
   m_offsetLocation = glGetUniformLocation(m_program.id(), "u_offset");
   m_exclusionLocation = glGetUniformLocation(m_program.id(), "u_exclusion");
+  m_backdropLocation = glGetUniformLocation(m_program.id(), "u_backdrop");
+  m_backdropSourceLocation = glGetUniformLocation(m_program.id(), "u_backdrop_source");
+  m_backdropBoundsLocation = glGetUniformLocation(m_program.id(), "u_backdrop_bounds");
+  m_hasBackdropLocation = glGetUniformLocation(m_program.id(), "u_has_backdrop");
+  m_backdropOpacityLocation = glGetUniformLocation(m_program.id(), "u_backdrop_opacity");
   m_edgeLocation = glGetUniformLocation(m_program.id(), "u_edge");
   m_islandsLocation = glGetUniformLocation(m_program.id(), "u_islands[0]");
   m_bandCountLocation = glGetUniformLocation(m_program.id(), "u_band_count");
@@ -122,6 +150,7 @@ void ScreenFrameProgram::ensureInitialized() {
   m_bandSpansLocation = glGetUniformLocation(m_program.id(), "u_band_spans[0]");
   m_bandFillLocation = glGetUniformLocation(m_program.id(), "u_band_fill[0]");
   m_bandBorderLocation = glGetUniformLocation(m_program.id(), "u_band_border[0]");
+  m_bandNeckLocation = glGetUniformLocation(m_program.id(), "u_band_neck[0]");
   if (m_positionLocation < 0
       || m_surfaceSizeLocation < 0
       || m_sizeLocation < 0
@@ -140,7 +169,9 @@ void ScreenFrameProgram::ensureInitialized() {
       || m_bandMetaLocation < 0
       || m_bandSpansLocation < 0
       || m_bandFillLocation < 0
-      || m_bandBorderLocation < 0)
+      || m_bandBorderLocation < 0 || m_bandNeckLocation < 0
+      || m_backdropLocation < 0 || m_backdropSourceLocation < 0 || m_backdropBoundsLocation < 0
+      || m_hasBackdropLocation < 0 || m_backdropOpacityLocation < 0)
     throw std::runtime_error("failed to query screen-frame shader locations");
 }
 
@@ -160,6 +191,13 @@ void ScreenFrameProgram::draw(
     spans[i * 2 + 1] = g.islands[i].end;
   }
   glUseProgram(m_program.id());
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, style.backdrop.texture.value());
+  glUniform1i(m_backdropLocation, 0);
+  glUniform1i(m_hasBackdropLocation, style.backdrop.texture.valid() ? 1 : 0);
+  glUniform1f(m_backdropOpacityLocation, style.backdrop.opacity);
+  glUniform4fv(m_backdropSourceLocation, 1, style.backdrop.source.data());
+  glUniform4fv(m_backdropBoundsLocation, 1, style.backdrop.bounds.data());
   glUniform2f(m_surfaceSizeLocation, sw, sh);
   glUniform2f(m_sizeLocation, width, height);
   glUniformMatrix3fv(m_transformLocation, 1, GL_FALSE, transform.m.data());
@@ -174,12 +212,16 @@ void ScreenFrameProgram::draw(
   glUniform2fv(m_islandsLocation, 3, spans.data());
   if (g.bands.size() > kMaxScreenFrameBands)
     throw std::runtime_error("shared screen frame exceeds 32 bar tracks on one output");
-  std::array<GLfloat, kMaxScreenFrameBands * 4> shapes{}, meta{}, bandSpans{}, fills{}, borders{};
+  std::array<GLfloat, kMaxScreenFrameBands * 4> shapes{}, meta{}, bandSpans{}, fills{}, borders{}, necks{};
   for (std::size_t i = 0; i < g.bands.size(); ++i) {
     const auto& b = g.bands[i];
     const auto o = i * 4;
+    necks[o] = b.neckSpan.begin;
+    necks[o + 1] = b.neckSpan.end;
+    necks[o + 2] = b.neckDepth;
+    necks[o + 3] = b.neckSpan.end > b.neckSpan.begin ? 1.0F : 0.0F;
     shapes[o] = static_cast<float>(b.edge);
-    shapes[o + 1] = b.outer;
+    shapes[o + 1] = b.edgeAttached ? -1.0F : b.outer;
     shapes[o + 2] = b.depth;
     shapes[o + 3] = b.radius;
     meta[o] = b.join;
@@ -202,6 +244,7 @@ void ScreenFrameProgram::draw(
   const auto count = static_cast<GLsizei>(g.bands.size());
   glUniform1i(m_bandCountLocation, count);
   if (count > 0) {
+    glUniform4fv(m_bandNeckLocation, count, necks.data());
     glUniform4fv(m_bandShapeLocation, count, shapes.data());
     glUniform4fv(m_bandMetaLocation, count, meta.data());
     glUniform4fv(m_bandSpansLocation, count, bandSpans.data());

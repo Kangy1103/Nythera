@@ -63,22 +63,27 @@ transport functionality belongs to existing configurable widgets and their setti
 Checkpoint: verify full/islands layouts and all four orientations using the existing
 widget arrangement. Further media presentations can be assembled in the widget editor.
 
-## 3. Add workspace-aware adaptation
+## 3. Workspace-driven repositioning — dropped
 
-Keep this independent of full/islands presentation and preserve the chosen screen edge.
-The requested relocation concerns adaptation along that edge to workspace content;
-it does not mean automatically moving between screen edges.
+Dropped by Kangy on 6 November 2026. Moving a bar section along its selected edge
+in response to window positions adds layout complexity, shifts neighbouring content,
+and provides too little practical benefit. Do not implement this as a future phase.
 
-Use the existing compositor workspace/window data and empty-workspace detection.
-Before choosing an algorithm, inspect Umbriel's actual geometry/event support and
-the supplied ArchEclipse implementation to establish the behaviour we can reproduce.
-If only occupancy is available, describe that limit explicitly rather than pretending
-occupancy-based hiding reproduces content-aware placement.
+Keep the existing workspace widget sizing, app-icon membership and smooth resizing
+of its surrounding island. Those content-driven size changes are already implemented
+and are separate from the rejected repositioning idea.
 
-First preview: an optional compact/expanded response to empty versus occupied workspaces,
-with smooth transitions and a fixed edge. Keep true content-aware repositioning as a
-separate selectable behaviour once its geometry rules are established. Expose each
-implemented behaviour in Settings and handle rapid workspace switching without flicker.
+## Future idea: manually positioned freeform islands
+
+Previously discussed and restored to the backlog on 6 November 2026: allow islands
+to be manually clicked and dragged to chosen positions along the bar, beyond fixed
+start/centre/end placement. This is not implemented. Editing controls, collision or
+snapping rules and position persistence still need design, with any added options
+exposed in the settings GUI.
+
+This idea remains wanted. It is separate from existing widget/group reordering,
+content-driven island resizing and the rejected automatic workspace/window-following
+repositioning above.
 
 ## 4. Evaluate a screen wrap separately
 
@@ -119,7 +124,7 @@ adaptation and the frame only after the initial behaviour provides a useful dire
   removable/configurable through the widget editor.
 - Full idle/playback RAM, VRAM and frame-time benchmarking remains pending. Early
   resource samples included a now-removed composite widget and are not final results.
-- Workspace content adaptation and screen wrapping remain later phases.
+- Workspace-driven repositioning was subsequently dropped on 6 November 2026. Screen wrapping was implemented separately; see the current Bar documentation.
 
 ## Monitor-local grouping follow-up
 

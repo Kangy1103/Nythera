@@ -703,6 +703,7 @@ void Application::initPanelManagerAndPanels() {
   });
   m_panelManager.setPanelOpenedCallback([this] {
     m_overviewLauncherCapture.sync();
+    m_bar.refresh();
     if (m_panelManager.isAttachedOpen()) {
       m_bar.revealAutoHideForAttachedPanel(
           m_panelManager.attachedPanelOutput(), m_panelManager.attachedSourceBarName()
@@ -930,6 +931,9 @@ void Application::initBarDockAndLayout() {
   m_panelManager.setFocusGrabBarSurfacesProvider([this] { return m_bar.allBarSurfaces(); });
   m_panelManager.setAttachedPanelAvailabilityCallback([this](wl_output* output, std::string_view barName) {
     return m_bar.canAttachPanelToBar(output, barName);
+  });
+  m_panelManager.setBarFrameProvider([this](wl_output* output, std::string_view name) {
+    return m_bar.frameForBar(output, name);
   });
   m_panelManager.setBarConfigProvider([this](wl_output* output, std::string_view barName) {
     return m_bar.configForBar(output, barName);

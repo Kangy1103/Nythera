@@ -1,4 +1,7 @@
 #include "i18n/i18n_service.h"
+#include "cli/schema_msg.h"
+#include <nlohmann/json.hpp>
+#include <fstream>
 
 #include <cstdio>
 #include <filesystem>
@@ -29,6 +32,19 @@ int main(int argc, char* argv[]) {
   }
 
   bool ok = true;
+  // Action-picker labels are built dynamically, so literal-key scanners cannot
+  // detect when a newly registered command lacks its English fallback text.
+  std::ifstream englishFile(translationsDir / "en.json");
+  const auto english = nlohmann::json::parse(englishFile);
+  const auto& actions = english.at("settings").at("widgets").at("actions").at("commands");
+  for (const auto& command : nythera::cli::kMsgCmd.subcommands) {
+    const std::string name(command.name);
+    for (const auto* field : {"label", "description"}) {
+      if (!actions.contains(name) || !actions.at(name).contains(field)
+          || !actions.at(name).at(field).is_string() || actions.at(name).at(field).get<std::string>().empty())
+        ok = fail("action command is missing translation", name + "." + field) && ok;
+    }
+  }
   for (const auto& language : i18n::kSupportedLanguages) {
     const std::filesystem::path path = translationsDir / (std::string(language.code) + ".json");
     if (!std::filesystem::is_regular_file(path)) {

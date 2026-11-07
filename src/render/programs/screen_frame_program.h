@@ -36,4 +36,8 @@ private:
   GLint m_transformLocation = -1;
   GLint m_bandCountLocation = -1, m_bandShapeLocation = -1, m_bandMetaLocation = -1;
   GLint m_bandSpansLocation = -1, m_bandFillLocation = -1, m_bandBorderLocation = -1;
+  GLint m_backdropLocation = -1, m_backdropSourceLocation = -1, m_backdropBoundsLocation = -1;
+  GLint m_hasBackdropLocation = -1;
+  GLint m_backdropOpacityLocation = -1;
+  GLint m_bandNeckLocation = -1;
 };

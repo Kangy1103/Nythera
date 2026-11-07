@@ -822,9 +822,7 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Wallpaper, "transition", tr("settings.schema.wallpaper.transition-duration.label"),
         tr("settings.schema.wallpaper.transition-duration.description"), {"wallpaper", "transition_duration"},
-        sliderFor(
-            cfg.wallpaper.transitionDurationMs, nythera::config::schema::kWallpaperTransitionDurationRange, true
-        ),
+        sliderFor(cfg.wallpaper.transitionDurationMs, nythera::config::schema::kWallpaperTransitionDurationRange, true),
         "fade animation"
     ));
     entries.push_back(makeEntry(
@@ -1198,6 +1196,19 @@ namespace settings {
         "glass alpha transparency translucent opacity cards blur"
     ));
     entries.push_back(makeEntry(
+        SettingsSection::Panels, "effects", tr("settings.schema.panels.snapshot-blur.label"),
+        tr("settings.schema.panels.snapshot-blur.description"), {"shell", "panel", "snapshot_blur"},
+        ToggleSetting{cfg.shell.panel.snapshotBlur}, "snapshot screenshot capture frozen glass blur"
+    ));
+    auto snapshotStrength = makeEntry(
+        SettingsSection::Panels, "effects", tr("settings.schema.panels.snapshot-blur-strength.label"),
+        tr("settings.schema.panels.snapshot-blur-strength.description"), {"shell", "panel", "snapshot_blur_strength"},
+        sliderFor(cfg.shell.panel.snapshotBlurStrength, nythera::config::schema::kPanelSnapshotBlurStrengthRange, false),
+        "snapshot screenshot capture blur strength radius"
+    );
+    snapshotStrength.visibleWhen = [](const Config& c) { return c.shell.panel.snapshotBlur; };
+    entries.push_back(std::move(snapshotStrength));
+    entries.push_back(makeEntry(
         SettingsSection::Panels, "effects", tr("settings.schema.panels.borders.label"),
         tr("settings.schema.panels.borders.description"), {"shell", "panel", "borders"},
         ToggleSetting{cfg.shell.panel.borders}, "outline border shell edge"
@@ -1555,8 +1566,7 @@ namespace settings {
         &ShellConfig::PanelConfig::controlCenterPlacement, &ShellConfig::PanelConfig::controlCenterPosition
     ));
     {
-      SliderSetting width =
-          sliderFor(cfg.controlCenter.width, nythera::config::schema::kControlCenterWidthRange, true);
+      SliderSetting width = sliderFor(cfg.controlCenter.width, nythera::config::schema::kControlCenterWidthRange, true);
       width.valueSuffix = "px";
       entries.push_back(makeEntry(
           SettingsSection::ControlCenter, "layout", tr("settings.schema.panels.control-center-width.label"),
@@ -1640,6 +1650,52 @@ namespace settings {
         sliderFor(cfg.shell.screenCorners.size, nythera::config::schema::kScreenCornersSizeRange, true),
         "screen corners radius"
     ));
+
+    // Display-owned frame: one global control and per-output overrides.
+    const auto addFrameControls = [&](std::vector<std::string> path, const ScreenWrapConfig& frame) {
+      auto p = path;
+      p.push_back("enabled");
+      entries.push_back(makeEntry(
+          SettingsSection::Desktop, "screen-wrap", tr("settings.schema.bar.screen-wrap.label"),
+          "Wrap all enabled bars on every display in one shared outline per display", p, ToggleSetting{frame.enabled},
+          "screen frame wrap monitor"
+      ));
+      struct Control {
+        const char* key;
+        const char* label;
+        int value, maximum;
+      };
+      const Control controls[] = {
+          {"width", "Frame Width", frame.width, 32},
+          {"radius", "Frame Rounding", frame.radius, 100},
+          {"clearance", "Window Clearance", frame.clearance, 500},
+          {"joined_corner_gap", "Joined Corner Gap", frame.joinedCornerGap, 500},
+          {"free_corner_gap", "Free Corner Gap", frame.freeCornerGap, 500},
+          {"join_distance", "Corner Join Distance", frame.joinDistance, 500}
+      };
+      for (const auto& control : controls) {
+        p = path;
+        p.push_back(control.key);
+        auto entry = makeEntry(
+            SettingsSection::Desktop, "screen-wrap", std::string(control.label),
+            control.key == std::string_view("joined_corner_gap")
+                ? "Space from the adjoining bar at this corner; logical pixels"
+                : control.key == std::string_view("free_corner_gap")
+                ? "Space from the frame rail where no bar adjoins this corner; logical pixels"
+                : control.key == std::string_view("clearance")
+                ? "Extra window space beyond the frame; zero adds no extra clearance"
+                : "Shared display frame setting for all bars; logical pixels", p,
+            SliderSetting{
+                static_cast<float>(control.value), control.key == std::string_view("width") ? 1.0F : 0.0F,
+                static_cast<float>(control.maximum), 1.0F, true
+            },
+            "screen frame wrap"
+        );
+        entry.visibleWhen = [](const Config& c) { return c.shell.screenWrap.enabled; };
+        entries.push_back(std::move(entry));
+      }
+    };
+    addFrameControls({"shell", "screen_wrap"}, cfg.shell.screenWrap);
 
     entries.push_back(makeEntry(
         SettingsSection::Desktop, "hot-corners", tr("settings.schema.desktop.hot-corners-enabled.label"),
@@ -3763,48 +3819,66 @@ namespace settings {
           tr("settings.schema.bar.background-opacity.description"), path("background_opacity"),
           SliderSetting{bar.backgroundOpacity, 0.0F, 1.0F, 0.01F, false}, "alpha transparency translucent opacity"
       ));
+
       entries.push_back(makeEntry(
-          section, "effects", tr("settings.schema.bar.screen-wrap.label"),
-          tr("settings.schema.bar.screen-wrap.description"), path("screen_wrap"), ToggleSetting{bar.screenWrap},
-          "screen frame wrap outline all edges"
+          section, "effects", tr("settings.schema.bar.dynamic-notifications.label"),
+          tr("settings.schema.bar.dynamic-notifications.description"), path("dynamic_notifications"),
+          ToggleSetting{bar.dynamicNotifications}, "dynamic island"
       ));
       entries.push_back(makeEntry(
-          section, "effects", tr("settings.schema.bar.wrap-clearance.label"),
-          tr("settings.schema.bar.wrap-clearance.description"), path("wrap_clearance"),
-          SliderSetting{static_cast<float>(bar.wrapClearance), 0.0F, 500.0F, 1.0F, true},
-          "frame window gap clearance reservation work area"
+          section, "effects", tr("settings.schema.bar.dynamic-timers.label"),
+          tr("settings.schema.bar.dynamic-timers.description"), path("dynamic_timers"),
+          ToggleSetting{bar.dynamicTimers}, "dynamic island"
       ));
       entries.push_back(makeEntry(
-          section, "effects", tr("settings.schema.bar.wrap-width.label"),
-          tr("settings.schema.bar.wrap-width.description"), path("wrap_width"),
-          SliderSetting{static_cast<float>(bar.wrapWidth), 1.0F, 32.0F, 1.0F, true}, "frame rail thickness"
+          section, "effects", tr("settings.schema.bar.dynamic-alarms.label"),
+          tr("settings.schema.bar.dynamic-alarms.description"), path("dynamic_alarms"),
+          ToggleSetting{bar.dynamicAlarms}, "dynamic island"
       ));
       entries.push_back(makeEntry(
-          section, "effects", tr("settings.schema.bar.wrap-radius.label"),
-          tr("settings.schema.bar.wrap-radius.description"), path("wrap_radius"),
-          SliderSetting{static_cast<float>(bar.wrapRadius), 0.0F, 100.0F, 1.0F, true}, "frame corners rounding radius"
+          section, "effects", tr("settings.schema.bar.dynamic-calls.label"),
+          tr("settings.schema.bar.dynamic-calls.description"), path("dynamic_calls"), ToggleSetting{bar.dynamicCalls},
+          "dynamic island"
       ));
       entries.push_back(makeEntry(
-          section, "effects", tr("settings.schema.bar.wrap-join-distance.label"),
-          tr("settings.schema.bar.wrap-join-distance.description"), path("wrap_join_distance"),
-          SliderSetting{static_cast<float>(bar.wrapJoinDistance), 0.0F, 500.0F, 1.0F, true},
-          "frame island outer edge corner merge cutoff distance"
+          section, "effects", tr("settings.schema.bar.dynamic-timer-seconds.label"),
+          tr("settings.schema.bar.dynamic-timer-seconds.description"), path("dynamic_timer_seconds"),
+          SliderSetting{static_cast<float>(bar.dynamicTimerSeconds), 1.0F, 86400.0F, 1.0F, true}, "dynamic island"
       ));
-entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-notifications.label"), tr("settings.schema.bar.dynamic-notifications.description"), path("dynamic_notifications"), ToggleSetting{bar.dynamicNotifications}, "dynamic island"));
-entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-timers.label"), tr("settings.schema.bar.dynamic-timers.description"), path("dynamic_timers"), ToggleSetting{bar.dynamicTimers}, "dynamic island"));
-entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-alarms.label"), tr("settings.schema.bar.dynamic-alarms.description"), path("dynamic_alarms"), ToggleSetting{bar.dynamicAlarms}, "dynamic island"));
-entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-calls.label"), tr("settings.schema.bar.dynamic-calls.description"), path("dynamic_calls"), ToggleSetting{bar.dynamicCalls}, "dynamic island"));
-entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-timer-seconds.label"), tr("settings.schema.bar.dynamic-timer-seconds.description"), path("dynamic_timer_seconds"), SliderSetting{static_cast<float>(bar.dynamicTimerSeconds), 1.0F, 86400.0F, 1.0F, true}, "dynamic island"));
-entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-alarm-time.label"), tr("settings.schema.bar.dynamic-alarm-time.description"), path("dynamic_alarm_time"), TextSetting{bar.dynamicAlarmTime}, "dynamic island"));
-entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-snooze-seconds.label"), tr("settings.schema.bar.dynamic-snooze-seconds.description"), path("dynamic_snooze_seconds"), SliderSetting{static_cast<float>(bar.dynamicSnoozeSeconds), 1.0F, 86400.0F, 1.0F, true}, "dynamic island"));
-      entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-activity-indicators.label"), tr("settings.schema.bar.dynamic-activity-indicators.description"), path("dynamic_activity_indicators"), ToggleSetting{bar.dynamicActivityIndicators}, "dynamic island"));
-      entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-privacy.label"), tr("settings.schema.bar.dynamic-privacy.description"), path("dynamic_privacy"), ToggleSetting{bar.dynamicPrivacy}, "dynamic island"));
-      entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-devices.label"), tr("settings.schema.bar.dynamic-devices.description"), path("dynamic_devices"), ToggleSetting{bar.dynamicDevices}, "dynamic island"));
-      entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-visualizer.label"), tr("settings.schema.bar.dynamic-visualizer.description"), path("dynamic_visualizer"), ToggleSetting{bar.dynamicVisualizer}, "dynamic island"));
+      entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.dynamic-alarm-time.label"),
+          tr("settings.schema.bar.dynamic-alarm-time.description"), path("dynamic_alarm_time"),
+          TextSetting{bar.dynamicAlarmTime}, "dynamic island"
+      ));
+      entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.dynamic-snooze-seconds.label"),
+          tr("settings.schema.bar.dynamic-snooze-seconds.description"), path("dynamic_snooze_seconds"),
+          SliderSetting{static_cast<float>(bar.dynamicSnoozeSeconds), 1.0F, 86400.0F, 1.0F, true}, "dynamic island"
+      ));
+      entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.dynamic-activity-indicators.label"),
+          tr("settings.schema.bar.dynamic-activity-indicators.description"), path("dynamic_activity_indicators"),
+          ToggleSetting{bar.dynamicActivityIndicators}, "dynamic island"
+      ));
+      entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.dynamic-privacy.label"),
+          tr("settings.schema.bar.dynamic-privacy.description"), path("dynamic_privacy"),
+          ToggleSetting{bar.dynamicPrivacy}, "dynamic island"
+      ));
+      entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.dynamic-devices.label"),
+          tr("settings.schema.bar.dynamic-devices.description"), path("dynamic_devices"),
+          ToggleSetting{bar.dynamicDevices}, "dynamic island"
+      ));
+      entries.push_back(makeEntry(
+          section, "effects", tr("settings.schema.bar.dynamic-visualizer.label"),
+          tr("settings.schema.bar.dynamic-visualizer.description"), path("dynamic_visualizer"),
+          ToggleSetting{bar.dynamicVisualizer}, "dynamic island"
+      ));
       entries.push_back(makeEntry(
           section, "effects", tr("settings.schema.bar.dynamic-media.label"),
-          tr("settings.schema.bar.dynamic-media.description"), path("dynamic_media"),
-          ToggleSetting{bar.dynamicMedia}, "dynamic island"
+          tr("settings.schema.bar.dynamic-media.description"), path("dynamic_media"), ToggleSetting{bar.dynamicMedia},
+          "dynamic island"
       ));
       entries.push_back(makeEntry(
           section, "effects", tr("settings.schema.bar.dynamic-volume.label"),
@@ -4220,11 +4294,11 @@ entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-
             barReservedSlider(ovr.borderWidth.value_or(bar.borderWidth), 20.0F, 0.5F, false), "outline stroke", true
         ));
         entries.push_back(makeEntry(
-          section, "effects", tr("settings.schema.bar.transparency-mode.label"),
-          tr("settings.schema.bar.transparency-mode.description"), monitorPath("transparency_mode"),
-          asSegmented(enumSelect(kBarTransparencyModes, ovr.transparencyMode.value_or(bar.transparencyMode))),
-          "glass soft solid custom alpha transparency opacity"
-      ));
+            section, "effects", tr("settings.schema.bar.transparency-mode.label"),
+            tr("settings.schema.bar.transparency-mode.description"), monitorPath("transparency_mode"),
+            asSegmented(enumSelect(kBarTransparencyModes, ovr.transparencyMode.value_or(bar.transparencyMode))),
+            "glass soft solid custom alpha transparency opacity"
+        ));
         entries.push_back(makeEntry(
             section, "effects", tr("settings.schema.shared.background-opacity.label"),
             tr("settings.schema.bar.background-opacity.description"), monitorPath("background_opacity"),
@@ -4234,54 +4308,80 @@ entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-
         entries.push_back(makeEntry(
             section, "general", tr("settings.schema.bar.surface-mode.label"),
             tr("settings.schema.bar.surface-mode.description"), monitorPath("surface_mode"),
-            asSegmented(plainSelect({{"full", "settings.options.bar.surface-mode.full"},
-                                    {"islands", "settings.options.bar.surface-mode.islands"},
-               {"dynamic", "settings.options.bar.surface-mode.dynamic"}},
-                                   ovr.surfaceMode.value_or(bar.surfaceMode))), "bar surface islands full"
+            asSegmented(plainSelect(
+                {{"full", "settings.options.bar.surface-mode.full"},
+                 {"islands", "settings.options.bar.surface-mode.islands"},
+                 {"dynamic", "settings.options.bar.surface-mode.dynamic"}},
+                ovr.surfaceMode.value_or(bar.surfaceMode)
+            )),
+            "bar surface islands full"
+        ));
+
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.dynamic-notifications.label"),
+            tr("settings.schema.bar.dynamic-notifications.description"), monitorPath("dynamic_notifications"),
+            ToggleSetting{ovr.dynamicNotifications.value_or(bar.dynamicNotifications)}, "dynamic island"
         ));
         entries.push_back(makeEntry(
-            section, "effects", tr("settings.schema.bar.screen-wrap.label"),
-            tr("settings.schema.bar.screen-wrap.description"), monitorPath("screen_wrap"),
-            ToggleSetting{ovr.screenWrap.value_or(bar.screenWrap)}, "screen frame wrap outline all edges"
-        ));
-      entries.push_back(makeEntry(
-          section, "effects", tr("settings.schema.bar.wrap-clearance.label"),
-          tr("settings.schema.bar.wrap-clearance.description"), monitorPath("wrap_clearance"),
-          SliderSetting{static_cast<float>(ovr.wrapClearance.value_or(bar.wrapClearance)), 0.0F, 500.0F, 1.0F, true},
-          "frame window gap clearance reservation work area"
-      ));
-        entries.push_back(makeEntry(
-            section, "effects", tr("settings.schema.bar.wrap-width.label"),
-            tr("settings.schema.bar.wrap-width.description"), monitorPath("wrap_width"),
-            SliderSetting{static_cast<float>(ovr.wrapWidth.value_or(bar.wrapWidth)), 1.0F, 32.0F, 1.0F, true},
-            "frame rail thickness"
+            section, "effects", tr("settings.schema.bar.dynamic-timers.label"),
+            tr("settings.schema.bar.dynamic-timers.description"), monitorPath("dynamic_timers"),
+            ToggleSetting{ovr.dynamicTimers.value_or(bar.dynamicTimers)}, "dynamic island"
         ));
         entries.push_back(makeEntry(
-            section, "effects", tr("settings.schema.bar.wrap-radius.label"),
-            tr("settings.schema.bar.wrap-radius.description"), monitorPath("wrap_radius"),
-            SliderSetting{static_cast<float>(ovr.wrapRadius.value_or(bar.wrapRadius)), 0.0F, 100.0F, 1.0F, true},
-            "frame corners rounding radius"
+            section, "effects", tr("settings.schema.bar.dynamic-alarms.label"),
+            tr("settings.schema.bar.dynamic-alarms.description"), monitorPath("dynamic_alarms"),
+            ToggleSetting{ovr.dynamicAlarms.value_or(bar.dynamicAlarms)}, "dynamic island"
         ));
         entries.push_back(makeEntry(
-            section, "effects", tr("settings.schema.bar.wrap-join-distance.label"),
-            tr("settings.schema.bar.wrap-join-distance.description"), monitorPath("wrap_join_distance"),
+            section, "effects", tr("settings.schema.bar.dynamic-calls.label"),
+            tr("settings.schema.bar.dynamic-calls.description"), monitorPath("dynamic_calls"),
+            ToggleSetting{ovr.dynamicCalls.value_or(bar.dynamicCalls)}, "dynamic island"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.dynamic-timer-seconds.label"),
+            tr("settings.schema.bar.dynamic-timer-seconds.description"), monitorPath("dynamic_timer_seconds"),
             SliderSetting{
-                static_cast<float>(ovr.wrapJoinDistance.value_or(bar.wrapJoinDistance)), 0.0F, 500.0F, 1.0F, true
+                static_cast<float>(ovr.dynamicTimerSeconds.value_or(bar.dynamicTimerSeconds)), 1.0F, 86400.0F, 1.0F,
+                true
             },
-            "frame island outer edge corner merge cutoff distance"
+            "dynamic island"
         ));
-entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-notifications.label"), tr("settings.schema.bar.dynamic-notifications.description"), monitorPath("dynamic_notifications"), ToggleSetting{ovr.dynamicNotifications.value_or(bar.dynamicNotifications)}, "dynamic island"));
-entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-timers.label"), tr("settings.schema.bar.dynamic-timers.description"), monitorPath("dynamic_timers"), ToggleSetting{ovr.dynamicTimers.value_or(bar.dynamicTimers)}, "dynamic island"));
-entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-alarms.label"), tr("settings.schema.bar.dynamic-alarms.description"), monitorPath("dynamic_alarms"), ToggleSetting{ovr.dynamicAlarms.value_or(bar.dynamicAlarms)}, "dynamic island"));
-entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-calls.label"), tr("settings.schema.bar.dynamic-calls.description"), monitorPath("dynamic_calls"), ToggleSetting{ovr.dynamicCalls.value_or(bar.dynamicCalls)}, "dynamic island"));
-entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-timer-seconds.label"), tr("settings.schema.bar.dynamic-timer-seconds.description"), monitorPath("dynamic_timer_seconds"), SliderSetting{static_cast<float>(ovr.dynamicTimerSeconds.value_or(bar.dynamicTimerSeconds)), 1.0F, 86400.0F, 1.0F, true}, "dynamic island"));
-entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-alarm-time.label"), tr("settings.schema.bar.dynamic-alarm-time.description"), monitorPath("dynamic_alarm_time"), TextSetting{ovr.dynamicAlarmTime.value_or(bar.dynamicAlarmTime)}, "dynamic island"));
-entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-snooze-seconds.label"), tr("settings.schema.bar.dynamic-snooze-seconds.description"), monitorPath("dynamic_snooze_seconds"), SliderSetting{static_cast<float>(ovr.dynamicSnoozeSeconds.value_or(bar.dynamicSnoozeSeconds)), 1.0F, 86400.0F, 1.0F, true}, "dynamic island"));
-        entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-activity-indicators.label"), tr("settings.schema.bar.dynamic-activity-indicators.description"), monitorPath("dynamic_activity_indicators"), ToggleSetting{ovr.dynamicActivityIndicators.value_or(bar.dynamicActivityIndicators)}, "dynamic island"));
-      entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-privacy.label"), tr("settings.schema.bar.dynamic-privacy.description"), monitorPath("dynamic_privacy"), ToggleSetting{ovr.dynamicPrivacy.value_or(bar.dynamicPrivacy)}, "dynamic island"));
-      entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-devices.label"), tr("settings.schema.bar.dynamic-devices.description"), monitorPath("dynamic_devices"), ToggleSetting{ovr.dynamicDevices.value_or(bar.dynamicDevices)}, "dynamic island"));
-      entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-visualizer.label"), tr("settings.schema.bar.dynamic-visualizer.description"), monitorPath("dynamic_visualizer"), ToggleSetting{ovr.dynamicVisualizer.value_or(bar.dynamicVisualizer)}, "dynamic island"));
-      entries.push_back(makeEntry(
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.dynamic-alarm-time.label"),
+            tr("settings.schema.bar.dynamic-alarm-time.description"), monitorPath("dynamic_alarm_time"),
+            TextSetting{ovr.dynamicAlarmTime.value_or(bar.dynamicAlarmTime)}, "dynamic island"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.dynamic-snooze-seconds.label"),
+            tr("settings.schema.bar.dynamic-snooze-seconds.description"), monitorPath("dynamic_snooze_seconds"),
+            SliderSetting{
+                static_cast<float>(ovr.dynamicSnoozeSeconds.value_or(bar.dynamicSnoozeSeconds)), 1.0F, 86400.0F, 1.0F,
+                true
+            },
+            "dynamic island"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.dynamic-activity-indicators.label"),
+            tr("settings.schema.bar.dynamic-activity-indicators.description"),
+            monitorPath("dynamic_activity_indicators"),
+            ToggleSetting{ovr.dynamicActivityIndicators.value_or(bar.dynamicActivityIndicators)}, "dynamic island"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.dynamic-privacy.label"),
+            tr("settings.schema.bar.dynamic-privacy.description"), monitorPath("dynamic_privacy"),
+            ToggleSetting{ovr.dynamicPrivacy.value_or(bar.dynamicPrivacy)}, "dynamic island"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.dynamic-devices.label"),
+            tr("settings.schema.bar.dynamic-devices.description"), monitorPath("dynamic_devices"),
+            ToggleSetting{ovr.dynamicDevices.value_or(bar.dynamicDevices)}, "dynamic island"
+        ));
+        entries.push_back(makeEntry(
+            section, "effects", tr("settings.schema.bar.dynamic-visualizer.label"),
+            tr("settings.schema.bar.dynamic-visualizer.description"), monitorPath("dynamic_visualizer"),
+            ToggleSetting{ovr.dynamicVisualizer.value_or(bar.dynamicVisualizer)}, "dynamic island"
+        ));
+        entries.push_back(makeEntry(
             section, "effects", tr("settings.schema.bar.dynamic-media.label"),
             tr("settings.schema.bar.dynamic-media.description"), monitorPath("dynamic_media"),
             ToggleSetting{ovr.dynamicMedia.value_or(bar.dynamicMedia)}, "dynamic island"
@@ -4304,7 +4404,10 @@ entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-
         entries.push_back(makeEntry(
             section, "effects", tr("settings.schema.bar.dynamic-dwell-ms.label"),
             tr("settings.schema.bar.dynamic-dwell-ms.description"), monitorPath("dynamic_dwell_ms"),
-            SliderSetting{static_cast<float>(ovr.dynamicDwellMs.value_or(bar.dynamicDwellMs)), 500.0F, 15000.0F, 100.0F, true}, "dynamic island"
+            SliderSetting{
+                static_cast<float>(ovr.dynamicDwellMs.value_or(bar.dynamicDwellMs)), 500.0F, 15000.0F, 100.0F, true
+            },
+            "dynamic island"
         ));
         entries.push_back(makeEntry(
             section, "effects", tr("settings.schema.bar.dynamic-clock-format.label"),
@@ -4537,11 +4640,12 @@ entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-
         continue;
       const bool monitor = entry.path.size() >= 5 && entry.path[2] == "monitor";
       const std::string key = entry.path[monitor ? 4 : 2];
-      if (key == "font_family" || key == "font_weight") entry.group = "layout";
+      if (key == "font_family" || key == "font_weight")
+        entry.group = "layout";
       const std::string group = entry.group;
       auto previous = std::move(entry.visibleWhen);
-      entry.visibleWhen = [barName = entry.path[1], match = monitor ? entry.path[3] : std::string{},
-                           key, group, previous = std::move(previous)](const Config& current) {
+      entry.visibleWhen = [barName = entry.path[1], match = monitor ? entry.path[3] : std::string{}, key, group,
+                           previous = std::move(previous)](const Config& current) {
         const BarConfig* b = findBar(current, barName);
         if (!b)
           return false;
@@ -4551,7 +4655,7 @@ entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-
         };
         const auto mode = effective(&BarConfig::surfaceMode, &BarMonitorOverride::surfaceMode);
         const bool dynamic = mode == "dynamic";
-        const bool wrap = effective(&BarConfig::screenWrap, &BarMonitorOverride::screenWrap);
+        bool wrap = current.shell.screenWrap.enabled;
         if (key.starts_with("dynamic_") && key != "dynamic_center") {
           if (!dynamic)
             return false;
@@ -4568,21 +4672,29 @@ entries.push_back(makeEntry(section, "effects", tr("settings.schema.bar.dynamic-
           return false;
         if (key == "wrap_join_distance" && mode != "islands")
           return false;
-        if (key == "wrap_clearance"
-            && !effective(&BarConfig::reserveSpace, &BarMonitorOverride::reserveSpace))
+        if (key == "wrap_clearance" && !effective(&BarConfig::reserveSpace, &BarMonitorOverride::reserveSpace))
           return false;
         if (key == "background_opacity"
             && effective(&BarConfig::transparencyMode, &BarMonitorOverride::transparencyMode)
                 != BarTransparencyMode::Custom)
           return false;
-        if (dynamic && ((group == "widgets" && key != "font_family" && key != "font_weight") || group == "widget-list" || group == "capsules"
-                        || group == "dead-zone" || key == "dynamic_center" || key == "auto_hide"
-                        || key == "auto_hide_delay_ms" || key == "show_on_workspace_switch"
-                        || key == "margin_ends" || key == "margin_opposite_edge" || key == "padding"
-                        || key == "shadow" || key == "contact_shadow" || key == "panel_overlap"))
+        if (dynamic
+            && ((group == "widgets" && key != "font_family" && key != "font_weight")
+                || group == "widget-list"
+                || group == "capsules"
+                || group == "dead-zone"
+                || key == "dynamic_center"
+                || key == "auto_hide"
+                || key == "auto_hide_delay_ms"
+                || key == "show_on_workspace_switch"
+                || key == "margin_ends"
+                || key == "margin_opposite_edge"
+                || key == "padding"
+                || key == "shadow"
+                || key == "contact_shadow"
+                || key == "panel_overlap"))
           return false;
-        if ((wrap || dynamic || mode == "islands")
-            && (key.starts_with("radius_") || key == "concave_edge_corners"))
+        if ((wrap || dynamic || mode == "islands") && (key.starts_with("radius_") || key == "concave_edge_corners"))
           return false;
         if (wrap && (key == "margin_edge" || key == "shadow"))
           return false;

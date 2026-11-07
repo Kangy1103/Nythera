@@ -2,6 +2,8 @@
 #include "shell/bar/dynamic_island_style.h"
 #include "shell/bar/screen_wrap_geometry.h"
 #include "shell/bar/wrap_layout.h"
+#include "shell/panel/attached_panel_context.h"
+#include "shell/panel/panel_snapshot.h"
 #include "shell/settings/settings_registry.h"
 
 #include <cassert>
@@ -9,6 +11,132 @@
 #include <utility>
 
 int main() {
+  {
+    BarConfig top, left;
+    top.position = "top"; top.screenWrap = true; top.thickness = 50;
+    left = top; left.position = "left"; left.thickness = 40;
+    std::vector<BarConfig> bars{top, left};
+    auto mark = screen_wrap::topLeftBrandingRect(bars);
+    assert(mark.x == 0 && mark.y == 0 && mark.width == 65 && mark.height == 65);
+    bars[0].thickness = 100; bars[1].thickness = 80;
+    assert(screen_wrap::topLeftBrandingRect(bars).width == 130);
+    bars[0].thickness = 25; bars[1].thickness = 20;
+    assert(screen_wrap::topLeftBrandingRect(bars).width == 33);
+    bars[0].thickness = 50; bars[1].thickness = 40;
+    bars[0].marginEdge = 20; bars[1].marginEdge = 10;
+    assert(screen_wrap::topLeftBrandingRect(bars).width == 65);
+    bars[1].enabled = false;
+    assert(screen_wrap::topLeftBrandingRect(bars).width == 0);
+    bars[1].enabled = true; bars[0].screenWrap = false;
+    assert(screen_wrap::topLeftBrandingRect(bars).width == 0);
+    bars[0].screenWrap = true; bars[0].position = "bottom";
+    assert(screen_wrap::topLeftBrandingRect(bars).width == 0);
+  }
+  for (int edge = 0; edge < 4; ++edge) {
+    ScreenFrameContour frame;
+    frame.width = frame.height = 1000;
+    ScreenFrameBand bar;
+    bar.edge = edge; bar.depth = 50; bar.spans[1] = {200, 800};
+    appendScreenFrameTool(frame, bar, {450, 550}, 150, 1);
+    assert((bar.spans[1] == ScreenFrameSpan{}));
+    assert((frame.bands[0].neckSpan == ScreenFrameSpan{200, 800}));
+    frame.bands.push_back(bar);
+    const auto at = [&](float u, float v) {
+      return screenFrameDistance(frame, edge == 1 ? 1000-v : edge == 3 ? v : u,
+                                 edge == 2 ? 1000-v : edge == 0 ? v : u);
+    };
+    assert(at(250, 25) < 0); // label/visualiser keep their original lane backdrop
+    assert(at(500, 100) < 0); // small drawer grows below the lane
+    assert(at(250, 100) > 0); // do not turn the entire wide lane into a large drawer
+    // A drawer aligned to either outer side must not make that side bulge
+    // around the old bar depth. Inward step rounding remains inside the bounds.
+    for (const auto span : {ScreenFrameSpan{200, 300}, ScreenFrameSpan{700, 800}}) {
+      frame.bands.clear();
+      bar.spans[1] = {200, 800};
+      appendScreenFrameTool(frame, bar, span, 150, 1);
+      frame.bands.push_back(bar);
+      const float side = span.begin == 200 ? 200.0F : 800.0F;
+      for (float v : {35.0F, 40.0F, 45.0F, 50.0F, 55.0F, 70.0F, 110.0F})
+        assert(std::abs(at(side, v)) < 0.001F);
+    }
+  }
+  {
+    ScreenFrameContour frame;
+    frame.rail = 6; frame.radius = 20;
+    ScreenFrameBand top, left;
+    top.edge = 0; top.depth = 50;
+    left.edge = 3; left.depth = 40;
+    frame.bands = {top, left};
+    const auto crop = panelSnapshotRegion({0, 0, 600, 500}, 1000, 800, frame);
+    assert(crop.x == 40 && crop.y == 50 && crop.width == 560 && crop.height == 450);
+    const auto offscreen = panelSnapshotRegion({990, 790, 100, 100}, 1000, 800, frame);
+    assert(offscreen.width == 0 && offscreen.height == 0);
+  }
+  // Panel joins are based on the panel's actual edges, regardless of lane.
+  assert((joinedPanelFrameSpan({40, 500}, 1000, 80, 50) == ScreenFrameSpan{-50, 500}));
+  assert((joinedPanelFrameSpan({500, 960}, 1000, 80, 50) == ScreenFrameSpan{500, 1050}));
+  assert((joinedPanelFrameSpan({40, 960}, 1000, 80, 50) == ScreenFrameSpan{-50, 1050}));
+  assert((joinedPanelFrameSpan({81, 919}, 1000, 80, 50) == ScreenFrameSpan{81, 919}));
+  assert((joinedPanelFrameSpan({40, 960}, 1000, 0, 50) == ScreenFrameSpan{40, 960}));
+  // Expanded native tools replace their island, giving straight shared sides
+  // below the curved wrap junction, without a second waist at the old bar edge.
+  for (int edge = 0; edge < 4; ++edge) for (int lane = 0; lane < 3; ++lane) for (bool wrapped : {false, true}) {
+    ScreenFrameContour frame;
+    frame.width = frame.height = 1000;
+    if (!wrapped) frame.rail = -1;
+    ScreenFrameBand bar;
+    bar.edge = edge;
+    bar.edgeAttached = wrapped;
+    bar.depth = 50;
+    bar.spans[lane] = {300, 700};
+    const int sibling = (lane + 1) % 3;
+    bar.spans[sibling] = {40, 80};
+    appendScreenFrameTool(frame, bar, {300, 700}, 500, lane);
+    assert(bar.spans[lane] == ScreenFrameSpan{});
+    assert((bar.spans[sibling] == ScreenFrameSpan{40, 80}));
+    frame.bands.push_back(bar);
+    const auto at = [&](float u, float v) {
+      return screenFrameDistance(frame,
+          edge == 1 ? 1000-v : edge == 3 ? v : u,
+          edge == 2 ? 1000-v : edge == 0 ? v : u);
+    };
+    if (wrapped) assert(at(295, 8) < 0); // concave curve still joins the wrap
+    for (float v : {35.0F, 45.0F, 50.0F, 60.0F, 100.0F, 450.0F}) {
+      assert(std::abs(at(300, v)) < 0.001F);
+      assert(std::abs(at(700, v)) < 0.001F);
+      assert(at(299, v) > 0 && at(301, v) < 0);
+    }
+  }
+  // The staged native-panel trial keeps the whole surface width clipped in both
+  // directions; ordinary island reveals retain their compact-to-panel width change.
+  assert(attached_panel::mainAxisRevealClipExtent(760, 120, 700, 0.0F, true) == 760);
+  assert(attached_panel::mainAxisRevealClipExtent(760, 120, 700, 0.5F, true) == 760);
+  assert(attached_panel::mainAxisRevealClipExtent(760, 120, 700, 1.0F, true) == 760);
+  assert(attached_panel::mainAxisRevealClipExtent(760, 120, 700, 0.5F, false) == 410);
+
+  // A full-width native panel slides only into the body region. During island
+  // widening (slide=0) no controls can leak into the neck, in any orientation.
+  for (auto direction : {AttachedRevealDirection::Down, AttachedRevealDirection::Up,
+                         AttachedRevealDirection::Right, AttachedRevealDirection::Left}) {
+    const bool side = direction == AttachedRevealDirection::Right || direction == AttachedRevealDirection::Left;
+    const bool forward = direction == AttachedRevealDirection::Down || direction == AttachedRevealDirection::Right;
+    const float panelW = 600, panelH = 500;
+    const float sw = side ? 670 : 660, sh = side ? 560 : 570;
+    const float ix = side ? (forward ? 50.0F : 20.0F) : 30.0F;
+    const float iy = side ? 30.0F : (forward ? 50.0F : 20.0F);
+    const auto clip = attached_panel::stagedPanelBodyClip(direction, sw, sh, ix, iy, panelW, panelH);
+    const auto overlap = [](float a, float length, float b, float otherLength) {
+      return std::max(0.0F, std::min(a + length, b + otherLength) - std::max(a, b));
+    };
+    for (float progress : {0.0F, 0.25F, 0.5F, 1.0F}) {
+      const float travel = (side ? panelW : panelH) * (1 - progress) * (forward ? -1 : 1);
+      const float visibleX = overlap(ix + (side ? travel : 0), panelW, clip.x, clip.width);
+      const float visibleY = overlap(iy + (side ? 0 : travel), panelH, clip.y, clip.height);
+      assert(std::abs((side ? visibleX : visibleY) - (side ? panelW : panelH) * progress) < 0.01F);
+      assert((side ? visibleY : visibleX) == (side ? panelH : panelW));
+    }
+  }
+
   const std::array<ScreenFrameSpan, 3> spans{{{40, 200}, {450, 550}, {800, 960}}};
   const auto joined = joinedScreenFrameSpans(spans, 1000, 80, 50);
   assert(joined[0].begin == -50 && joined[2].end == 1050 && joined[1] == spans[1]);
@@ -85,7 +213,22 @@ int main() {
     left.thickness = 40;
     std::vector<BarConfig> bars{top, left};
     const auto t = screen_wrap::tracks(bars, 0), l = screen_wrap::tracks(bars, 1);
-    assert(t.offset == 0 && l.offset == 0 && t.endInset >= 40 && l.endInset >= 50);
+    assert(t.offset == 0 && l.offset == 0 && t.startInset == 52 && l.startInset == 62
+           && t.endInset == 18 && l.endInset == 18);
+    bars[0].marginEnds = 100; // saved unwrapped margins cannot cap the frame control
+    bars[0].wrapJoinedCornerGap = 0;
+    bars[0].wrapFreeCornerGap = 0;
+    assert(screen_wrap::tracks(bars, 0).startInset == 40);
+    assert(screen_wrap::tracks(bars, 0).endInset == 6);
+    bars[0].wrapJoinedCornerGap = 12;
+    bars[0].wrapFreeCornerGap = 12;
+    for (int clearance = 0; clearance <= 7; ++clearance) {
+      auto sample = bars;
+      for (auto& bar : sample) bar.wrapClearance = clearance;
+      const auto reserved = screen_wrap::reservations(sample, std::array<int, 2>{50, 40});
+      assert(reserved[0] == 50 + clearance && reserved[3] == 40 + clearance);
+      assert(reserved[1] == 6 + clearance && reserved[2] == 6 + clearance);
+    }
     bars.push_back(left);
     assert(screen_wrap::tracks(bars, 2).offset == 40);
     std::array<int, 3> requests{50, 40, 80};
@@ -124,29 +267,90 @@ int main() {
     assert(limited[0] + limited[2] == 532 && limited[1] + limited[3] == 852);
     assert((screen_wrap::reservations(bars, std::array<int, 3>{}) == std::array<int, 4>{}));
   }
+  {
+    ScreenFrameContour c;
+    c.width = 1000;
+    c.height = 600;
+    c.rail = 6;
+    ScreenFrameBand inner;
+    inner.edge = 3;
+    inner.outer = 50;
+    inner.depth = 100;
+    inner.radius = 12;
+    inner.join = 24;
+    inner.spans[1] = {250, 350};
+    c.bands = {inner};
+    for (int x = 7; x < 95; ++x)
+      assert(screenFrameDistance(c, x, 300) < -2);
+    assert(screenFrameDistance(c, 102, 300) > 0);
+    for (int edge = 0; edge < 4; ++edge) {
+      c.bands[0].edge = edge;
+      const float x = edge == 0 || edge == 2 ? 300 : edge == 3 ? 50 : 950;
+      const float y = edge == 1 || edge == 3 ? 300 : edge == 0 ? 50 : 550;
+      assert(screenFrameDistance(c, x, y) < -2);
+    }
+  }
   const auto square = screen_wrap::geometry(3440, 1440, 6, 0, 50, "top", false, 2);
   assert(square.radius == 0 && square.strips[0].height == 8 && square.strips[2].width == 8);
   Config config;
+  {
+    const auto entries = settings::buildSettingsRegistry(config, nullptr, nullptr);
+    const auto it = std::find_if(entries.begin(), entries.end(), [](const auto& entry) {
+      return entry.path == std::vector<std::string>{"shell", "panel", "snapshot_blur_strength"};
+    });
+    assert(it != entries.end());
+    assert(it->visibleWhen && it->visibleWhen(config));
+    config.shell.panel.snapshotBlur = false;
+    assert(!it->visibleWhen(config));
+    config.shell.panel.snapshotBlur = true;
+  }
   BarConfig bar;
   bar.screenWrap = true;
   BarMonitorOverride monitor;
   monitor.match = "DP-1";
-  monitor.screenWrap = false;
-  monitor.wrapWidth = 9;
-  monitor.wrapRadius = 24;
   bar.monitorOverrides = {monitor};
   config.bars = {bar};
-  for (bool perMonitor : {false, true}) {
-    const auto entries = settings::buildSettingsRegistry(config, &bar, perMonitor ? &monitor : nullptr);
-    for (auto key : {"screen_wrap", "wrap_width", "wrap_clearance", "wrap_radius", "wrap_join_distance"}) {
-      const std::vector<std::string> path = perMonitor
-          ? std::vector<std::string>{"bar", "default", "monitor", "DP-1", key}
-          : std::vector<std::string>{"bar", "default", key};
-      const auto entry = std::ranges::find(entries, path, &settings::SettingEntry::path);
-      assert(entry != entries.end());
-      assert(entry->group == "effects" && !entry->advanced);
-      if (std::string_view(key) == "screen_wrap")
-        assert(std::get<settings::ToggleSetting>(entry->control).checked == !perMonitor);
+  config.shell.screenWrap.enabled = true;
+
+  {
+    const auto entries = settings::buildSettingsRegistry(config, &bar, nullptr);
+    assert(
+        std::ranges::find(
+            entries, std::vector<std::string>{"shell", "screen_wrap", "enabled"}, &settings::SettingEntry::path
+        )
+        != entries.end()
+    );
+    assert(
+        std::ranges::find(
+            entries, std::vector<std::string>{"bar", "default", "screen_wrap"}, &settings::SettingEntry::path
+        )
+        == entries.end()
+    );
+  }
+  {
+    const auto entries = settings::buildSettingsRegistry(config, &bar, nullptr);
+    for (const auto& entry : entries)
+      if (entry.path.size() > 2 && entry.path[0] == "shell" && entry.path[1] == "screen_wrap")
+        assert(entry.path[2] != "monitor");
+    for (int edge = 0; edge < 4; ++edge) {
+      ScreenFrameContour detached;
+      detached.width = detached.height = 600;
+      detached.rail = -1;
+      ScreenFrameBand band;
+      band.edge = edge; band.edgeAttached = false;
+      band.outer = 20; band.depth = 70; band.radius = 12;
+      band.spans[1] = {100, 300};
+      detached.bands.push_back(band);
+      const auto at = [&](float u, float v) {
+        return screenFrameDistance(detached,
+            edge == 1 ? 600-v : edge == 3 ? v : u,
+            edge == 2 ? 600-v : edge == 0 ? v : u);
+      };
+      assert(at(200, 10) > 0); // no rail or fill in the saved unwrapped edge gap
+      assert(at(200, 40) < 0);
+      assert(at(400, 40) > 0); // other gaps stay transparent
+      detached.bands[0].depth = 250; // native tool grows out of that island
+      assert(at(200, 70) < -2); // the former bar edge is inside the union, not an outlined seam
     }
   }
   // Visibility follows live base/monitor choices, not the config used to build the registry.
@@ -154,9 +358,14 @@ int main() {
   {
     const auto entries = settings::buildSettingsRegistry(config, &bar, nullptr);
     const auto visible = [&](std::string key, bool perMonitor = false) {
-      const auto path = perMonitor
-          ? std::vector<std::string>{"bar", "default", "monitor", "DP-1", key}
-          : std::vector<std::string>{"bar", "default", key};
+      std::vector<std::string> path;
+      if (key == "screen_wrap" || key.starts_with("wrap_")) {
+        const std::string field = key == "screen_wrap" ? "enabled" : key.substr(5);
+        path = perMonitor ? std::vector<std::string>{"shell", "screen_wrap", "monitor", "DP-1", field}
+                          : std::vector<std::string>{"shell", "screen_wrap", field};
+      } else
+        path = perMonitor ? std::vector<std::string>{"bar", "default", "monitor", "DP-1", key}
+                          : std::vector<std::string>{"bar", "default", key};
       const auto entry = std::ranges::find(entries, path, &settings::SettingEntry::path);
       assert(entry != entries.end());
       return !entry->visibleWhen || entry->visibleWhen(config);
@@ -165,13 +374,14 @@ int main() {
     b.surfaceMode = "full";
     assert(visible("surface_mode") && visible("screen_wrap"));
     assert(!visible("dynamic_media") && visible("start") && visible("dynamic_center"));
-    assert(visible("wrap_width") && !visible("wrap_width", true));
-    assert(!visible("wrap_join_distance") && !visible("margin_edge") && !visible("shadow"));
+    assert(visible("wrap_width"));
+    assert(visible("wrap_joined_corner_gap") && visible("wrap_free_corner_gap"));
+    assert(visible("wrap_join_distance") && !visible("margin_edge") && !visible("shadow"));
     b.surfaceMode = "islands";
     assert(visible("wrap_join_distance") && visible("start"));
     b.surfaceMode = "dynamic";
     assert(visible("dynamic_media") && visible("dynamic_clock_format"));
-    assert(!visible("wrap_join_distance"));
+    assert(visible("wrap_join_distance"));
     assert(!visible("start") && !visible("capsule") && !visible("dynamic_center"));
     assert(visible("font_family") && visible("font_weight") && visible("font_family", true));
     assert(visible("dynamic_privacy") && visible("dynamic_devices") && visible("dynamic_activity_indicators"));
@@ -189,7 +399,7 @@ int main() {
     assert(visible("dynamic_timer_seconds") && visible("dynamic_alarm_time"));
     assert(visible("dynamic_snooze_seconds"));
     b.reserveSpace = false;
-    assert(!visible("wrap_clearance"));
+    assert(visible("wrap_clearance"));
     b.reserveSpace = true;
     assert(visible("wrap_clearance"));
     b.transparencyMode = BarTransparencyMode::Soft;
@@ -202,12 +412,12 @@ int main() {
     assert(!visible("dynamic_media", true) && visible("start", true));
     assert(!visible("background_opacity", true));
     o.surfaceMode.reset();
-    o.screenWrap.reset();
-    assert(visible("dynamic_media", true) && visible("wrap_width", true));
+
+    assert(visible("dynamic_media", true) && visible("wrap_width"));
     o.dynamicTimers = false;
     assert(!visible("dynamic_timer_seconds", true) && visible("dynamic_timer_seconds"));
-    b.screenWrap = false;
-    assert(!visible("wrap_width") && !visible("wrap_width", true));
+    config.shell.screenWrap.enabled = false;
+    assert(!visible("wrap_width"));
     assert(visible("margin_edge"));
     b.surfaceMode = "full";
     assert(visible("start") && visible("shadow") && !visible("dynamic_media"));

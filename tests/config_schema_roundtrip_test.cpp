@@ -211,7 +211,6 @@ location = "https://example.invalid/bad"
     bar.backgroundOpacity = 0.85F;
     bar.transparencyMode = BarTransparencyMode::Soft;
     bar.surfaceMode = "islands";
-    bar.wrapClearance = 17;
     bar.dynamicCenter = true;
     bar.compositorBlur = false;
     bar.border = colorSpecFromConfigString("#123456");
@@ -311,11 +310,7 @@ location = "https://example.invalid/bad"
     ovr.dynamicDwellMs = 3500;
     ovr.dynamicWidth = 360;
     ovr.dynamicClockFormat = "%H:%M";
-    ovr.screenWrap = false;
-    ovr.wrapWidth = 6;
-    ovr.wrapClearance = 0;
-    ovr.wrapRadius = 20;
-    ovr.wrapJoinDistance = 80;
+
     ovr.compositorBlur = true;
     ovr.border = colorSpecFromConfigString("#a1a2a3");
     ovr.borderWidth = 3.0F;
@@ -569,6 +564,8 @@ location = "https://example.invalid/bad"
     c.shell.animation.speed = 1.5F;
     c.shell.shadow.direction = ShadowDirection::UpLeft;
     c.shell.panel.transparencyMode = PanelTransparencyMode::Glass;
+    c.shell.panel.snapshotBlur = false;
+    c.shell.panel.snapshotBlurStrength = 7.0F;
     c.shell.panel.floatingLayer = "top";
     c.shell.panel.launcherPlacement = PanelPlacement::Floating;
     c.shell.launcher.layout = ShellConfig::LauncherLayout::Simple;
@@ -681,6 +678,13 @@ location = "https://example.invalid/bad"
   }
 
   void checkClamps() {
+    for (const auto [value, expected] : {std::pair{-5, 0.0F}, std::pair{99, 20.0F}}) {
+      auto t = toml::parse("[panel]\nsnapshot_blur_strength = " + std::to_string(value));
+      ShellConfig shell;
+      Diagnostics d;
+      readInto(t, shell, shellSchema(), "shell", d);
+      if (shell.panel.snapshotBlurStrength != expected) fail("panel snapshot blur strength clamp");
+    }
     // Calendar reminder lead is capped at a day ahead.
     {
       auto t = toml::parse("default_lead_minutes = 99999");
@@ -1176,53 +1180,30 @@ blend = false
 int main() {
   checkIdleActionResolution();
   {
-    const auto table = toml::parse(R"(surface_mode = "full"
-dynamic_center = false
-screen_wrap = false
-wrap_width = 9
-wrap_radius = 24
-wrap_join_distance = 0
-dynamic_privacy = false
-dynamic_visualizer = true)");
-    BarMonitorOverride monitor;
+    const auto table = toml::parse(R"(
+[screen_wrap]
+enabled = true
+width = 9
+radius = 24
+joined_corner_gap = 17
+free_corner_gap = 0
+join_distance = 0
+)");
+    ShellConfig shell;
     Diagnostics diag;
-    readInto(table, monitor, barMonitorOverrideSchema(), "bar.default.monitor.DP-1", diag);
-    if (monitor.surfaceMode != "full"
-        || monitor.dynamicCenter != false
-        || monitor.screenWrap != false
-        || monitor.wrapWidth != 9
-        || monitor.wrapRadius != 24
-        || monitor.wrapJoinDistance != 0)
-      fail("monitor presentation overrides lost explicit values");
-    const auto exported = writeTable(monitor, barMonitorOverrideSchema());
-    BarMonitorOverride restored;
-    readInto(exported, restored, barMonitorOverrideSchema(), "bar.default.monitor.DP-1", diag);
-    if (!(monitor == restored)) fail("monitor presentation override round trip changed values");
-    BarConfig base;
-    base.screenWrap = true;
-    base.surfaceMode = "islands";
-    monitor.match = "DP-1";
-    base.monitorOverrides.push_back(monitor);
-    WaylandOutput output;
-    output.connectorName = "DP-1";
-    const auto resolved = ConfigService::resolveForOutput(base, output);
-    if (resolved.screenWrap
-        || resolved.wrapWidth != 9
-        || resolved.wrapRadius != 24
-        || resolved.wrapJoinDistance != 0
-        || resolved.surfaceMode != "full"
-        || resolved.dynamicPrivacy || !resolved.dynamicVisualizer)
-      fail("runtime monitor frame overrides did not resolve");
-    Config config;
-    config.bars = {base};
-    const auto exportedConfig = config_export::serialize(config);
-    if (exportedConfig["bar"]["default"]["monitor"]["DP-1"]["screen_wrap"].value<bool>() != false
-        || exportedConfig["bar"]["default"]["monitor"]["DP-1"]["wrap_width"].value<int>() != 9
-        || exportedConfig["bar"]["default"]["monitor"]["DP-1"]["wrap_join_distance"].value<int>() != 0)
-      fail("flattened monitor frame export lost explicit overrides");
-    BarConfig defaults;
-    if (defaults.dynamicCenter || defaults.screenWrap || defaults.surfaceMode != "full")
-      fail("experimental presentation enabled by default");
+    readInto(table, shell, shellSchema(), "shell", diag);
+    if (!shell.screenWrap.enabled
+        || shell.screenWrap.width != 9
+        || shell.screenWrap.joinedCornerGap != 17
+        || shell.screenWrap.freeCornerGap != 0
+        || shell.screenWrap.joinDistance != 0)
+      fail("display frame settings lost explicit values");
+    const auto exported = writeTable(shell, shellSchema());
+    ShellConfig restored;
+    readInto(exported, restored, shellSchema(), "shell", diag);
+    if (shell.screenWrap != restored.screenWrap)
+      fail("display frame settings failed round trip");
+
   }
   // Captured from the pre-refactor config_export::serialize for the fully-specified probe
   // bar. Pins byte-identical bar serialization across the schema migration: the
@@ -1291,7 +1272,6 @@ radius_top_left = 4
 radius_top_right = 6
 reserve_space = false
 scale = 2.0
-screen_wrap = false
 shadow = false
 show_on_workspace_switch = true
 show_tooltip = false
@@ -1301,10 +1281,6 @@ surface_mode = "islands"
 thickness = 44
 transparency_mode = "soft"
 widget_spacing = 8
-wrap_clearance = 17
-wrap_join_distance = 80
-wrap_radius = 20
-wrap_width = 6
 
     [default.actions]
     middle = "none"
@@ -1383,7 +1359,6 @@ wrap_width = 6
     radius_top_right = 2
     reserve_space = true
     scale = 1.5
-    screen_wrap = false
     shadow = true
     show_on_workspace_switch = true
     show_tooltip = true
@@ -1393,10 +1368,6 @@ wrap_width = 6
     thickness = 50
     transparency_mode = "glass"
     widget_spacing = 7
-    wrap_clearance = 0
-    wrap_join_distance = 80
-    wrap_radius = 20
-    wrap_width = 6
 
         [default.monitor.DP-1.actions]
         middle = "none"
@@ -1538,28 +1509,41 @@ wrap_width = 6
     bar.backgroundOpacity = 0.37F;
     WaylandOutput output;
     output.connectorName = "DP-1";
-    for (const auto mode : {BarTransparencyMode::Custom, BarTransparencyMode::Solid, BarTransparencyMode::Soft, BarTransparencyMode::Glass}) {
+    for (const auto mode :
+         {BarTransparencyMode::Custom, BarTransparencyMode::Solid, BarTransparencyMode::Soft,
+          BarTransparencyMode::Glass}) {
       bar.transparencyMode = mode;
       const auto resolved = ConfigService::resolveForOutput(bar, output);
-      const auto expected = mode == BarTransparencyMode::Custom ? 0.37F : mode == BarTransparencyMode::Solid ? 1.0F : mode == BarTransparencyMode::Soft ? 0.8F : 0.55F;
-      if (std::abs(resolved.backgroundOpacity - expected) > 0.0001F) fail("bar transparency preset did not resolve");
-      if (bar.backgroundOpacity != 0.37F) fail("preset overwrote saved Custom opacity");
+      const auto expected = mode == BarTransparencyMode::Custom ? 0.37F
+          : mode == BarTransparencyMode::Solid                  ? 1.0F
+          : mode == BarTransparencyMode::Soft                   ? 0.8F
+                                                                : 0.55F;
+      if (std::abs(resolved.backgroundOpacity - expected) > 0.0001F)
+        fail("bar transparency preset did not resolve");
+      if (bar.backgroundOpacity != 0.37F)
+        fail("preset overwrote saved Custom opacity");
     }
     BarMonitorOverride monitor;
     monitor.match = "DP-1";
     monitor.transparencyMode = BarTransparencyMode::Custom;
     bar.monitorOverrides = {monitor};
-    if (ConfigService::resolveForOutput(bar, output).backgroundOpacity != 0.37F) fail("monitor Custom did not override inherited Glass");
+    if (ConfigService::resolveForOutput(bar, output).backgroundOpacity != 0.37F)
+      fail("monitor Custom did not override inherited Glass");
     nythera::config::schema::Diagnostics diag;
-    const auto table = nythera::config::schema::writeTable(monitor, nythera::config::schema::barMonitorOverrideSchema());
+    const auto table =
+        nythera::config::schema::writeTable(monitor, nythera::config::schema::barMonitorOverrideSchema());
     BarMonitorOverride restored;
-    nythera::config::schema::readInto(table, restored, nythera::config::schema::barMonitorOverrideSchema(), "bar.default.monitor.DP-1", diag);
-    if (restored.transparencyMode != BarTransparencyMode::Custom) fail("monitor transparency round-trip lost explicit Custom");
+    nythera::config::schema::readInto(
+        table, restored, nythera::config::schema::barMonitorOverrideSchema(), "bar.default.monitor.DP-1", diag
+    );
+    if (restored.transparencyMode != BarTransparencyMode::Custom)
+      fail("monitor transparency round-trip lost explicit Custom");
     Config settingsConfig;
     settingsConfig.bars = {bar};
     const auto entries = settings::buildSettingsRegistry(settingsConfig, &bar, nullptr);
     const std::vector<std::string> path{"bar", "default", "transparency_mode"};
-    if (std::ranges::find(entries, path, &settings::SettingEntry::path) == entries.end()) fail("bar transparency not exposed in Settings");
+    if (std::ranges::find(entries, path, &settings::SettingEntry::path) == entries.end())
+      fail("bar transparency not exposed in Settings");
   }
 
   checkPluginIdValidation();

@@ -1,12 +1,39 @@
 #pragma once
 
 #include "config/config_types.h"
+#include "shell/bar/screen_wrap_geometry.h"
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <span>
 
 namespace screen_wrap {
+  // The unused intersection of the top and left tracks owns the shell mark.
+  // It is decoration on the shared frame, not a configured bar widget.
+  inline Rect topLeftBrandingRect(std::span<const BarConfig> bars) {
+    int top = 0, left = 0;
+    int topThickness = 0, leftThickness = 0;
+    for (const auto& bar : bars) {
+      if (!bar.enabled || !bar.screenWrap) continue;
+      const int depth = bar.marginEdge + bar.thickness;
+      if (bar.position == "top") {
+        top = std::max(top, depth);
+        topThickness = std::max(topThickness, bar.thickness);
+      }
+      if (bar.position == "left") {
+        left = std::max(left, depth);
+        leftThickness = std::max(leftThickness, bar.thickness);
+      }
+    }
+    // Oversize the artwork, keeping its box inside the screen edges.
+    // Preserve the approved 65 px mark at a 40 px narrower joining bar.
+    // Edge margins position the mark but do not change the artwork's scale.
+    constexpr float ratio = 65.0F / 40.0F;
+    const int size = static_cast<int>(std::lround(static_cast<float>(std::min(topThickness, leftThickness)) * ratio));
+    return size > 0 ? Rect{std::max(0, (left - size) / 2), std::max(0, (top - size) / 2), size, size} : Rect{};
+  }
+
   inline int edgeIndex(std::string_view edge) {
     return edge == "right" ? 1 : edge == "bottom" ? 2 : edge == "left" ? 3 : 0;
   }
@@ -15,7 +42,7 @@ namespace screen_wrap {
   struct Tracks {
     std::array<int, 4> depth{};
     int offset = 0;
-    int endInset = 0;
+    int startInset = 0, endInset = 0;
   };
   inline Tracks tracks(std::span<const BarConfig> bars, std::size_t selected) {
     Tracks result;
@@ -33,10 +60,11 @@ namespace screen_wrap {
     const bool vertical = edge == 1 || edge == 3;
     const int startDepth = result.depth[vertical ? 0 : 3];
     const int endDepth = result.depth[vertical ? 2 : 1];
-    result.endInset = std::max(
-        {bar.marginEnds, bar.wrapWidth + (bar.surfaceMode == "full" ? 0 : bar.wrapRadius),
-         startDepth > 0 ? startDepth + bar.radius : 0, endDepth > 0 ? endDepth + bar.radius : 0}
-    );
+    const auto inset = [&](int adjoiningDepth) {
+      return adjoiningDepth > 0 ? adjoiningDepth + bar.wrapJoinedCornerGap : bar.wrapWidth + bar.wrapFreeCornerGap;
+    };
+    result.startInset = inset(startDepth);
+    result.endInset = inset(endDepth);
     return result;
   }
 
@@ -45,16 +73,18 @@ namespace screen_wrap {
   inline std::array<int, 4> reservations(std::span<const BarConfig> bars, std::span<const int> requests) {
     std::array<int, 4> result{};
     int clearance = 0, rail = 0;
+    bool reserving = false;
     for (std::size_t i = 0; i < bars.size(); ++i) {
       const auto& b = bars[i];
       rail = std::max(rail, b.wrapWidth);
       if (requests[i] <= 0)
         continue;
+      reserving = true;
       clearance = std::max(clearance, b.wrapClearance);
       result[edgeIndex(b.position)] = std::max(result[edgeIndex(b.position)], requests[i]);
     }
     for (auto& edge : result) {
-      if (clearance > 0)
+      if (reserving)
         edge = std::max(edge, rail) + clearance;
     }
     return result;

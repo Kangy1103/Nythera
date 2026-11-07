@@ -37,6 +37,10 @@ precision highp float;
 
 uniform vec2 u_rect_size;
 uniform vec4 u_color;
+uniform sampler2D u_backdrop;
+uniform vec4 u_backdrop_source;
+uniform float u_backdrop_opacity;
+uniform int u_has_backdrop;
 uniform vec4 u_border_color;
 uniform int u_fill_mode;
 uniform vec2 u_gradient_direction;
@@ -309,6 +313,11 @@ void main() {
         fill_base = gradient_fill(gradient_pos);
     }
 
+    if (u_has_backdrop != 0) {
+        vec2 sample_uv = clamp((local_point - u_backdrop_source.xy) / u_backdrop_source.zw, vec2(0.0), vec2(1.0));
+        vec3 captured = texture2D(u_backdrop, sample_uv).rgb;
+        fill_base = vec4(mix(captured, fill_base.rgb, fill_base.a), u_backdrop_opacity);
+    }
     if (u_border_width <= 0.0 || u_border_color.a <= 0.0) {
         float out_alpha = fill_base.a * outer_coverage;
         if (out_alpha <= 0.0) {
@@ -370,6 +379,10 @@ void RectProgram::ensureInitialized() {
   }
 
   m_program.create(kVertexShaderSource, kFragmentShaderSource);
+  m_backdropLocation = glGetUniformLocation(m_program.id(), "u_backdrop");
+  m_backdropSourceLocation = glGetUniformLocation(m_program.id(), "u_backdrop_source");
+  m_backdropOpacityLocation = glGetUniformLocation(m_program.id(), "u_backdrop_opacity");
+  m_hasBackdropLocation = glGetUniformLocation(m_program.id(), "u_has_backdrop");
   m_positionLocation = glGetAttribLocation(m_program.id(), "a_position");
   m_surfaceSizeLocation = glGetUniformLocation(m_program.id(), "u_surface_size");
   m_quadSizeLocation = glGetUniformLocation(m_program.id(), "u_quad_size");
@@ -430,7 +443,9 @@ void RectProgram::ensureInitialized() {
       || m_shadowExclusionCornerShapesLocation < 0
       || m_shadowExclusionLogicalInsetLocation < 0
       || m_shadowExclusionRadiiLocation < 0
-      || m_transformLocation < 0) {
+      || m_transformLocation < 0
+      || m_backdropLocation < 0 || m_backdropSourceLocation < 0
+      || m_backdropOpacityLocation < 0 || m_hasBackdropLocation < 0) {
     throw std::runtime_error("failed to query rounded-rect shader locations");
   }
 }
@@ -490,6 +505,12 @@ void RectProgram::draw(
   const Mat3 quadTransform = transform * Mat3::translation(-padding, -padding);
 
   glUseProgram(m_program.id());
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, style.backdrop.texture.value());
+  glUniform1i(m_backdropLocation, 0);
+  glUniform1i(m_hasBackdropLocation, style.backdrop.texture.valid() ? 1 : 0);
+  glUniform1f(m_backdropOpacityLocation, style.backdrop.opacity);
+  glUniform4fv(m_backdropSourceLocation, 1, style.backdrop.source.data());
   glUniform2f(m_surfaceSizeLocation, surfaceWidth, surfaceHeight);
   glUniform2f(m_quadSizeLocation, quadWidth, quadHeight);
   glUniform2f(m_rectOriginLocation, rectOrigin, rectOrigin);

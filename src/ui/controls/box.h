@@ -22,6 +22,7 @@ public:
   void setFill(const ColorSpec& color);
   // Explicit fixed color.
   void setFill(const Color& color);
+  void setBackdrop(const ScreenFrameBackdrop& backdrop);
   void setBorder(const ColorSpec& color, float width);
   void setBorder(const Color& color, float width);
   void clearBorder();

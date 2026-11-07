@@ -15,6 +15,118 @@
 namespace nythera::config {
   namespace {
 
+    toml::table* ensureTable(toml::table& parent, std::string_view key) {
+      if (!parent.contains(key))
+        parent.insert(key, toml::table{});
+      return parent[key].as_table();
+    }
+    // Promote the former bar-owned frame settings once. Explicit new settings
+    // win; enabled is the union of participating bars. Prefer the default bar's
+    // dimensions when legacy bars disagree, then preserve monitor overrides.
+    bool promoteScreenWrap(toml::table& root) {
+      if ((root["shell"] && !root["shell"].is_table())
+          || (root["shell"]["screen_wrap"] && !root["shell"]["screen_wrap"].is_table())
+          || (root["shell"]["screen_wrap"]["monitor"] && !root["shell"]["screen_wrap"]["monitor"].is_table()))
+        return false;
+      auto* bars = root["bar"].as_table();
+      if (!bars)
+        return false;
+      const std::pair<std::string_view, std::string_view> keys[] = {
+          {"screen_wrap", "enabled"},
+          {"wrap_width", "width"},
+          {"wrap_radius", "radius"},
+          {"wrap_clearance", "clearance"},
+          {"wrap_join_distance", "join_distance"}
+      };
+      bool found = false;
+      toml::table promoted;
+      const auto collect = [&](toml::table& bar) {
+        for (const auto& [oldKey, newKey] : keys) {
+          if (const auto* value = bar.get(oldKey)) {
+            found = true;
+            if (newKey == "enabled") {
+              promoted.insert_or_assign(newKey, promoted[newKey].value_or(false) || value->value_or(false));
+            } else if (!promoted.contains(newKey))
+              promoted.insert(newKey, *value);
+          }
+          bar.erase(oldKey);
+        }
+      };
+      // Gather monitor settings separately from globals, so each output has one
+      // shared setting rather than one setting for every bar.
+      toml::table monitors;
+      std::vector<toml::table*> ordered;
+      if (auto* bar = (*bars)["default"].as_table())
+        ordered.push_back(bar);
+      for (auto& [name, node] : *bars)
+        if (name.str() != "default" && node.is_table())
+          ordered.push_back(node.as_table());
+      for (auto* bar : ordered) {
+        collect(*bar);
+        if (auto* overrides = (*bar)["monitor"].as_table())
+          for (auto& [name, node] : *overrides) {
+            auto* table = node.as_table();
+            if (!table)
+              continue;
+            toml::table saved = std::move(promoted);
+            promoted = {};
+            collect(*table);
+            auto* target = ensureTable(monitors, name.str());
+            for (const auto& [key, value] : promoted) {
+              if (key.str() == "enabled")
+                target->insert_or_assign(key.str(), (*target)[key.str()].value_or(false) || value.value_or(false));
+              else if (!target->contains(key.str()))
+                target->insert(key, value);
+            }
+            if (auto* match = table->get("match"))
+              target->insert_or_assign("match", *match);
+            promoted = std::move(saved);
+          }
+      }
+      if (!found)
+        return false;
+      auto* target = ensureTable(*ensureTable(root, "shell"), "screen_wrap");
+      for (const auto& [key, value] : promoted)
+        if (!target->contains(key.str()))
+          target->insert(key, value);
+      auto* targetMonitors = ensureTable(*target, "monitor");
+      for (const auto& [name, node] : monitors) {
+        auto* out = ensureTable(*targetMonitors, name.str());
+        if (!out)
+          continue;
+        for (const auto& [key, value] : *node.as_table())
+          if (!out->contains(key.str()))
+            out->insert(key, value);
+      }
+      return true;
+    }
+    void migrateScreenWrapSidecar(toml::table& root, const toml::table& base, schema::Diagnostics&) {
+      if ((root["shell"] && !root["shell"].is_table())
+          || (root["shell"]["screen_wrap"] && !root["shell"]["screen_wrap"].is_table()))
+        return;
+      auto previous = base;
+      promoteScreenWrap(previous);
+      promoteScreenWrap(root);
+      if (const auto* oldFrame = previous["shell"]["screen_wrap"].as_table()) {
+        auto* target = ensureTable(*ensureTable(root, "shell"), "screen_wrap");
+        for (const auto& [key, value] : *oldFrame)
+          if (!target->contains(key.str()))
+            target->insert(key, value);
+      }
+    }
+
+    void simplifyScreenWrap(toml::table& root) {
+      auto* frame = root["shell"]["screen_wrap"].as_table();
+      if (!frame) return;
+      if (auto* gap = frame->get("corner_gap")) {
+        if (!frame->contains("joined_corner_gap")) frame->insert("joined_corner_gap", *gap);
+        if (!frame->contains("free_corner_gap")) frame->insert("free_corner_gap", *gap);
+        frame->erase("corner_gap");
+      }
+      // Screen Wrap is now one all-output preference; the global values win.
+      frame->erase("monitor");
+    }
+
     constexpr int kNegativeBarRadiusMigrationVersion = 1;
     constexpr int kCustomScheduleMigrationVersion = 2;
     constexpr int kWidgetActionsMigrationVersion = 3;
@@ -1001,6 +1113,12 @@ namespace nythera::config {
             .summary = "location: make the custom_schedule implied by settings sunset/sunrise explicit",
             .apply = migrateSettingsCustomScheduleSidecar,
         },
+        {.toVersion = 18,
+         .summary = "desktop: promote bar wraps to one display frame",
+         .apply = migrateScreenWrapSidecar},
+        {.toVersion = 19,
+         .summary = "desktop: simplify frame settings and separate joined/free corner gaps",
+         .apply = [](toml::table& root, const toml::table&, schema::Diagnostics&) { simplifyScreenWrap(root); }},
     };
     return migrations;
   }
@@ -1054,6 +1172,8 @@ namespace nythera::config {
   }
 
   void normalizeLegacyConfig(toml::table& root, LegacyConfigIssues& issues, const toml::table* sidecar) {
+    promoteScreenWrap(root);
+    simplifyScreenWrap(root);
     migrateNegativeBarRadii(root, [&issues](const std::string& path) {
       issues.push_back({
           .migrationVersion = kNegativeBarRadiusMigrationVersion,

@@ -82,6 +82,7 @@ private:
   std::unordered_map<std::string, std::string> m_appIcons;
   std::uint64_t m_desktopEntriesVersion = 0;
 
+  std::string m_retainedIdentifier, m_retainedTitle, m_retainedAppId;
   std::string m_lastIdentifier;
   std::string m_lastTitle;
   std::string m_lastAppId;

@@ -25,6 +25,8 @@ public:
   const ScreenFrameContour& contour() const;
   ScreenFrameStyle style() const;
   void setForegroundHole(InputRect);
+  void setAttachedTool(std::optional<ScreenFrameSpan>, float depth = 0, float bufferDepth = 0, int islandIndex = -1,
+                       ScreenFrameBackdrop backdrop = {});
   std::vector<InputRect> blurRegion(const screen_wrap::Rect&) const;
 
 private:
