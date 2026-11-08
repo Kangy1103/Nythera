@@ -1,0 +1,26 @@
+# Nythera customisation and compatibility register
+
+This document records **behavioural contracts**, not a frozen list of code to keep forever. During upstream integrations, preserve Nythera's intended behaviour while replacing obsolete implementations when needed. Use [REBRAND.md](../REBRAND.md) for identity, external APIs and migration contracts; [ARCHITECTURE.md](../ARCHITECTURE.md) for architectural invariants; and [SCOPE.md](../SCOPE.md) to distinguish committed scope from future ideas.
+
+Entries below are based on project documentation and must be confirmed against the local implementation before an integration. Do not treat a documented intention as proof that every aspect is implemented.
+
+| Area | Behaviour/decision to protect | Where to investigate | Integration risk / status |
+| --- | --- | --- | --- |
+| Application identity | Nythera owns its executable, configuration directories, IPC, D-Bus identifiers, font/glyph branding and packaging; genuine upstream services and third-party identifiers retain their proper names. | `REBRAND.md`; CLI, runtime, config, plugin and packaging code | **Documented existing contract.** Global replacement of `noctalia` is unsafe. |
+| Plugin compatibility | Upstream Noctalia Luau plugin references are translated at ingestion to the Nythera API; external plugin services and catalogue endpoints remain upstream-owned. | `REBRAND.md`; `src/scripting/`; `docs/plugin-api.json` | **Documented existing contract.** Check upstream API and plugin binding changes. |
+| Bars and floating islands | Traditional bars remain available alongside configurable bars/islands; preserve established user-approved layout and settings. | `src/shell/` bar and widget ownership; configuration and settings; `ARCHITECTURE.md` | **Documented active development.** Upstream bar geometry/surface/rendering changes may require adaptation. Verify actual implemented options. |
+| Dynamic island and screen wrap | Contextual island behaviour and screen-edge visual integration are key design goals. | `README.md`; `SCOPE.md`; bar/surface and rendering components | **Experimental / partially documented.** Confirm implemented behaviour and its controlling settings before marking preservation tests complete. |
+| Panel and control centre behaviour | Respect independent panel surfaces, anchoring, geometry, theme and configuration behaviour; maintain Nythera-specific approved styling where implemented. | `ARCHITECTURE.md` panel/surface/config sections; control-centre components | **Inherited contract plus customisation risk.** Recheck changes to upstream panel positioning, scaling and config. |
+| Launcher | Retain working application launch/navigation and any verified Nythera-specific typography/appearance/animation choices. | Launcher implementation, font assets and settings | **Requires local implementation audit.** Do not assume planned appearance is shipped. |
+| Rendering and text | Keep UI frame phase rules, control/node ownership, typed rendering boundaries, fractional scaling and label measurement. | `ARCHITECTURE.md`; `src/ui/`; `src/render/` | **Documented architectural contract.** Upstream refactors can invalidate custom drawing and text assumptions without Git conflicts. |
+| Umbriel and other compositors | Umbriel is Nythera's primary development target; keep other compositor integrations working where reasonably possible and avoid renaming Umbriel-owned identifiers. | `AGENTS.md`; `ARCHITECTURE.md`; compositor platform/backends | **Documented existing intent.** Verify actual compatibility on available environments; do not claim untested compositors were exercised. |
+| Settings and persistent state | Retain canonical configuration and state ownership, hot reload and safe migration behaviour. | `ARCHITECTURE.md`; `REBRAND.md`; `src/config/` | **Documented existing contract.** Schema changes need migration and relevant tests. |
+| CLI and lifecycle | Maintain working Nythera CLI/IPC and restart lifecycle; avoid disrupting active shell or locked sessions. | `AGENTS.md`; CLI and application lifecycle code | **Documented behaviour.** Trace process management when upstream changes startup/shutdown. |
+
+## Updating the register
+
+- When a Nythera feature is added, substantially redesigned or retired, update its entry (or add one) in the same change.
+- Record the **visible/user contract**, owning files or symbols confirmed from source, and upstream dependencies. Prefer stable paths/subsystems over brittle line numbers.
+- Label entries **verified implemented**, **experimental**, **planned** or **unverified** as appropriate. Do not promote an item solely because it appears in a README.
+- Upstream integration reports should identify entries affected, how their behaviour was verified, and any explicit deferrals.
+- This file does **not** override user decisions, `ARCHITECTURE.md`, `REBRAND.md`, or the need to inspect live code. It is a navigation aid for agents.
