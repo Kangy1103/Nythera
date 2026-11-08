@@ -11,12 +11,12 @@ See [NYTHERA-CUSTOMISATIONS.md](NYTHERA-CUSTOMISATIONS.md), [../ARCHITECTURE.md]
 - Do not trigger shell restart, install packages, edit live configuration or use force-push without explicit permission.
 - Do not assume an `upstream` Git remote exists locally; inspect `git remote -v`. Expected official source: `https://github.com/noctalia-dev/noctalia.git`. Establish/confirm the correct tracking branch before fetching or integrating.
 - Keep external service identities, plugin compatibility, license/attribution and Nythera-owned rebranding boundaries from `REBRAND.md`.
-- Only a completed, reviewed integration can become the next **fully integrated** baseline. Keep a separate record of reviewed/deferred changes if importing selectively. Never misrepresent a merge-base or cherry-picked commit as proof that all upstream changes were integrated.
+- The shared ancestor for the **first** upstream integration is verified below. It is the *divergence baseline*, not evidence of an upstream merge after the fork. For later updates distinguish the last upstream target merged into Git history from changes actually adopted, intentionally excluded or deferred. Never misrepresent cherry-picked changes as a complete merge.
 
 ## Phase 1 — Read-only discovery
 
-1. Record local branch, status, remotes and relevant upstream refs. Confirm the last integrated upstream SHA from previous integration records or a verified merge history. If unknown, label **baseline unknown** and establish it by inspecting history; do not guess.
-2. Choose an explicit upstream target SHA/release. Collect bounded change summaries first: `git log --oneline OLD..NEW`, `git diff --stat OLD NEW`, and `git diff --name-status OLD NEW`. Expand to individual changes only as needed.
+1. Record local branch, status, remotes and relevant upstream refs. For the first integration, confirm the recorded divergence SHA remains the merge base of local `dev` and the selected upstream branch (`git merge-base dev upstream/main`, after fetching). For later integrations, consult the last integration report and history for the last merged upstream target and any deferred changes. If records disagree, investigate before continuing.
+2. Choose an explicit upstream target SHA/release. For the first integration set `OLD` to the verified divergence SHA below; for later integrations use the appropriate recorded upstream comparison baseline, while carrying forward deferred items. Collect bounded summaries first: `git log --oneline OLD..NEW`, `git diff --stat OLD NEW`, and `git diff --name-status OLD NEW`. Expand only as needed.
 3. Classify changes by subsystem and risk: ordinary additions/fixes; feature overlap; renamed/deleted symbols; API, event, state, config, compositor, rendering and surface lifecycle changes.
 4. Map changed upstream interfaces to **Nythera callers, overrides and dependent files**, including locally customised files unchanged upstream. Use the customisation register and inspect relevant source to avoid semantic conflicts that Git cannot detect.
 5. Present a short integration scope: target, baseline confidence, impacted behaviour, known risks, intended merge method, and any unresolved design decisions.
@@ -40,19 +40,23 @@ See [NYTHERA-CUSTOMISATIONS.md](NYTHERA-CUSTOMISATIONS.md), [../ARCHITECTURE.md]
 2. Where available and authorised, check real shell behaviour for affected layouts, scaling, plugins, input and animations. Compilation alone does not verify appearance or functionality; record untested visual/compositor cases honestly.
 3. Review the changed-file list and `git diff --check`, compare affected behaviour with the register, and ensure every material upstream change is integrated, adapted, excluded or explicitly deferred.
 4. Write a concise integration report in the PR body or `docs/upstream-integrations/<target>.md` (only when useful) containing:
-   - Previous confirmed integrated baseline SHA and target upstream SHA.
+   - Previous upstream comparison baseline SHA, target upstream SHA and any previously deferred items.
    - Integration branch and method (merge or selective migration).
    - Affected subsystems and Nythera contract adaptations.
    - Included, intentionally excluded, blocked and deferred items, with upstream references.
    - Build/test/manual checks actually performed and remaining uncertainty.
-   - Whether the target is **fully integrated**, **partially integrated**, or **not integrated**.
+   - Whether the target was **merged and accounted for**, **partially imported**, or **not integrated**. A full Git merge can still have documented Nythera-specific exclusions; it does not guarantee every upstream feature is enabled.
 5. Only after review, merge the integration into `dev` through the normal review workflow. Promote `dev` to `main` separately when stable.
 
 ## Baseline tracking
 
-There is no verified previous upstream baseline recorded in this document. **Do not fill one in by guesswork.** The first integration must establish it from verified repository ancestry and documented decisions.
+**First-integration divergence baseline (verified 8 November 2026):** `03b9e9a0649c90485c16a6dc2a67db7105cf4d72`.
 
-For subsequent integrations, record the last fully integrated upstream SHA in the integration report and refer to that report here. A partially imported upstream range does not advance the fully integrated baseline; its included and deferred parts must be carried into the next assessment.
+GitHub's cross-fork comparison of `Kangy1103/Nythera:dev` against `noctalia-dev/noctalia:main` returned that SHA as their common ancestor. The repository owner confirms there has been **no upstream merge since the fork**. This is therefore the starting point for the first upstream comparison, not a previously completed integration. Both Nythera `main` and `dev` shared this ancestor when checked. GitHub's ahead/behind numbers change as new commits arrive, so do not treat them as a permanent record.
+
+**First integration target:** not selected. **Upstream updates integrated since divergence:** none confirmed.
+
+For later updates, record the chosen upstream target and how it was integrated, plus any excluded or deferred changes. A normal merge may advance the Git ancestry while intentionally retaining Nythera behaviour; a selective import does not make the entire upstream range part of Git ancestry. Subsequent reviews must carry outstanding deferred items forward, even when the target is already an ancestor.
 
 ## Completion criteria
 
