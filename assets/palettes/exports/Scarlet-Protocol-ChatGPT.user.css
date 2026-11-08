@@ -1,0 +1,144 @@
+/* ==UserStyle==
+@name           Scarlet Protocol — ChatGPT
+@namespace      nythera
+@version        1.0.0
+@description    A dark scarlet adaptation of Nythera's Scarlet Protocol palette for ChatGPT on the web.
+==/UserStyle== */
+
+@-moz-document domain("chatgpt.com") {
+
+/* ChatGPT's markup changes over time. Keep the palette in stable tokens and
+   use semantic selectors where possible so the style degrades gracefully. */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark !important;
+  --sp-bg: #101116;
+  --sp-surface: #1a1b21;
+  --sp-surface-raised: #202027;
+  --sp-hover: #282027;
+  --sp-text: #e5e5e5;
+  --sp-muted: #b9b2b6;
+  --sp-outline: #454149;
+  --sp-red: #e41951;
+  --sp-red-bright: #ff0051;
+  --sp-red-soft: #b9415b;
+  --sp-on-red: #ffffff;
+  --background: var(--sp-bg) !important;
+  --foreground: var(--sp-text) !important;
+  --surface: var(--sp-surface) !important;
+  --surface-secondary: var(--sp-surface) !important;
+  --text-primary: var(--sp-text) !important;
+  --text-secondary: var(--sp-muted) !important;
+  --border-default: var(--sp-outline) !important;
+  --accent: var(--sp-red) !important;
+  --link: #ff6e8d !important;
+}
+
+html,
+body {
+  background-color: var(--sp-bg) !important;
+  color: var(--sp-text) !important;
+}
+
+/* Main canvas, navigation rail, and secondary panels. */
+nav,
+aside,
+[role="complementary"],
+[data-testid*="sidebar"],
+[data-testid*="conversation-turn"],
+[data-testid*="modal"] {
+  border-color: var(--sp-outline) !important;
+}
+
+nav,
+aside,
+[role="complementary"],
+[data-testid*="sidebar"] {
+  background-color: var(--sp-bg) !important;
+}
+
+[role="dialog"],
+[data-testid*="modal"],
+[data-testid*="popover"],
+[data-radix-popper-content-wrapper] > * {
+  background-color: var(--sp-surface) !important;
+  color: var(--sp-text) !important;
+  border-color: var(--sp-outline) !important;
+}
+
+/* Inputs and composer. */
+textarea,
+input,
+[contenteditable="true"],
+[data-testid*="composer"] {
+  color: var(--sp-text) !important;
+  caret-color: var(--sp-red-bright) !important;
+}
+
+textarea,
+input,
+[contenteditable="true"] {
+  background-color: var(--sp-surface) !important;
+  border-color: var(--sp-outline) !important;
+}
+
+textarea::placeholder,
+input::placeholder,
+[contenteditable="true"]:empty::before {
+  color: var(--sp-muted) !important;
+}
+
+/* Interactive accents and hover feedback. */
+a,
+[role="link"] {
+  color: #ff6e8d !important;
+}
+
+button,
+[role="button"] {
+  border-color: var(--sp-outline);
+}
+
+button:hover,
+[role="button"]:hover,
+[role="menuitem"]:hover,
+a:hover {
+  background-color: var(--sp-hover) !important;
+}
+
+button[data-testid*="send"],
+[data-testid*="send-button"],
+button[aria-label*="Send"] {
+  background-color: var(--sp-red) !important;
+  color: var(--sp-on-red) !important;
+}
+
+button[data-testid*="send"]:hover,
+[data-testid*="send-button"]:hover,
+button[aria-label*="Send"]:hover {
+  background-color: var(--sp-red-bright) !important;
+}
+
+/* User turns get a restrained red tint; assistant content stays neutral. */
+[data-message-author-role="user"] {
+  background-color: color-mix(in srgb, var(--sp-red-soft) 15%, transparent);
+  border-radius: 1rem;
+}
+
+pre,
+code,
+[data-testid*="code"] {
+  border-color: var(--sp-outline) !important;
+}
+
+pre,
+[data-testid*="code-block"] {
+  background-color: #15151b !important;
+  color: var(--sp-text) !important;
+}
+
+::selection {
+  background-color: #55303a !important;
+  color: #ffffff !important;
+}
+}

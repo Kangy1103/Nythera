@@ -29,4 +29,3 @@ result-*
 node_modules/
 
 # AI specific files
-AGENTS.md

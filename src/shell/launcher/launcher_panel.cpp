@@ -2,6 +2,7 @@
 
 #include "config/config_service.h"
 #include "core/deferred_call.h"
+#include "core/files/resource_paths.h"
 #include "core/input/key_modifiers.h"
 #include "core/input/key_symbols.h"
 #include "core/input/keybind_matcher.h"
@@ -14,6 +15,7 @@
 #include "render/core/renderer.h"
 #include "render/scene/input_area.h"
 #include "render/scene/node.h"
+#include "render/text/font_registry.h"
 #include "shell/dock/pinned_apps.h"
 #include "shell/panel/panel_manager.h"
 #include "shell/profile/avatar_path.h"
@@ -23,6 +25,7 @@
 #include "ui/builders.h"
 #include "ui/controls/context_menu_popup.h"
 #include "ui/controls/scroll_view.h"
+#include "ui/controls/separator.h"
 #include "ui/controls/virtual_list_view.h"
 #include "ui/palette.h"
 #include "ui/signal.h"
@@ -61,6 +64,10 @@ namespace {
 
   void applyLauncherToolbarStyle(Flex& toolbar, float scale, float opacity) {
     toolbar.setCardStyle(scale, opacity);
+    // Inward corner cuts give the search tray a restrained sci-fi chamfer.
+    toolbar.setCornerShapes(CornerShapes{.tl = CornerShape::Concave, .tr = CornerShape::Convex,
+                                         .br = CornerShape::Concave, .bl = CornerShape::Convex});
+    toolbar.setRadii(Radii{8.0F * scale});
     toolbar.setPadding(std::round(Style::cardPadding * scale));
   }
 
@@ -227,6 +234,16 @@ namespace {
            .radius = Style::scaledRadiusMd(m_style.scale)}
       );
       addChild(std::move(row));
+      addChild(
+          ui::box({
+              .out = &m_selectionAccent,
+              .fill = colorSpecFromRole(ColorRole::Primary),
+              .radius = 2.0F * m_style.scale,
+              .width = 3.0F * m_style.scale,
+              .visible = false,
+              .participatesInLayout = false,
+          })
+      );
 
       m_row->addChild(
           ui::box({
@@ -440,12 +457,15 @@ namespace {
         (void)refreshAsyncIcon(renderer);
       }
       Node::doLayout(renderer);
+      m_selectionAccent->setSize(3.0F * m_style.scale, std::max(0.0F, height() - 8.0F * m_style.scale));
+      m_selectionAccent->setPosition(0.0F, 4.0F * m_style.scale);
     }
 
   private:
     void applyVisualState() {
+      m_selectionAccent->setVisible(m_selected);
       if (m_selected) {
-        m_row->setFill(colorSpecFromRole(ColorRole::Primary));
+        m_row->setFill(colorSpecFromRole(ColorRole::Primary, 0.18F));
       } else if (m_hovered) {
         m_row->setFill(colorSpecFromRole(ColorRole::Hover));
       } else {
@@ -457,11 +477,10 @@ namespace {
         m_row->clearBorder();
       }
 
-      const auto activeRole = m_selected ? ColorRole::OnPrimary : ColorRole::OnHover;
-      const bool active = m_selected || m_hovered;
-      const ColorSpec foreground = colorSpecFromRole(active ? activeRole : ColorRole::OnSurface);
-      const ColorSpec mutedForeground =
-          active ? colorSpecFromRole(activeRole, 0.7F) : colorSpecFromRole(ColorRole::OnSurfaceVariant);
+      const auto activeRole = m_hovered && !m_selected ? ColorRole::OnHover : ColorRole::OnSurface;
+      const ColorSpec foreground = colorSpecFromRole(activeRole);
+      const ColorSpec mutedForeground = m_hovered && !m_selected ? colorSpecFromRole(ColorRole::OnHover, 0.7F)
+                                                                 : colorSpecFromRole(ColorRole::OnSurfaceVariant);
       m_badgeLabel->setColor(foreground);
       m_glyph->setColor(foreground);
       m_title->setColor(foreground);
@@ -475,6 +494,7 @@ namespace {
     bool m_selected = false;
     bool m_hovered = false;
     Flex* m_row = nullptr;
+    Box* m_selectionAccent = nullptr;
     Box* m_badgeHost = nullptr;
     Label* m_badgeLabel = nullptr;
     Image* m_image = nullptr;
@@ -703,7 +723,7 @@ namespace {
   private:
     void applyVisualState() {
       if (m_selected) {
-        m_col->setFill(colorSpecFromRole(ColorRole::Primary));
+        m_col->setFill(colorSpecFromRole(ColorRole::Primary, 0.18F));
       } else if (m_hovered) {
         m_col->setFill(colorSpecFromRole(ColorRole::Hover));
       } else {
@@ -715,17 +735,18 @@ namespace {
         m_col->clearBorder();
       }
 
-      const auto activeRole = m_selected ? ColorRole::OnPrimary : ColorRole::OnHover;
-      const bool active = m_selected || m_hovered;
-      const ColorSpec foreground = colorSpecFromRole(active ? activeRole : ColorRole::OnSurface);
+      const auto activeRole = m_hovered && !m_selected ? ColorRole::OnHover : ColorRole::OnSurface;
+      const ColorSpec foreground = colorSpecFromRole(activeRole);
       m_badgeLabel->setColor(foreground);
       m_glyph->setColor(foreground);
       m_title->setColor(foreground);
       m_pinnedGlyph->setColor(
-          active ? colorSpecFromRole(activeRole, 0.7F) : colorSpecFromRole(ColorRole::OnSurfaceVariant)
+          m_hovered && !m_selected ? colorSpecFromRole(ColorRole::OnHover, 0.7F)
+                                   : colorSpecFromRole(ColorRole::OnSurfaceVariant)
       );
       m_originGlyph->setColor(
-          active ? colorSpecFromRole(activeRole, 0.7F) : colorSpecFromRole(ColorRole::OnSurfaceVariant)
+          m_hovered && !m_selected ? colorSpecFromRole(ColorRole::OnHover, 0.7F)
+                                   : colorSpecFromRole(ColorRole::OnSurfaceVariant)
       );
     }
 
@@ -1560,6 +1581,7 @@ void LauncherPanel::create() {
   m_launcherRowHeight = 0.0F;
   m_browserMode = usesBrowserLayout();
   const float scale = contentScale();
+  static const std::string wordmarkFont = text::registerFontFile(paths::assetPath("fonts/NytheraDisplay-Regular.ttf"));
 
   auto input = ui::input({
       .out = &m_input,
@@ -1623,6 +1645,7 @@ void LauncherPanel::create() {
             .compact = true,
             .surfaceOpacity = panelCardOpacity(),
             .equalSegmentWidths = false,
+            .configure = [](Segmented& segmented) { segmented.setQuietActiveStyle(true); },
         })
     );
     auto navigationActions = ui::row(
@@ -1850,6 +1873,52 @@ void LauncherPanel::create() {
         .fillHeight = true,
     });
 
+    const auto branding = m_config != nullptr ? m_config->config().shell.launcher.branding
+                                              : ShellConfig::LauncherBranding::GlyphAndWordmark;
+    if (branding != ShellConfig::LauncherBranding::Off) {
+      auto header = ui::row({
+          .align = FlexAlign::Center,
+          .gap = Style::spaceSm * scale,
+          .paddingH = Style::spaceSm * scale,
+          .fillWidth = true,
+          .height = 52.0F * scale,
+      });
+      header->addChild(
+          ui::image({
+              .out = &m_brandGlyph,
+              // The supplied SVG's artwork occupies a relatively small part
+              // of its square viewBox; render it larger without changing any
+              // paths or viewBox geometry.
+              .width = 52.0F * scale,
+              .height = 52.0F * scale,
+          })
+      );
+      if (branding == ShellConfig::LauncherBranding::GlyphAndWordmark) {
+        header->addChild(
+            ui::label({
+                .out = &m_brandWordmark,
+                .text = "NYTHERA",
+                .fontSize = 25.0F * scale,
+                .fontFamily = wordmarkFont.empty() ? std::string("sans-serif") : wordmarkFont,
+                .color = colorSpecFromRole(ColorRole::OnSurface),
+            })
+        );
+      }
+      auto accent = ui::box({.fill = colorSpecFromRole(ColorRole::Primary, 0.8F),
+                             .width = 13.0F * scale, .height = 2.0F * scale});
+      accent->setRotation(-0.65F);
+      header->addChild(std::move(accent));
+      header->addChild(
+          ui::separator({
+              .color = colorSpecFromRole(ColorRole::OutlineVariant, 0.55F),
+              .thickness = std::max(1.0F, Style::borderWidth * scale),
+              .orientation = SeparatorOrientation::HorizontalRule,
+              .flexGrow = 1.0F,
+          })
+      );
+      container->addChild(std::move(header));
+    }
+
     auto toolbar = ui::row({
         .out = &m_launcherToolbar,
         .align = FlexAlign::Center,
@@ -1941,9 +2010,23 @@ void LauncherPanel::create() {
     }
     if (searchOnTop) {
       container->addChild(std::move(toolbar));
+      container->addChild(
+          ui::separator({
+              .color = colorSpecFromRole(ColorRole::OutlineVariant, 0.55F),
+              .thickness = std::max(1.0F, Style::borderWidth * scale),
+              .spacing = Style::spaceXs * scale,
+          })
+      );
       container->addChild(std::move(body));
     } else {
       container->addChild(std::move(body));
+      container->addChild(
+          ui::separator({
+              .color = colorSpecFromRole(ColorRole::OutlineVariant, 0.55F),
+              .thickness = std::max(1.0F, Style::borderWidth * scale),
+              .spacing = Style::spaceXs * scale,
+          })
+      );
       container->addChild(std::move(toolbar));
     }
     setRoot(std::move(container));
@@ -2238,6 +2321,19 @@ void LauncherPanel::doLayout(Renderer& renderer, float width, float height) {
 
   if (m_categoryFilterRebuildPending) {
     rebuildCategoryFilter();
+  }
+  if (m_brandGlyph != nullptr) {
+    if (m_brandGlyphPath.empty()) {
+      m_brandGlyphPath = paths::assetPath("nythera-logo.png").string();
+    }
+    if (!m_brandGlyph->hasImage()) {
+      (void)m_brandGlyph->setSourceFile(renderer, m_brandGlyphPath, static_cast<int>(52.0F * contentScale()));
+    }
+  }
+  if (m_brandWordmark != nullptr) {
+    const bool showWordmark = width >= 540.0F * contentScale();
+    m_brandWordmark->setVisible(showWordmark);
+    m_brandWordmark->setParticipatesInLayout(showWordmark);
   }
   updateLauncherOptionButtons();
   syncLauncherListStyle();

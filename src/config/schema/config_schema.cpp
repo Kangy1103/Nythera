@@ -1563,6 +1563,7 @@ namespace nythera::config::schema {
               &ShellConfig::LauncherConfig::searchPosition, "search_position", ShellConfig::kLauncherSearchPositions
           ),
           enumField(&ShellConfig::LauncherConfig::defaultView, "default_view", ShellConfig::kLauncherDefaultViews),
+          enumField(&ShellConfig::LauncherConfig::branding, "branding", ShellConfig::kLauncherBrandings),
           field(&ShellConfig::LauncherConfig::categories, "categories"),
           field(&ShellConfig::LauncherConfig::categoryIconsOnly, "category_icons_only"),
           field(&ShellConfig::LauncherConfig::showNavigationLabels, "show_navigation_labels"),

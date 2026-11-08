@@ -572,6 +572,7 @@ location = "https://example.invalid/bad"
     c.shell.launcher.width = 680;
     c.shell.launcher.searchPosition = ShellConfig::LauncherSearchPosition::Bottom;
     c.shell.launcher.defaultView = ShellConfig::LauncherDefaultView::Categories;
+    c.shell.launcher.branding = ShellConfig::LauncherBranding::Glyph;
     c.shell.launcher.categories = false;
     c.shell.launcher.categoryIconsOnly = true;
     c.shell.launcher.showNavigationLabels = false;
@@ -683,7 +684,8 @@ location = "https://example.invalid/bad"
       ShellConfig shell;
       Diagnostics d;
       readInto(t, shell, shellSchema(), "shell", d);
-      if (shell.panel.snapshotBlurStrength != expected) fail("panel snapshot blur strength clamp");
+      if (shell.panel.snapshotBlurStrength != expected)
+        fail("panel snapshot blur strength clamp");
     }
     // Calendar reminder lead is capped at a day ahead.
     {
@@ -1205,7 +1207,6 @@ join_distance = 0
     readInto(exported, restored, shellSchema(), "shell", diag);
     if (shell.screenWrap != restored.screenWrap)
       fail("display frame settings failed round trip");
-
   }
   // Captured from the pre-refactor config_export::serialize for the fully-specified probe
   // bar. Pins byte-identical bar serialization across the schema migration: the

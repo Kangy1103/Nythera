@@ -10,6 +10,7 @@
 class Renderer;
 class RectNode;
 struct Radii;
+struct CornerShapes;
 
 enum class FlexDirection : std::uint8_t {
   Horizontal,
@@ -57,6 +58,7 @@ public:
   void clearFill();
   void setRadius(float radius);
   void setRadii(const Radii& radii);
+  void setCornerShapes(const CornerShapes& corners);
   void setBorder(const ColorSpec& color, float width);
   // Explicit fixed color.
   void setBorder(const Color& color, float width);

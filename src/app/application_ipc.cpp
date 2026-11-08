@@ -67,6 +67,31 @@ void Application::initIpc() {
   m_dmenuIpc.start();
 
   m_ipcService.bind(
+      nythera::cli::msg::restart,
+      [](const std::string& args) -> std::string {
+        if (!args.empty()) {
+          return "error: restart does not accept arguments\n";
+        }
+        Application::s_restartRequested = true;
+        Application::s_shutdownRequested = true;
+        return "restarting Nythera\n";
+      },
+      IpcService::HandlerOptions{.actionEditorVisibility = IpcService::ActionEditorVisibility::Hidden}
+  );
+
+  m_ipcService.bind(
+      nythera::cli::msg::stop,
+      [](const std::string& args) -> std::string {
+        if (!args.empty()) {
+          return "error: stop does not accept arguments\n";
+        }
+        Application::s_shutdownRequested = true;
+        return "stopping Nythera\n";
+      },
+      IpcService::HandlerOptions{.actionEditorVisibility = IpcService::ActionEditorVisibility::Hidden}
+  );
+
+  m_ipcService.bind(
       nythera::cli::msg::status,
       [this](const std::string&) -> std::string {
         const bool panelOpen = m_panelManager.isOpen();

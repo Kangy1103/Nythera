@@ -164,6 +164,7 @@ public:
 
   // Public for signal handler
   static std::atomic<bool> s_shutdownRequested;
+  static std::atomic<bool> s_restartRequested;
 
   bool runShellCommand(const std::string& command);
   void triggerShellAction(const std::string& action, wl_output* output = nullptr);

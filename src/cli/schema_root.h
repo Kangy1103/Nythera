@@ -30,20 +30,30 @@ namespace nythera::cli {
       false,
   };
 
+  inline constexpr Command kRestartCmd{
+      "restart", "Gracefully restart the running Nythera shell", {}, {}, {}, {}, {}, false,
+  };
+  inline constexpr std::array kStartFlags{
+      Flag{"--daemon", "-d", {}, "Return after the shell has initialized", {}, {}, false, false},
+  };
+  inline constexpr Command kStartCmd{"start", "Start the Nythera shell", {}, {}, kStartFlags, {}, {}, false};
+  inline constexpr Command kStopCmd{"stop", "Gracefully stop the running Nythera shell", {}, {}, {}, {}, {}, false};
+
   inline constexpr std::array kRootFlags{
       Flag{"--version", "-v", {}, "Show version information", {}, {}, false, false},
       Flag{"--daemon", "-d", {}, "Run in background", {}, {}, false, false},
   };
 
   inline constexpr std::array kRootSubcommands{
-      kCompletionsCmd, kConfigCmd, kDmenuCmd, kFirefoxThemeCmd, kMsgCmd, kPluginsCmd, kThemeCmd,
+      kCompletionsCmd, kConfigCmd,  kDmenuCmd, kFirefoxThemeCmd, kMsgCmd,
+      kPluginsCmd,     kRestartCmd, kStartCmd, kStopCmd,         kThemeCmd,
   };
 
   inline constexpr Command kRootCmd{
       "nythera",
       "A sleek, customizable desktop shell crafted for Wayland",
       {},
-      "For more information and documentation, visit:\n  https://github.com/Kangy1103/noctalia",
+      "For more information and documentation, visit:\n  https://github.com/Kangy1103/Nythera",
       kRootFlags,
       {},
       kRootSubcommands,

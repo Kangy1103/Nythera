@@ -73,6 +73,7 @@
 #endif
 
 std::atomic<bool> Application::s_shutdownRequested{false};
+std::atomic<bool> Application::s_restartRequested{false};
 
 namespace {
   constexpr Logger kLog("app");

@@ -1705,6 +1705,11 @@
           "bottom": "Bottom",
           "top": "Top"
         },
+        "launcher-branding": {
+          "off": "Off",
+          "glyph": "Glyph only",
+          "glyph-wordmark": "Glyph + wordmark"
+        },
         "panel-placement": {
           "attached": "Attached",
           "floating": "Floating"
@@ -2934,6 +2939,10 @@
         "launcher-search-position": {
           "description": "Place the launcher toolbar at the top or bottom",
           "label": "Toolbar Position"
+        },
+        "launcher-branding": {
+          "description": "Choose the Nythera branding shown above launcher navigation",
+          "label": "Launcher Branding"
         },
         "launcher-session-search": {
           "description": "Include session actions (lock, suspend, reboot, shutdown, logout) in general launcher searches, not only behind the /session prefix",

@@ -27,6 +27,14 @@ public:
   // allowed to proceed unguarded rather than bricking the shell — this is logged.
   bool tryAcquire();
 
+  // Adopt the still-locked descriptor inherited across a process re-exec.
+  [[nodiscard]] bool adoptInherited(int fd);
+
+  // Keep the lock descriptor open across exec so another shell cannot race the restart.
+  [[nodiscard]] bool prepareForExecRestart() const noexcept;
+
+  [[nodiscard]] int fd() const noexcept { return m_fd; }
+
   [[nodiscard]] bool held() const noexcept { return m_fd >= 0; }
   [[nodiscard]] const std::string& path() const noexcept { return m_path; }
 

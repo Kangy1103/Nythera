@@ -1,7 +1,9 @@
 #include "ipc/cli.h"
 
 #include "cli/help.h"
+#include "cli/parse.h"
 #include "cli/schema_msg.h"
+#include "cli/schema_root.h"
 #include "ipc/ipc_client.h"
 #include "util/string_utils.h"
 
@@ -64,6 +66,32 @@ namespace nythera::ipc {
       }
     }
     return IpcClient::send(cmd);
+  }
+
+  int runRestartCli(int argc, char* argv[]) {
+    auto parsed = cli::parseOrReport(
+        cli::kRestartCmd, "nythera restart", std::span<char* const>(argv + 2, static_cast<std::size_t>(argc - 2))
+    );
+    if (!parsed.has_value()) {
+      return 1;
+    }
+    if (parsed->helpRequested) {
+      return 0;
+    }
+    return IpcClient::send("restart");
+  }
+
+  int runStopCli(int argc, char* argv[]) {
+    auto parsed = cli::parseOrReport(
+        cli::kStopCmd, "nythera stop", std::span<char* const>(argv + 2, static_cast<std::size_t>(argc - 2))
+    );
+    if (!parsed.has_value()) {
+      return 1;
+    }
+    if (parsed->helpRequested) {
+      return 0;
+    }
+    return IpcClient::send("stop");
   }
 
 } // namespace nythera::ipc

@@ -232,6 +232,13 @@ void Flex::setRadii(const Radii& radii) {
   m_background->setStyle(style);
 }
 
+void Flex::setCornerShapes(const CornerShapes& corners) {
+  ensureBackground();
+  auto style = m_background->style();
+  style.corners = corners;
+  m_background->setStyle(style);
+}
+
 void Flex::setBorder(const ColorSpec& color, float width) {
   m_border = color;
   ensureBackground();

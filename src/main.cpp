@@ -3,6 +3,7 @@
 #include "auth/pam_authenticator.h"
 #include "cli/completions.h"
 #include "cli/help.h"
+#include "cli/parse.h"
 #include "cli/schema_root.h"
 #include "config/cli.h"
 #include "core/build_info.h"
@@ -22,8 +23,10 @@
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
+#include <limits>
 #include <print>
 #include <string>
+#include <string_view>
 #include <unistd.h>
 
 #ifdef __GLIBC__
@@ -214,7 +217,7 @@ namespace {
     _exit(1);
   }
 
-  int runShell() {
+  int runShell(char* argv[]) {
     // Raise the soft fd limit before any Wayland/EGL init. The NVIDIA EGL/Wayland
     // driver leaks internal sync_file fences slowly across a session; the default
     // 1024 soft cap can be exhausted in a long-running session, after which the
@@ -224,7 +227,29 @@ namespace {
     // Claim the single-instance lock before any shell/Wayland init so the answer
     // is settled before bars or surfaces are created. Held for the process lifetime.
     SingleInstanceLock instanceLock;
-    if (!instanceLock.tryAcquire()) {
+    const char* inheritedLockFd = std::getenv("NYTHERA_RESTART_LOCK_FD");
+    bool lockAcquired = false;
+    if (inheritedLockFd != nullptr && inheritedLockFd[0] != '\0') {
+      char* end = nullptr;
+      errno = 0;
+      const long parsedFd = std::strtol(inheritedLockFd, &end, 10);
+      (void)::unsetenv("NYTHERA_RESTART_LOCK_FD");
+      if (errno == 0
+          && end != inheritedLockFd
+          && *end == '\0'
+          && parsedFd >= 0
+          && parsedFd <= std::numeric_limits<int>::max()) {
+        lockAcquired = instanceLock.adoptInherited(static_cast<int>(parsedFd));
+      }
+      if (!lockAcquired) {
+        std::println(stderr, "error: failed to adopt Nythera's instance lock during restart");
+        completeDaemonStartup(1);
+        return 1;
+      }
+    } else {
+      lockAcquired = instanceLock.tryAcquire();
+    }
+    if (!lockAcquired) {
       std::println(stderr, "error: nythera is already running");
       completeDaemonStartup(1);
       _exit(1);
@@ -235,6 +260,31 @@ namespace {
     } catch (const std::exception& e) {
       logError("fatal: {}", e.what());
       completeDaemonStartup(1);
+      return 1;
+    }
+    if (Application::s_restartRequested) {
+      if (!instanceLock.prepareForExecRestart()) {
+        std::println(stderr, "error: failed to preserve Nythera's instance lock for restart");
+        return 1;
+      }
+      const std::string lockFd = std::to_string(instanceLock.fd());
+      if (::setenv("NYTHERA_RESTART_LOCK_FD", lockFd.c_str(), 1) != 0) {
+        std::println(stderr, "error: failed to prepare restart environment: {}", std::strerror(errno));
+        return 1;
+      }
+      std::array<char, 4096> executableBuffer{};
+      const ssize_t executableSize = ::readlink("/proc/self/exe", executableBuffer.data(), executableBuffer.size() - 1);
+      if (executableSize <= 0) {
+        std::println(stderr, "error: failed to locate Nythera executable for restart: {}", std::strerror(errno));
+        return 1;
+      }
+      std::string executablePath(executableBuffer.data(), static_cast<std::size_t>(executableSize));
+      constexpr std::string_view deletedSuffix = " (deleted)";
+      if (executablePath.ends_with(deletedSuffix)) {
+        executablePath.resize(executablePath.size() - deletedSuffix.size());
+      }
+      ::execv(executablePath.c_str(), argv);
+      std::println(stderr, "error: failed to restart Nythera: {}", std::strerror(errno));
       return 1;
     }
     return 0;
@@ -273,6 +323,22 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  // `start` is an alias for the default shell startup path. Normalize it away so
+  // daemon mode, single-instance handling, and startup reporting stay shared.
+  if (argc >= 2 && std::strcmp(argv[1], "start") == 0) {
+    auto parsed = nythera::cli::parseOrReport(
+        nythera::cli::kStartCmd, "nythera start", std::span<char* const>(argv + 2, static_cast<std::size_t>(argc - 2))
+    );
+    if (!parsed.has_value()) {
+      return 1;
+    }
+    if (parsed->helpRequested) {
+      return 0;
+    }
+    argc = 1;
+    argv[1] = nullptr;
+  }
+
   if (argc >= 2) {
     if (nythera::theme::isFirefoxNativeMessagingLaunch(argc, argv))
       return nythera::theme::runFirefoxNativeMessagingHost();
@@ -284,6 +350,10 @@ int main(int argc, char* argv[]) {
       return nythera::theme::runCli(argc, argv);
     if (std::strcmp(argv[1], "msg") == 0)
       return nythera::ipc::runCli(argc, argv);
+    if (std::strcmp(argv[1], "restart") == 0)
+      return nythera::ipc::runRestartCli(argc, argv);
+    if (std::strcmp(argv[1], "stop") == 0)
+      return nythera::ipc::runStopCli(argc, argv);
     // Internal mode for PAM authentication after re-exec.
     if (std::strcmp(argv[1], "pam-helper") == 0)
       return PamAuthenticator::runHelperMode(argc, argv);
@@ -351,5 +421,5 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  return runShell();
+  return runShell(argv);
 }

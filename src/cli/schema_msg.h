@@ -756,6 +756,8 @@ namespace nythera::cli {
     };
     inline constexpr Command session{"session", "Run a built-in session action", {}, {},
                                      {},        kMsgSessionPositionals,          {}, false};
+    inline constexpr Command restart{"restart", "Restart the running Nythera process", {}, {}, {}, {}, {}, true};
+    inline constexpr Command stop{"stop", "Stop the running Nythera process", {}, {}, {}, {}, {}, true};
     inline constexpr Command settingsClose{"settings-close", "Close the settings window", {}, {}, {}, {}, {}, false};
     inline constexpr Command settingsOpen{
         "settings-open",
@@ -1027,6 +1029,8 @@ namespace nythera::cli {
       msg::screenshotRegion,
       msg::screenshotWindow,
       msg::session,
+      msg::restart,
+      msg::stop,
       msg::settingsClose,
       msg::settingsOpen,
       msg::settingsOpenPlugin,

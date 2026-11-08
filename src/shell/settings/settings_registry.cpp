@@ -1340,6 +1340,16 @@ namespace settings {
     }
     {
       auto e = makeEntry(
+          SettingsSection::Launcher, "launcher", tr("settings.schema.panels.launcher-branding.label"),
+          tr("settings.schema.panels.launcher-branding.description"), {"shell", "launcher", "branding"},
+          enumSelect(ShellConfig::kLauncherBrandings, cfg.shell.launcher.branding),
+          "launcher nythera branding glyph wordmark"
+      );
+      e.visibleWhen = launcherFull;
+      entries.push_back(std::move(e));
+    }
+    {
+      auto e = makeEntry(
           SettingsSection::Launcher, "launcher", tr("settings.schema.panels.launcher-default-view.label"),
           tr("settings.schema.panels.launcher-default-view.description"), {"shell", "launcher", "default_view"},
           enumSelect(ShellConfig::kLauncherDefaultViews, cfg.shell.launcher.defaultView),

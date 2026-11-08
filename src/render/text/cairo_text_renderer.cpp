@@ -244,6 +244,12 @@ void CairoTextRenderer::initialize(RenderBackend* backend, TextureManager* textu
   }
 
   m_fontMap = pango_cairo_font_map_new();
+  // FontRegistry registers app fonts on Fontconfig's current configuration.
+  // Pango's Cairo font map may otherwise own a separate config and silently
+  // fall back when a caller requests one of those registered families.
+  if (PANGO_IS_FC_FONT_MAP(m_fontMap)) {
+    pango_fc_font_map_set_config(PANGO_FC_FONT_MAP(m_fontMap), FcConfigGetCurrent());
+  }
   m_pangoContext = pango_font_map_create_context(m_fontMap);
   pango_context_set_base_dir(m_pangoContext, m_baseDirRtl ? PANGO_DIRECTION_RTL : PANGO_DIRECTION_LTR);
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "render/animation/animation_manager.h"
 #include "ui/controls/flex.h"
 #include "ui/controls/roving_list_nav.h"
 #include "ui/palette.h"
@@ -12,6 +13,7 @@
 #include <vector>
 
 class Button;
+class Box;
 class InputArea;
 class Separator;
 
@@ -45,6 +47,8 @@ public:
 
   // When true, each segment gets flexGrow 1 so the group fills the available width (e.g. full bar).
   void setEqualSegmentWidths(bool equalWidths);
+  // Restrained active tint and sliding underline for launcher navigation.
+  void setQuietActiveStyle(bool enabled);
 
   [[nodiscard]] InputArea* focusArea() const noexcept { return m_focusArea; }
 
@@ -62,6 +66,10 @@ private:
   RovingListNavController m_rovingNav;
   std::vector<Separator*> m_separators;
   std::vector<Button*> m_buttons;
+  Box* m_activeUnderline = nullptr;
+  AnimationManager::Id m_underlineAnimation = 0;
+  std::optional<std::size_t> m_underlineSelection;
+  float m_underlineTargetX = 0.0F;
   InputArea* m_focusArea = nullptr;
   std::size_t m_selected = 0;
   std::function<void(std::size_t)> m_onChange;
@@ -73,4 +81,5 @@ private:
   float m_surfaceOpacity = 1.0F;
   ColorRole m_surfaceRole = ColorRole::SurfaceContainer;
   bool m_enabled = true;
+  bool m_quietActiveStyle = false;
 };

@@ -7,6 +7,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <sys/file.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 namespace {
@@ -41,6 +42,41 @@ bool SingleInstanceLock::tryAcquire() {
 
   m_fd = fd;
   return true;
+}
+
+bool SingleInstanceLock::adoptInherited(int fd) {
+  if (fd < 0 || m_fd >= 0) {
+    return false;
+  }
+
+  m_path = resolveLockPath();
+  struct stat inheritedStat{};
+  struct stat pathStat{};
+  if (::fstat(fd, &inheritedStat) != 0) {
+    return false;
+  }
+  const int pathFd = ::open(m_path.c_str(), O_RDWR | O_CLOEXEC);
+  if (pathFd < 0) {
+    return false;
+  }
+  const bool sameLock = ::fstat(pathFd, &pathStat) == 0
+      && inheritedStat.st_dev == pathStat.st_dev
+      && inheritedStat.st_ino == pathStat.st_ino;
+  ::close(pathFd);
+  if (!sameLock || ::flock(fd, LOCK_EX | LOCK_NB) != 0) {
+    return false;
+  }
+
+  m_fd = fd;
+  return true;
+}
+
+bool SingleInstanceLock::prepareForExecRestart() const noexcept {
+  if (m_fd < 0) {
+    return false;
+  }
+  const int flags = ::fcntl(m_fd, F_GETFD);
+  return flags >= 0 && ::fcntl(m_fd, F_SETFD, flags & ~FD_CLOEXEC) == 0;
 }
 
 void SingleInstanceLock::release() noexcept {

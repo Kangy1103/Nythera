@@ -1148,6 +1148,17 @@ namespace {
           continue;
         }
         if (run.container != nullptr) {
+          // Keep the group's cross axis fixed like its capsule. Otherwise a
+          // visualiser appearing changes the natural group height, and Flex's
+          // rounded child centring plus the capsule's half-pixel centring moves
+          // neighbouring icons even though the bar thickness has not changed.
+          if (isVertical) {
+            run.container->setMinWidth(capsuleCross);
+            run.container->setMaxWidth(capsuleCross);
+          } else {
+            run.container->setMinHeight(capsuleCross);
+            run.container->setMaxHeight(capsuleCross);
+          }
           run.container->layout(renderer);
         }
 

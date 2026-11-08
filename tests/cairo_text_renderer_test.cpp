@@ -1,9 +1,14 @@
+#include "core/files/resource_paths.h"
 #include "render/text/cairo_text_renderer.h"
+#include "render/text/font_registry.h"
 
 #include <array>
 #include <cmath>
 #include <print>
 #include <string_view>
+#include <pango/pangocairo.h>
+#include <pango/pangofc-fontmap.h>
+#include <fontconfig/fontconfig.h>
 
 namespace {
 
@@ -89,8 +94,59 @@ namespace {
 } // namespace
 
 int main() {
+  const std::string wordmarkFamily = text::registerFontFile(paths::assetPath("fonts/NytheraDisplay-Regular.ttf"));
   CairoTextRenderer renderer;
   renderer.initialize(nullptr, nullptr);
+  renderer.notifyFontConfigChanged();
+  const auto wordmark = renderer.measure(1.0F, "NYTHERA", 25.0F, TextFont{.family = wordmarkFamily});
+  FcPattern* query = FcPatternCreate();
+  FcPatternAddString(query, FC_FAMILY, reinterpret_cast<const FcChar8*>(wordmarkFamily.c_str()));
+  FcResult matchResult = FcResultNoMatch;
+  FcPattern* match = FcFontMatch(FcConfigGetCurrent(), query, &matchResult);
+  FcChar8* matchedFile = nullptr;
+  if (match != nullptr) {
+    FcPatternGetString(match, FC_FILE, 0, &matchedFile);
+  }
+  std::println("Fontconfig matched file '{}'", matchedFile ? reinterpret_cast<const char*>(matchedFile) : "(none)");
+  if (match != nullptr) {
+    FcPatternDestroy(match);
+  }
+  FcPatternDestroy(query);
+  PangoFontMap* map = pango_cairo_font_map_new();
+  pango_fc_font_map_set_config(PANGO_FC_FONT_MAP(map), FcConfigGetCurrent());
+  pango_fc_font_map_config_changed(PANGO_FC_FONT_MAP(map));
+  FcConfig* const pangoConfig = pango_fc_font_map_get_config(PANGO_FC_FONT_MAP(map));
+  FcPattern* pangoQuery = FcPatternCreate();
+  FcPatternAddString(pangoQuery, FC_FAMILY, reinterpret_cast<const FcChar8*>(wordmarkFamily.c_str()));
+  FcResult pangoMatchResult = FcResultNoMatch;
+  FcPattern* pangoMatch = FcFontMatch(pangoConfig, pangoQuery, &pangoMatchResult);
+  FcChar8* pangoMatchedFile = nullptr;
+  if (pangoMatch != nullptr) FcPatternGetString(pangoMatch, FC_FILE, 0, &pangoMatchedFile);
+  std::println("Pango map Fontconfig file '{}'", pangoMatchedFile ? reinterpret_cast<const char*>(pangoMatchedFile) : "(none)");
+  if (pangoMatch != nullptr) FcPatternDestroy(pangoMatch);
+  FcPatternDestroy(pangoQuery);
+  PangoContext* context = pango_font_map_create_context(map);
+  PangoLayout* layout = pango_layout_new(context);
+  PangoFontDescription* description = pango_font_description_new();
+  pango_font_description_set_family(description, wordmarkFamily.c_str());
+  pango_font_description_set_absolute_size(description, 25.0 * PANGO_SCALE);
+  pango_layout_set_font_description(layout, description);
+  pango_layout_set_text(layout, "NYTHERA", -1);
+  const auto* line = static_cast<PangoLayoutLine*>(pango_layout_get_lines_readonly(layout)->data);
+  const auto* run = static_cast<PangoGlyphItem*>(line->runs->data);
+  PangoFontDescription* resolved = pango_font_describe(run->item->analysis.font);
+  const std::string resolvedFamily = pango_font_description_get_family(resolved);
+  std::println("Pango requested '{}' resolved '{}'", wordmarkFamily, resolvedFamily);
+  pango_font_description_free(resolved);
+  pango_font_description_free(description);
+  g_object_unref(layout);
+  g_object_unref(context);
+  g_object_unref(map);
+  if (wordmarkFamily.empty() || resolvedFamily != wordmarkFamily || wordmark.width < 135.0F) {
+    std::println(stderr, "cairo_text_renderer_test: FAIL: registered Nythera font fell back (requested '{}', resolved '{}', width {})",
+                 wordmarkFamily, resolvedFamily, wordmark.width);
+    return 1;
+  }
 
   if (const int rc = scaleKeyedCacheCase(renderer); rc != 0) {
     return rc;

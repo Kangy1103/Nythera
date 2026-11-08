@@ -152,6 +152,9 @@ private:
   Flex* m_body = nullptr;
   Flex* m_resultsViewport = nullptr;
   Flex* m_launcherToolbar = nullptr;
+  Image* m_brandGlyph = nullptr;
+  Label* m_brandWordmark = nullptr;
+  std::string m_brandGlyphPath;
   Segmented* m_launcherNavigation = nullptr;
   Image* m_launcherAvatar = nullptr;
   Glyph* m_launcherAvatarFallback = nullptr;

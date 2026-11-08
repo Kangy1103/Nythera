@@ -55,3 +55,9 @@ nythera
 ### Logs
 
 Nythera writes its main log to `$XDG_CACHE_HOME/nythera/nythera.log`. If `XDG_CACHE_HOME` is unset, the fallback path is `~/.cache/nythera/nythera.log`. The previous file is retained as `nythera.log.1` when the current log reaches 1 MiB.
+
+### Starting, stopping, and restarting Nythera
+
+Run `nythera start` to launch the shell through the same startup path as `nythera`. Add `--daemon` when it should return after startup. Starting another instance while Nythera is already running reports an error.
+
+Run `nythera stop` to gracefully stop the running shell, or `nythera restart` to stop and restart it. Restart preserves the current foreground or daemon mode and the single-instance lock. Stop and restart report an error if Nythera is not running.

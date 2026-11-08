@@ -1278,6 +1278,14 @@ struct ShellConfig {
     Categories = 3,
   };
 
+  enum class LauncherBranding : std::uint8_t { Off = 0, Glyph = 1, GlyphAndWordmark = 2 };
+
+  static constexpr EnumOption<LauncherBranding> kLauncherBrandings[] = {
+      {LauncherBranding::Off, "off", "settings.options.shell.launcher-branding.off"},
+      {LauncherBranding::Glyph, "glyph", "settings.options.shell.launcher-branding.glyph"},
+      {LauncherBranding::GlyphAndWordmark, "glyph_wordmark", "settings.options.shell.launcher-branding.glyph-wordmark"},
+  };
+
   static constexpr EnumOption<LauncherDefaultView> kLauncherDefaultViews[] = {
       {LauncherDefaultView::Recent, "recent", "settings.options.shell.launcher-default-view.recent"},
       {LauncherDefaultView::Pinned, "pinned", "settings.options.shell.launcher-default-view.pinned"},
@@ -1292,6 +1300,7 @@ struct ShellConfig {
     std::int32_t width = kDefaultWidth;
     LauncherSearchPosition searchPosition = LauncherSearchPosition::Bottom;
     LauncherDefaultView defaultView = LauncherDefaultView::Recent;
+    LauncherBranding branding = LauncherBranding::GlyphAndWordmark;
     // Simple layout only: show the category chip row under the search field.
     bool categories = true;
     bool categoryIconsOnly = false;
