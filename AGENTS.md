@@ -65,4 +65,25 @@ The budget is a **default, not an excuse to ship broken code**. Expand investiga
 - Before a targeted Meson test, use `meson test -C build-debug --list` if the exact test name is unknown; do this once, not repeatedly. If no matching test exists, don't invent an arbitrary test merely to tick a box.
 - The user's own visual review can be the appropriate final visual acceptance check. If a browser/GUI screenshot is useful, perform **at most one** targeted visual check per task by default; avoid repeated screenshot cycles and multiple browsers unless a concrete defect demands it.
 - Never claim visual verification when only compilation ran. Compare visual results against the actual requested layout and behaviour, not merely whether the application rendered successfully.
-- Distinguish **not run
+- Distinguish **not run** from **passed**, and report failures accurately.
+
+## Working with project documentation
+
+- `AGENTS.md` is the entry point, not the entire knowledge base. Consult the relevant sections of existing documents rather than loading all of them for every task.
+- `ARCHITECTURE.md`: UI lifecycle, rendering, services, surfaces and other implementation invariants; required for architectural/refactoring work.
+- `CONTRIBUTING.md` and `BUILDING.md`: coding conventions, build/test guidance and contributor process as relevant.
+- `SCOPE.md`: distinguish approved scope, experiments and future plans.
+- `REBRAND.md`: Nythera-owned identity, external Noctalia contracts, plugin translations and migration; required for naming/API changes.
+- `docs/NYTHERA-CUSTOMISATIONS.md`: documented Nythera behaviours, development status and compatibility risks. Check actual code before treating an item as implemented.
+- `docs/UPSTREAM-INTEGRATION.md`: required procedure for integrating changes from Noctalia upstream. Do not use the standard narrow-change budget to justify skipping cross-subsystem compatibility checks for a broad update.
+- When a task materially changes a documented behavioural contract or architectural rule, update its owning document in the same change. Avoid duplicating the same rules in multiple files.
+
+## Git safety and upstream integration
+
+- Inspect the current branch/status before making repository changes. Protect uncommitted work; do not reset, overwrite, stash, rebase, force-push, or merge into `main` without explicit approval and an accounted-for state.
+- Use `dev` for ordinary development. For substantial or risky changes, especially upstream integrations, create a temporary task/integration branch (or a separate worktree when warranted). Do not create a branch for every trivial adjustment.
+- Treat upstream integration as a **semantic migration**, not just Git conflict resolution: evaluate changed APIs and indirect Nythera dependencies, including custom files absent from the upstream diff.
+- Preserve Nythera's **intended behaviour**, not necessarily old code. Where upstream replaces an architecture, migrate customisation to the new interface instead of blindly retaining obsolete mechanisms.
+- Track a verified last fully integrated upstream commit and a selected target. If the baseline cannot be proven, say so; never invent a SHA or silently mark selective imports as full integrations.
+- Account for each relevant upstream change as incorporated, adapted, deliberately excluded, deferred or blocked, with rationale. A clean Git merge and successful build alone do not prove compatibility.
+- For integration tasks, follow `docs/UPSTREAM-INTEGRATION.md`, check impacted entries in `docs/NYTHERA-CUSTOMISATIONS.md`, and record actual validation plus unresolved work before declaring completion.
