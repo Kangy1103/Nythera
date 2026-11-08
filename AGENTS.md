@@ -88,3 +88,11 @@ The budget is a **default, not an excuse to ship broken code**. Expand investiga
 - Account for each relevant upstream change as incorporated, adapted, deliberately excluded, deferred or blocked, with rationale. A clean Git merge and successful build alone do not prove compatibility.
 - For integration tasks, follow `docs/UPSTREAM-INTEGRATION.md`, check impacted entries in `docs/NYTHERA-CUSTOMISATIONS.md`, and record actual validation plus unresolved work before declaring completion.
 - GitHub CI currently runs on pull requests and pushes to `main`, not ordinary pushes to `dev`. Do not treat a successful `dev` push as proof that CI passed; report actual checks performed.
+
+### Committing and pushing session work
+
+- When asked to commit or push "your changes", identify the complete relevant change set from the current task or session, not merely the most recently edited file. Include related implementation, tests, assets, documentation, additions and deletions.
+- Use conversation context, current Git status and focused diffs to distinguish session work from unrelated user changes. Do not assume pre-existing uncommitted files are unrelated merely because they were modified earlier in a long session.
+- Review the files to be staged and commit the full relevant change set; do not blindly stage the entire working tree. If ownership or inclusion is genuinely uncertain, ask before including those files.
+- After pushing, verify the remote branch contains the intended commit and report what was committed, what was pushed and any relevant changes left uncommitted.
+
