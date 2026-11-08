@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <list>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 // FreeType forwards
@@ -31,6 +32,7 @@ public:
     float right = 0.0F;
     float top = 0.0F;    // negative — above baseline
     float bottom = 0.0F; // positive — below baseline
+    float capHeight = 0.0F;
   };
 
   CairoGlyphRenderer();
@@ -40,6 +42,7 @@ public:
   CairoGlyphRenderer& operator=(const CairoGlyphRenderer&) = delete;
 
   void initialize(const std::string& fontPath, RenderBackend* backend, TextureManager* textures);
+  void initializeDisplayFont(const std::string& fontPath);
   void cleanup();
 
   // Drops the uploaded icon-glyph textures so they are re-rasterized on the next
@@ -49,9 +52,15 @@ public:
   void abandonGlyphTextures() noexcept;
 
   [[nodiscard]] TextMetrics measureGlyph(float contentScale, char32_t codepoint, float fontSize);
+  [[nodiscard]] TextMetrics measureDisplayText(float contentScale, std::string_view text, float fontSize);
+  [[nodiscard]] TextMetrics measureDisplayFont(float contentScale, float fontSize);
 
   void drawGlyph(
       float contentScale, float surfaceWidth, float surfaceHeight, float x, float baselineY, char32_t codepoint,
+      float fontSize, const Color& color, const Mat3& transform
+  );
+  void drawDisplayText(
+      float contentScale, float surfaceWidth, float surfaceHeight, float x, float baselineY, std::string_view text,
       float fontSize, const Color& color, const Mat3& transform
   );
 
@@ -60,6 +69,7 @@ private:
     char32_t codepoint = 0;
     std::uint32_t sizeQ = 0;
     std::uint16_t scaleQ = 0;
+    bool displayFont = false;
 
     bool operator==(const CacheKey& other) const noexcept;
   };
@@ -84,7 +94,9 @@ private:
 
   using CacheMap = std::unordered_map<CacheKey, CacheEntry, CacheKeyHash>;
 
-  CacheEntry* lookupOrRasterize(float contentScale, char32_t codepoint, float fontSize);
+  CacheEntry* lookupOrRasterize(
+      float contentScale, char32_t codepoint, float fontSize, bool displayFont = false, unsigned int glyphIndex = 0
+  );
   void touch(CacheMap::iterator it);
   void evict(CacheMap::iterator it);
   void evictIfNeeded();
@@ -92,6 +104,8 @@ private:
   FT_Library m_ftLibrary = nullptr;
   FT_Face m_face = nullptr;
   cairo_font_face_t* m_cairoFace = nullptr;
+  FT_Face m_displayFace = nullptr;
+  cairo_font_face_t* m_displayCairoFace = nullptr;
   cairo_font_options_t* m_fontOptions = nullptr;
   RenderBackend* m_backend = nullptr;
   TextureManager* m_textureManager = nullptr;

@@ -111,6 +111,7 @@ void RenderContext::initialize(GlSharedContext& shared) {
   m_glyphRenderer.initialize(
       paths::assetPath("fonts/nythera-tabler.ttf").string(), m_backend.get(), &m_backend->textureManager()
   );
+  m_glyphRenderer.initializeDisplayFont(paths::assetPath("fonts/NytheraDisplay-Regular.ttf").string());
   m_textRenderer.setFontFamily(m_textFontFamily);
   m_textRenderer.setBaseDirection(m_textBaseDirRtl);
   ++m_textMetricsGeneration;
@@ -235,6 +236,24 @@ TextMetrics RenderContext::measureTextScaled(
     float scale, std::string_view text, float fontSize, const TextFont& font, float maxWidth, int maxLines,
     TextAlign align, TextEllipsize ellipsize, bool useMarkup
 ) {
+  if (font.directDisplay) {
+    const auto direct = m_glyphRenderer.measureDisplayText(scale, text, fontSize);
+    const float spare = std::max(0.0F, maxWidth - direct.width);
+    const float offset = align == TextAlign::Center ? spare * 0.5F : align == TextAlign::End ? spare : 0.0F;
+    return TextMetrics{
+        .width = direct.width,
+        .left = direct.left,
+        .right = direct.right,
+        .top = direct.top,
+        .bottom = direct.bottom,
+        .inkTop = direct.top,
+        .inkBottom = direct.bottom,
+        .inkLeft = direct.left + offset,
+        .inkRight = direct.right + offset,
+        .lineCount = text.empty() ? 0 : 1,
+        .alignOffsetX = offset
+    };
+  }
   auto m = m_textRenderer.measure(scale, text, fontSize, font, maxWidth, maxLines, align, ellipsize, useMarkup);
   return TextMetrics{
       .width = m.width,
@@ -252,6 +271,17 @@ TextMetrics RenderContext::measureTextScaled(
 }
 
 TextMetrics RenderContext::measureFontScaled(float scale, float fontSize, const TextFont& font) {
+  if (font.directDisplay) {
+    const auto direct = m_glyphRenderer.measureDisplayFont(scale, fontSize);
+    return TextMetrics{
+        .width = direct.width,
+        .left = direct.left,
+        .right = direct.right,
+        .top = direct.top,
+        .bottom = direct.bottom,
+        .capHeight = direct.capHeight
+    };
+  }
   auto m = m_textRenderer.measureFont(scale, fontSize, font);
   return TextMetrics{
       .width = m.width,
@@ -374,6 +404,19 @@ void RenderContext::renderNode(
     const auto* text = static_cast<const TextNode*>(node);
     if (!text->text().empty()) {
       const TextFont& font = text->font();
+      if (font.directDisplay) {
+        auto color = text->color();
+        color.a *= effectiveOpacity;
+        const auto metrics = m_glyphRenderer.measureDisplayText(renderScale, text->text(), text->fontSize());
+        const float spare = std::max(0.0F, text->maxWidth() - metrics.width);
+        const float offset = text->textAlign() == TextAlign::Center ? spare * 0.5F
+            : text->textAlign() == TextAlign::End                   ? spare
+                                                                    : 0.0F;
+        m_glyphRenderer.drawDisplayText(
+            renderScale, sw, sh, offset, 0.0F, text->text(), text->fontSize(), color, worldTransform
+        );
+        break;
+      }
       if (text->hasShadow()) {
         auto shadowColor = text->shadowColor();
         shadowColor.a *= effectiveOpacity;

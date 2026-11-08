@@ -13,7 +13,7 @@ namespace internal_apps {
             .appId = "dev.nythera.Nythera",
             .windowTitle = "Nythera Settings",
             .displayName = "Nythera",
-            .iconAssetPath = "nythera.svg",
+            .iconAssetPath = "nythera-logo.svg",
         },
     };
 

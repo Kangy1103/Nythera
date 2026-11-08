@@ -125,6 +125,11 @@ public:
   void setOverscanRows(std::size_t rows);
   // wp_cursor_shape value applied while the pointer is over a cell (0 = inherit).
   void setItemCursorShape(std::uint32_t shape);
+  // Optional visual layer rendered below tiles inside the clipped virtual canvas.
+  // The host owns the appearance; the grid positions and animates it with selection.
+  void setSelectionIndicator(std::unique_ptr<Node> indicator);
+  void setSelectionIndicatorEnabled(bool enabled);
+  [[nodiscard]] bool selectionIndicatorEnabled() const noexcept { return m_selectionIndicatorEnabled; }
   // Content scale of the hosting surface: sets the scrollbar geometry scale and the pointer
   // travel threshold that separates a click from a drag on an adapter-consumed press.
   void setScale(float scale);
@@ -173,6 +178,13 @@ private:
   ScrollView* m_scroll = nullptr;
   Canvas* m_canvas = nullptr;
   InputArea* m_inputArea = nullptr;
+  Node* m_selectionIndicator = nullptr;
+  std::uint32_t m_selectionAnimationId = 0;
+  bool m_selectionIndicatorEnabled = true;
+  bool m_selectionIndicatorSnapPending = true;
+  float m_indicatorCellWidth = 0.0F;
+  float m_indicatorCellHeight = 0.0F;
+  std::size_t m_indicatorColumns = 0;
 
   VirtualGridAdapter* m_adapter = nullptr;
   std::vector<Node*> m_pool;

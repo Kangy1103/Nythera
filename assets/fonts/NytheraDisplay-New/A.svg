@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 975 600" width="975" height="600">
+  <title>Nythera Display — A with enlarged central point</title>
+  <!-- A outline taken directly from NytheraDisplay-Regular(3).ttf; original curves preserved. -->
+  <g fill="#ffffff" transform="translate(0 475) scale(1 -1)">
+    <path d="M42 0 L92 -5 L412 390 L767 -60 Q817 -85 927 -100 Q877 -75 817 -20 L452 450 L387 445 Z"/>
+    <!-- Enlarged separate diamond point; same centre as the original glyph. -->
+    <path d="M412 206 L431 170 L412 134 L393 170 Z"/>
+  </g>
+</svg>

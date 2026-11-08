@@ -1,5 +1,7 @@
 #include "ui/controls/virtual_grid_view.h"
 
+#include "render/animation/animation.h"
+#include "render/animation/animation_manager.h"
 #include "render/scene/input_area.h"
 #include "ui/controls/scroll_view.h"
 #include "ui/style.h"
@@ -97,6 +99,10 @@ void VirtualGridView::setAdapter(VirtualGridAdapter* adapter) {
     m_adapter->onPointerCancel();
   }
   m_adapter = adapter;
+  if (animationManager() != nullptr && m_selectionAnimationId != 0) {
+    animationManager()->cancel(m_selectionAnimationId);
+    m_selectionAnimationId = 0;
+  }
   m_adapterPointerCapture = false;
   // Drop the existing pool — tiles were built by the previous adapter's createTile().
   for (Node* tile : m_pool) {
@@ -113,14 +119,62 @@ void VirtualGridView::setAdapter(VirtualGridAdapter* adapter) {
   m_pool.clear();
   m_slotBoundIndex.clear();
   m_selectedIndex.reset();
+  m_selectionIndicatorSnapPending = true;
+  if (m_selectionIndicator != nullptr) {
+    m_selectionIndicator->setVisible(false);
+  }
   m_hoveredIndex.reset();
   m_hoveredOverlayIndex.reset();
   markLayoutDirty();
 }
 
 void VirtualGridView::notifyDataChanged() {
+  if (animationManager() != nullptr && m_selectionAnimationId != 0) {
+    animationManager()->cancel(m_selectionAnimationId);
+    m_selectionAnimationId = 0;
+  }
+  m_selectionIndicatorSnapPending = true;
+  if (m_selectionIndicator != nullptr) {
+    m_selectionIndicator->setVisible(false);
+  }
   // Force every visible slot to rebind on the next layout.
   std::ranges::fill(m_slotBoundIndex, std::nullopt);
+  markLayoutDirty();
+}
+
+void VirtualGridView::setSelectionIndicator(std::unique_ptr<Node> indicator) {
+  if (animationManager() != nullptr && m_selectionAnimationId != 0) {
+    animationManager()->cancel(m_selectionAnimationId);
+    m_selectionAnimationId = 0;
+  }
+  if (m_selectionIndicator != nullptr) {
+    (void)m_canvas->removeChild(m_selectionIndicator);
+    m_selectionIndicator = nullptr;
+  }
+  if (indicator == nullptr || m_canvas == nullptr) {
+    return;
+  }
+  indicator->setHitTestVisible(false);
+  indicator->setZIndex(-1);
+  indicator->setVisible(false);
+  m_selectionIndicator = m_canvas->addChild(std::move(indicator));
+  m_selectionIndicatorSnapPending = true;
+  markLayoutDirty();
+}
+
+void VirtualGridView::setSelectionIndicatorEnabled(bool enabled) {
+  if (m_selectionIndicatorEnabled == enabled) {
+    return;
+  }
+  m_selectionIndicatorEnabled = enabled;
+  if (!enabled && animationManager() != nullptr && m_selectionAnimationId != 0) {
+    animationManager()->cancel(m_selectionAnimationId);
+    m_selectionAnimationId = 0;
+  }
+  if (m_selectionIndicator != nullptr) {
+    m_selectionIndicator->setVisible(false);
+  }
+  m_selectionIndicatorSnapPending = true;
   markLayoutDirty();
 }
 
@@ -216,6 +270,20 @@ void VirtualGridView::setSelectedIndex(std::optional<std::size_t> index, bool sc
     }
     return;
   }
+  const std::optional<std::size_t> previousIndex = m_selectedIndex;
+  bool animateIndicator = false;
+  if (m_selectionIndicator != nullptr && m_selectionIndicatorEnabled && !m_selectionIndicatorSnapPending
+      && previousIndex.has_value() && index.has_value()
+      && m_layoutColumns == 1 && *previousIndex < m_itemCount && *index < m_itemCount
+      && (*previousIndex + 1 == *index || *index + 1 == *previousIndex)) {
+    const float stride = m_cellHeightResolved + m_rowGap;
+    const float visibleTop = m_scroll != nullptr ? m_scroll->scrollOffset() : 0.0F;
+    const float visibleBottom = visibleTop + (m_scroll != nullptr ? m_scroll->contentViewportHeight() : 0.0F);
+    const float previousTop = static_cast<float>(*previousIndex) * stride;
+    const float nextTop = static_cast<float>(*index) * stride;
+    animateIndicator = previousTop >= visibleTop && previousTop + m_cellHeightResolved <= visibleBottom
+        && nextTop >= visibleTop && nextTop + m_cellHeightResolved <= visibleBottom;
+  }
   m_selectedIndex = index;
   if (scrollToSelection && m_selectedIndex.has_value()) {
     m_pendingScrollToIndex = true;
@@ -223,6 +291,43 @@ void VirtualGridView::setSelectedIndex(std::optional<std::size_t> index, bool sc
   } else {
     m_pendingScrollToIndex = false;
     m_pendingScrollIndex = 0;
+  }
+  if (m_selectionIndicator != nullptr) {
+    if (!m_selectionIndicatorEnabled || !index.has_value()) {
+      if (animationManager() != nullptr && m_selectionAnimationId != 0) {
+        animationManager()->cancel(m_selectionAnimationId);
+        m_selectionAnimationId = 0;
+      }
+      m_selectionIndicator->setVisible(false);
+      m_selectionIndicatorSnapPending = false;
+    } else if (animateIndicator && animationManager() != nullptr) {
+      const float targetY = static_cast<float>(*index) * (m_cellHeightResolved + m_rowGap);
+      const float fromY = m_selectionIndicator->visible() ? m_selectionIndicator->y()
+                                                          : static_cast<float>(*previousIndex)
+              * (m_cellHeightResolved + m_rowGap);
+      if (m_selectionAnimationId != 0) {
+        animationManager()->cancel(m_selectionAnimationId);
+      }
+      m_selectionIndicator->setPosition(0.0F, fromY);
+      m_selectionIndicator->setSize(m_cellWidth, m_cellHeightResolved);
+      m_selectionIndicator->setVisible(true);
+      m_selectionIndicatorSnapPending = false;
+      m_selectionAnimationId = animationManager()->animate(
+          fromY, targetY, 140.0F, Easing::EaseOutCubic,
+          [this](float y) {
+            if (m_selectionIndicator != nullptr) {
+              m_selectionIndicator->setPosition(0.0F, y);
+            }
+          },
+          [this] { m_selectionAnimationId = 0; }, m_selectionIndicator
+      );
+    } else {
+      if (animationManager() != nullptr && m_selectionAnimationId != 0) {
+        animationManager()->cancel(m_selectionAnimationId);
+        m_selectionAnimationId = 0;
+      }
+      m_selectionIndicatorSnapPending = true;
+    }
   }
   markLayoutDirty();
   if (m_onSelectionChanged) {
@@ -251,6 +356,11 @@ void VirtualGridView::doLayout(Renderer& renderer) {
   if (m_adapter == nullptr || m_scroll == nullptr || m_canvas == nullptr || m_inputArea == nullptr) {
     Flex::doLayout(renderer);
     return;
+  }
+  if (m_selectionIndicator != nullptr && animationManager() != nullptr && m_selectionAnimationId != 0
+      && m_selectionIndicatorSnapPending) {
+    animationManager()->cancel(m_selectionAnimationId);
+    m_selectionAnimationId = 0;
   }
 
   // Step 1: estimate the canvas's virtual size so ScrollView can measure
@@ -307,6 +417,19 @@ void VirtualGridView::doLayout(Renderer& renderer) {
   const std::size_t rowCount = metrics.rowCount;
   const float virtualHeight = metrics.virtualHeight;
 
+  if (m_selectionIndicator != nullptr
+      && (std::abs(cellW - m_indicatorCellWidth) >= 0.5F || std::abs(cellH - m_indicatorCellHeight) >= 0.5F
+          || columns != m_indicatorColumns)) {
+    if (animationManager() != nullptr && m_selectionAnimationId != 0) {
+      animationManager()->cancel(m_selectionAnimationId);
+      m_selectionAnimationId = 0;
+    }
+    m_selectionIndicatorSnapPending = true;
+  }
+  m_indicatorCellWidth = cellW;
+  m_indicatorCellHeight = cellH;
+  m_indicatorColumns = columns;
+
   m_layoutColumns = columns;
   m_cellWidth = cellW;
   m_cellHeightResolved = cellH;
@@ -337,6 +460,18 @@ void VirtualGridView::doLayout(Renderer& renderer) {
 
   // Resolve pending jumps and clamp the offset against the new canvas before binding tiles.
   Flex::doLayout(renderer);
+
+  if (m_selectionIndicator != nullptr && m_selectionIndicatorSnapPending) {
+    if (m_selectionIndicatorEnabled && m_selectedIndex.has_value() && *m_selectedIndex < m_itemCount) {
+      const auto row = *m_selectedIndex / std::max<std::size_t>(1, columns);
+      m_selectionIndicator->setPosition(0.0F, static_cast<float>(row) * (cellH + m_rowGap));
+      m_selectionIndicator->setSize(cellW, cellH);
+      m_selectionIndicator->setVisible(true);
+    } else {
+      m_selectionIndicator->setVisible(false);
+    }
+    m_selectionIndicatorSnapPending = false;
+  }
 
   // Step 2: determine the visible row range from the resolved scroll offset, with overscan.
   const float rowStride = cellH + m_rowGap;
@@ -464,6 +599,9 @@ void VirtualGridView::doLayout(Renderer& renderer) {
       }
     }
   }
+  if (m_selectionIndicator != nullptr && m_selectionIndicator->visible()) {
+    m_selectionIndicator->layout(renderer);
+  }
 
   for (std::size_t slot = 0; slot < m_pool.size(); ++slot) {
     if (!slotActive[slot] && m_pool[slot] != nullptr) {
@@ -501,6 +639,11 @@ LayoutSize VirtualGridView::doMeasure(Renderer& /*renderer*/, const LayoutConstr
 void VirtualGridView::doArrange(Renderer& renderer, const LayoutRect& rect) { arrangeByLayout(renderer, rect); }
 
 void VirtualGridView::onScrollChanged(float /*offset*/) {
+  if (animationManager() != nullptr && m_selectionAnimationId != 0) {
+    animationManager()->cancel(m_selectionAnimationId);
+    m_selectionAnimationId = 0;
+  }
+  m_selectionIndicatorSnapPending = true;
   if (m_adapterPointerCapture && m_adapter != nullptr) {
     m_adapter->onPointerCancel();
     m_adapterPointerCapture = false;

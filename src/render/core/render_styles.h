@@ -20,6 +20,7 @@ enum class GradientDirection {
 enum class CornerShape {
   Convex,
   Concave,
+  Chamfered,
 };
 
 struct CornerShapes {

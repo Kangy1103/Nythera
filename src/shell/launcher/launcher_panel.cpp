@@ -64,10 +64,14 @@ namespace {
 
   void applyLauncherToolbarStyle(Flex& toolbar, float scale, float opacity) {
     toolbar.setCardStyle(scale, opacity);
-    // Inward corner cuts give the search tray a restrained sci-fi chamfer.
-    toolbar.setCornerShapes(CornerShapes{.tl = CornerShape::Concave, .tr = CornerShape::Convex,
-                                         .br = CornerShape::Concave, .bl = CornerShape::Convex});
-    toolbar.setRadii(Radii{8.0F * scale});
+    // Small straight bevels keep the tray crisp without competing with the inner search field.
+    toolbar.setCornerShapes(
+        CornerShapes{
+            .tl = CornerShape::Chamfered, .tr = CornerShape::Chamfered, .br = CornerShape::Chamfered,
+            .bl = CornerShape::Chamfered
+        }
+    );
+    toolbar.setRadii(Radii{6.0F * scale});
     toolbar.setPadding(std::round(Style::cardPadding * scale));
   }
 
@@ -137,8 +141,40 @@ namespace {
     bool showIcons = true;
     bool showAppOriginIndicator = true;
     bool compact = false;
+    bool selectionIndicatorManaged = false;
     std::optional<ColorSpec> appIconColorizeTint;
     std::optional<ColorSpec> listItemBackground;
+  };
+
+  class LauncherSelectionHighlight final : public Box {
+  public:
+    explicit LauncherSelectionHighlight(float scale) : m_scale(scale) {
+      setFill(colorSpecFromRole(ColorRole::Primary, 0.18F));
+      setRadius(Style::scaledRadiusMd(scale));
+      auto accent = ui::box({
+          .out = &m_accent,
+          .fill = colorSpecFromRole(ColorRole::Primary),
+          .radius = 2.0F * scale,
+          .width = 3.0F * scale,
+          .height = 1.0F,
+          .participatesInLayout = false,
+      });
+      addChild(std::move(accent));
+      setParticipatesInLayout(false);
+    }
+
+    void setScale(float scale) { m_scale = scale; }
+
+  protected:
+    void doLayout(Renderer& renderer) override {
+      m_accent->setPosition(0.0F, 4.0F * m_scale);
+      m_accent->setSize(3.0F * m_scale, std::max(0.0F, height() - 8.0F * m_scale));
+      Box::doLayout(renderer);
+    }
+
+  private:
+    float m_scale = 1.0F;
+    Box* m_accent = nullptr;
   };
 
   [[nodiscard]] float launcherIconSize(const LauncherListStyle& style) {
@@ -463,9 +499,10 @@ namespace {
 
   private:
     void applyVisualState() {
-      m_selectionAccent->setVisible(m_selected);
+      m_selectionAccent->setVisible(m_selected && !m_style.selectionIndicatorManaged);
       if (m_selected) {
-        m_row->setFill(colorSpecFromRole(ColorRole::Primary, 0.18F));
+        m_row->setFill(m_style.selectionIndicatorManaged ? clearColorSpec()
+                                                         : colorSpecFromRole(ColorRole::Primary, 0.18F));
       } else if (m_hovered) {
         m_row->setFill(colorSpecFromRole(ColorRole::Hover));
       } else {
@@ -1581,7 +1618,6 @@ void LauncherPanel::create() {
   m_launcherRowHeight = 0.0F;
   m_browserMode = usesBrowserLayout();
   const float scale = contentScale();
-  static const std::string wordmarkFont = text::registerFontFile(paths::assetPath("fonts/NytheraDisplay-Regular.ttf"));
 
   auto input = ui::input({
       .out = &m_input,
@@ -1812,6 +1848,8 @@ void LauncherPanel::create() {
           .configure = [](VirtualGridView& grid) { grid.setFillWidth(true); },
       })
   );
+  auto selectionHighlight = std::make_unique<LauncherSelectionHighlight>(scale);
+  m_grid->setSelectionIndicator(std::move(selectionHighlight));
 
   auto detailScroll = ui::scrollView({
       .out = &m_detailScroll,
@@ -1877,12 +1915,23 @@ void LauncherPanel::create() {
                                               : ShellConfig::LauncherBranding::GlyphAndWordmark;
     if (branding != ShellConfig::LauncherBranding::Off) {
       auto header = ui::row({
+          .out = &m_brandHeader,
           .align = FlexAlign::Center,
           .gap = Style::spaceSm * scale,
           .paddingH = Style::spaceSm * scale,
           .fillWidth = true,
           .height = 52.0F * scale,
       });
+      header->addChild(
+          ui::image({
+              .out = &m_brandHeaderAccent,
+              .fit = ImageFit::Stretch,
+              .participatesInLayout = false,
+              .configure = [](Image& accent) {
+                accent.setForegroundTint(colorSpecFromRole(ColorRole::Primary, 0.92F));
+              },
+          })
+      );
       header->addChild(
           ui::image({
               .out = &m_brandGlyph,
@@ -1899,23 +1948,11 @@ void LauncherPanel::create() {
                 .out = &m_brandWordmark,
                 .text = "NYTHERA",
                 .fontSize = 25.0F * scale,
-                .fontFamily = wordmarkFont.empty() ? std::string("sans-serif") : wordmarkFont,
+                .directDisplayFont = true,
                 .color = colorSpecFromRole(ColorRole::OnSurface),
             })
         );
       }
-      auto accent = ui::box({.fill = colorSpecFromRole(ColorRole::Primary, 0.8F),
-                             .width = 13.0F * scale, .height = 2.0F * scale});
-      accent->setRotation(-0.65F);
-      header->addChild(std::move(accent));
-      header->addChild(
-          ui::separator({
-              .color = colorSpecFromRole(ColorRole::OutlineVariant, 0.55F),
-              .thickness = std::max(1.0F, Style::borderWidth * scale),
-              .orientation = SeparatorOrientation::HorizontalRule,
-              .flexGrow = 1.0F,
-          })
-      );
       container->addChild(std::move(header));
     }
 
@@ -2055,11 +2092,14 @@ void LauncherPanel::refreshLauncherAppIconColorization() {
   if (m_listAdapter == nullptr || m_gridAdapter == nullptr || m_grid == nullptr) {
     return;
   }
-  const LauncherListStyle style = launcherListStyleFrom(m_config, contentScale(), panelCardOpacity());
+  LauncherListStyle style = launcherListStyleFrom(m_config, contentScale(), panelCardOpacity());
+  style.selectionIndicatorManaged = m_grid->selectionIndicatorEnabled();
+  LauncherListStyle otherStyle = style;
+  otherStyle.selectionIndicatorManaged = false;
   m_listAdapter->setListStyle(style);
-  m_gridAdapter->setListStyle(style);
+  m_gridAdapter->setListStyle(otherStyle);
   if (m_launcherSectionsAdapter != nullptr) {
-    m_launcherSectionsAdapter->setListStyle(style);
+    m_launcherSectionsAdapter->setListStyle(otherStyle);
   }
   m_grid->notifyDataChanged();
   if (m_launcherSections != nullptr) {
@@ -2168,12 +2208,16 @@ void LauncherPanel::syncLauncherViewLayout(Renderer* renderer) {
 
   const bool useGrid = shouldUseAppGrid();
   const float scale = contentScale();
-  const LauncherListStyle style = launcherListStyleFrom(m_config, scale, panelCardOpacity());
+  LauncherListStyle style = launcherListStyleFrom(m_config, scale, panelCardOpacity());
+  m_grid->setSelectionIndicatorEnabled(!useGrid);
+  style.selectionIndicatorManaged = !useGrid;
+  LauncherListStyle otherStyle = style;
+  otherStyle.selectionIndicatorManaged = false;
   m_grid->setScale(scale);
   m_listAdapter->setListStyle(style);
-  m_gridAdapter->setListStyle(style);
+  m_gridAdapter->setListStyle(otherStyle);
   if (m_launcherSectionsAdapter != nullptr) {
-    m_launcherSectionsAdapter->setListStyle(style);
+    m_launcherSectionsAdapter->setListStyle(otherStyle);
   }
   if (m_launcherSections != nullptr) {
     m_launcherSections->setContentScale(scale);
@@ -2345,6 +2389,13 @@ void LauncherPanel::doLayout(Renderer& renderer, float width, float height) {
   updateLauncherGridMetrics(renderer);
   if (std::abs(previousRowHeight - m_launcherRowHeight) >= 0.5F) {
     m_container->layout(renderer);
+  }
+  if (m_brandHeaderAccent != nullptr && m_brandHeader != nullptr) {
+    const std::string accentPath = paths::assetPath("nythera-header-accent.svg").string();
+    const int targetSize = std::max(1, static_cast<int>(std::ceil(m_brandHeader->width())));
+    (void)m_brandHeaderAccent->setSourceFile(renderer, accentPath, targetSize);
+    m_brandHeaderAccent->setPosition(0.0F, 0.0F);
+    m_brandHeaderAccent->setSize(m_brandHeader->width(), m_brandHeader->height());
   }
 }
 

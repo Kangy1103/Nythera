@@ -84,6 +84,12 @@ void Label::setFontFeatures(std::string features) {
   m_measureCached = false;
 }
 
+void Label::setDirectDisplayFont(bool enabled) {
+  if (m_textNode->font().directDisplay == enabled) return;
+  m_textNode->setDirectDisplayFont(enabled);
+  m_measureCached = false;
+}
+
 void Label::setColor(const ColorSpec& color) {
   m_color = color;
   applyPalette();

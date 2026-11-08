@@ -417,6 +417,7 @@ namespace ui {
     if (props.fontFeatures.has_value()) {
       control->setFontFeatures(std::move(*props.fontFeatures));
     }
+    control->setDirectDisplayFont(props.directDisplayFont);
     if (props.color.has_value()) {
       control->setColor(*props.color);
     }

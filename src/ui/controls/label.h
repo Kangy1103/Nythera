@@ -43,6 +43,7 @@ public:
   void setFontSize(float size);
   void setFontFamily(std::string family);
   void setFontFeatures(std::string features);
+  void setDirectDisplayFont(bool enabled);
   void setColor(const ColorSpec& color);
   // Explicit fixed color.
   void setColor(const Color& color);

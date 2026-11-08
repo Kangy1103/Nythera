@@ -84,6 +84,12 @@ public:
     markLayoutDirty();
   }
 
+  void setDirectDisplayFont(bool enabled) {
+    if (m_font.directDisplay == enabled) return;
+    m_font.directDisplay = enabled;
+    markLayoutDirty();
+  }
+
   [[nodiscard]] TextAlign textAlign() const noexcept { return m_textAlign; }
 
   void setTextAlign(TextAlign align) {

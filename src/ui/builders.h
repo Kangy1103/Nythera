@@ -221,6 +221,7 @@ namespace ui {
     std::optional<FontWeight> fontWeight = std::nullopt;
     std::optional<std::string> fontFamily = std::nullopt;
     std::optional<std::string> fontFeatures = std::nullopt;
+    bool directDisplayFont = false;
     std::optional<ColorSpec> color = std::nullopt;
     std::optional<float> width = std::nullopt;
     std::optional<float> height = std::nullopt;

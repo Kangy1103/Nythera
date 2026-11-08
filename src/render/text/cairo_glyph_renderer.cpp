@@ -6,11 +6,14 @@
 #include <cairo-ft.h>
 #include <cairo.h>
 #include FT_FREETYPE_H
-
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <hb-ft.h>
+#include <hb.h>
+#include <limits>
 #include <stdexcept>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -67,10 +70,62 @@ namespace {
     };
   }
 
+  struct ShapedGlyph {
+    FT_UInt index = 0;
+    float xAdvance = 0.0F;
+    float yAdvance = 0.0F;
+    float xOffset = 0.0F;
+    float yOffset = 0.0F;
+  };
+
+  bool shapeDisplayText(FT_Face face, std::string_view text, float rasterSize, std::vector<ShapedGlyph>& out) {
+    out.clear();
+    if (face == nullptr || text.empty() || text.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+      return false;
+    FT_Set_Pixel_Sizes(face, 0, static_cast<FT_UInt>(std::round(rasterSize)));
+    hb_font_t* font = hb_ft_font_create_referenced(face);
+    if (font == nullptr)
+      return false;
+    hb_ft_font_changed(font);
+    hb_buffer_t* buffer = hb_buffer_create();
+    if (buffer == nullptr) {
+      hb_font_destroy(font);
+      return false;
+    }
+    hb_buffer_add_utf8(buffer, text.data(), static_cast<int>(text.size()), 0, static_cast<int>(text.size()));
+    hb_buffer_guess_segment_properties(buffer);
+    hb_shape(font, buffer, nullptr, 0);
+    unsigned int count = 0;
+    const hb_glyph_info_t* infos = hb_buffer_get_glyph_infos(buffer, &count);
+    const hb_glyph_position_t* positions = hb_buffer_get_glyph_positions(buffer, &count);
+    out.reserve(count);
+    for (unsigned int i = 0; i < count; ++i) {
+      if (infos[i].codepoint == 0) {
+        out.clear();
+        break;
+      }
+      out.push_back(
+          ShapedGlyph{
+              .index = infos[i].codepoint,
+              .xAdvance = static_cast<float>(positions[i].x_advance) / 64.0F,
+              .yAdvance = static_cast<float>(positions[i].y_advance) / 64.0F,
+              .xOffset = static_cast<float>(positions[i].x_offset) / 64.0F,
+              .yOffset = static_cast<float>(positions[i].y_offset) / 64.0F
+          }
+      );
+    }
+    hb_buffer_destroy(buffer);
+    hb_font_destroy(font);
+    return !out.empty();
+  }
+
 } // namespace
 
 bool CairoGlyphRenderer::CacheKey::operator==(const CacheKey& other) const noexcept {
-  return codepoint == other.codepoint && sizeQ == other.sizeQ && scaleQ == other.scaleQ;
+  return codepoint == other.codepoint
+      && sizeQ == other.sizeQ
+      && scaleQ == other.scaleQ
+      && displayFont == other.displayFont;
 }
 
 std::size_t CairoGlyphRenderer::CacheKeyHash::operator()(const CacheKey& k) const noexcept {
@@ -78,6 +133,7 @@ std::size_t CairoGlyphRenderer::CacheKeyHash::operator()(const CacheKey& k) cons
   hashCombine(seed, std::hash<char32_t>{}(k.codepoint));
   hashCombine(seed, std::hash<std::uint32_t>{}(k.sizeQ));
   hashCombine(seed, std::hash<std::uint16_t>{}(k.scaleQ));
+  hashCombine(seed, std::hash<bool>{}(k.displayFont));
   return seed;
 }
 
@@ -109,6 +165,39 @@ void CairoGlyphRenderer::initialize(const std::string& fontPath, RenderBackend* 
 
   m_cache.max_load_factor(1.0F);
   m_cache.reserve(kMaxCacheEntries + 16);
+}
+
+void CairoGlyphRenderer::initializeDisplayFont(const std::string& fontPath) {
+  if (m_ftLibrary == nullptr)
+    throw std::runtime_error("CairoGlyphRenderer: initialize icon font first");
+  for (auto it = m_cache.begin(); it != m_cache.end();) {
+    if (it->first.displayFont) {
+      auto remove = it++;
+      evict(remove);
+    } else {
+      ++it;
+    }
+  }
+  if (m_displayFace != nullptr) {
+    if (m_displayCairoFace != nullptr)
+      cairo_font_face_destroy(m_displayCairoFace);
+    FT_Done_Face(m_displayFace);
+    m_displayFace = nullptr;
+    m_displayCairoFace = nullptr;
+  }
+  if (FT_New_Face(m_ftLibrary, fontPath.c_str(), 0, &m_displayFace) != 0) {
+    throw std::runtime_error("CairoGlyphRenderer: failed to load display font: " + fontPath);
+  }
+  m_displayCairoFace = cairo_ft_font_face_create_for_ft_face(m_displayFace, 0);
+  if (m_displayCairoFace == nullptr || cairo_font_face_status(m_displayCairoFace) != CAIRO_STATUS_SUCCESS) {
+    if (m_displayCairoFace != nullptr) {
+      cairo_font_face_destroy(m_displayCairoFace);
+      m_displayCairoFace = nullptr;
+    }
+    FT_Done_Face(m_displayFace);
+    m_displayFace = nullptr;
+    throw std::runtime_error("CairoGlyphRenderer: failed to create display Cairo face: " + fontPath);
+  }
 }
 
 void CairoGlyphRenderer::invalidateGlyphTextures() {
@@ -145,6 +234,14 @@ void CairoGlyphRenderer::cleanup() {
   if (m_cairoFace != nullptr) {
     cairo_font_face_destroy(m_cairoFace);
     m_cairoFace = nullptr;
+  }
+  if (m_displayCairoFace != nullptr) {
+    cairo_font_face_destroy(m_displayCairoFace);
+    m_displayCairoFace = nullptr;
+  }
+  if (m_displayFace != nullptr) {
+    FT_Done_Face(m_displayFace);
+    m_displayFace = nullptr;
   }
   if (m_face != nullptr) {
     FT_Done_Face(m_face);
@@ -215,12 +312,82 @@ CairoGlyphRenderer::measureGlyph(float contentScale, char32_t codepoint, float f
   return out;
 }
 
-CairoGlyphRenderer::CacheEntry*
-CairoGlyphRenderer::lookupOrRasterize(float contentScale, char32_t codepoint, float fontSize) {
+CairoGlyphRenderer::TextMetrics
+CairoGlyphRenderer::measureDisplayText(float contentScale, std::string_view text, float fontSize) {
+  if (m_displayFace == nullptr || m_displayCairoFace == nullptr || contentScale <= 0.0F || fontSize <= 0.0F)
+    return {};
+  const float rasterSize = std::max(1.0F, fontSize * contentScale);
+  const float invScale = 1.0F / contentScale;
+  std::vector<ShapedGlyph> glyphs;
+  if (!shapeDisplayText(m_displayFace, text, rasterSize, glyphs))
+    return {};
+  cairo_scaled_font_t* scaledFont = create_scaled_font(m_displayCairoFace, m_fontOptions, rasterSize);
+  if (scaledFont == nullptr || cairo_scaled_font_status(scaledFont) != CAIRO_STATUS_SUCCESS) {
+    if (scaledFont != nullptr)
+      cairo_scaled_font_destroy(scaledFont);
+    return {};
+  }
+  float penX = 0.0F, penY = 0.0F;
+  float left = 0.0F, right = 0.0F, top = 0.0F, bottom = 0.0F;
+  bool hasInk = false;
+  for (const auto& shaped : glyphs) {
+    cairo_glyph_t glyph{.index = shaped.index, .x = penX + shaped.xOffset, .y = -penY - shaped.yOffset};
+    cairo_text_extents_t ext{};
+    cairo_scaled_font_glyph_extents(scaledFont, &glyph, 1, &ext);
+    if (ext.width > 0.0 || ext.height > 0.0) {
+      const float gl = static_cast<float>(glyph.x) + static_cast<float>(ext.x_bearing);
+      const float gr = gl + static_cast<float>(ext.width);
+      const float gt = static_cast<float>(glyph.y) + static_cast<float>(ext.y_bearing);
+      const float gb = gt + static_cast<float>(ext.height);
+      if (!hasInk) {
+        left = gl;
+        right = gr;
+        top = gt;
+        bottom = gb;
+        hasInk = true;
+      } else {
+        left = std::min(left, gl);
+        right = std::max(right, gr);
+        top = std::min(top, gt);
+        bottom = std::max(bottom, gb);
+      }
+    }
+    penX += shaped.xAdvance;
+    penY += shaped.yAdvance;
+  }
+  cairo_scaled_font_destroy(scaledFont);
+  return TextMetrics{
+      .width = penX * invScale,
+      .left = left * invScale,
+      .right = right * invScale,
+      .top = top * invScale,
+      .bottom = bottom * invScale
+  };
+}
+
+CairoGlyphRenderer::TextMetrics CairoGlyphRenderer::measureDisplayFont(float contentScale, float fontSize) {
+  if (m_displayFace == nullptr || contentScale <= 0.0F || fontSize <= 0.0F)
+    return {};
+  const auto cap = measureDisplayText(contentScale, "H", fontSize);
+  const float scale = fontSize / static_cast<float>(m_displayFace->units_per_EM);
+  return TextMetrics{
+      .width = 0.0F,
+      .left = 0.0F,
+      .right = 0.0F,
+      .top = -static_cast<float>(m_displayFace->ascender) * scale,
+      .bottom = -static_cast<float>(m_displayFace->descender) * scale,
+      .capHeight = std::max(0.0F, -cap.top)
+  };
+}
+
+CairoGlyphRenderer::CacheEntry* CairoGlyphRenderer::lookupOrRasterize(
+    float contentScale, char32_t codepoint, float fontSize, bool displayFont, FT_UInt forcedGlyphIndex
+) {
   CacheKey key;
   key.codepoint = codepoint;
   key.sizeQ = quantizeSize(fontSize);
   key.scaleQ = quantizeScale(contentScale);
+  key.displayFont = displayFont;
 
   auto it = m_cache.find(key);
   if (it != m_cache.end()) {
@@ -229,14 +396,18 @@ CairoGlyphRenderer::lookupOrRasterize(float contentScale, char32_t codepoint, fl
   }
 
   const float rasterSize = std::max(1.0F, fontSize * contentScale);
-  FT_Set_Pixel_Sizes(m_face, 0, static_cast<FT_UInt>(std::round(rasterSize)));
+  FT_Face activeFace = displayFont ? m_displayFace : m_face;
+  cairo_font_face_t* activeCairoFace = displayFont ? m_displayCairoFace : m_cairoFace;
+  if (activeFace == nullptr || activeCairoFace == nullptr)
+    return nullptr;
+  FT_Set_Pixel_Sizes(activeFace, 0, static_cast<FT_UInt>(std::round(rasterSize)));
 
-  const FT_UInt glyphIndex = FT_Get_Char_Index(m_face, codepoint);
+  const FT_UInt glyphIndex = forcedGlyphIndex != 0 ? forcedGlyphIndex : FT_Get_Char_Index(activeFace, codepoint);
   if (glyphIndex == 0) {
     return nullptr;
   }
 
-  cairo_scaled_font_t* scaledFont = create_scaled_font(m_cairoFace, m_fontOptions, rasterSize);
+  cairo_scaled_font_t* scaledFont = create_scaled_font(activeCairoFace, m_fontOptions, rasterSize);
   if (scaledFont == nullptr || cairo_scaled_font_status(scaledFont) != CAIRO_STATUS_SUCCESS) {
     if (scaledFont != nullptr) {
       cairo_scaled_font_destroy(scaledFont);
@@ -369,4 +540,51 @@ void CairoGlyphRenderer::drawGlyph(
           .transform = world,
       }
   );
+}
+
+void CairoGlyphRenderer::drawDisplayText(
+    float contentScale, float surfaceWidth, float surfaceHeight, float x, float baselineY, std::string_view text,
+    float fontSize, const Color& color, const Mat3& transform
+) {
+  if (m_displayFace == nullptr || m_displayCairoFace == nullptr || m_backend == nullptr || contentScale <= 0.0F)
+    return;
+  const float rasterSize = std::max(1.0F, fontSize * contentScale);
+  std::vector<ShapedGlyph> glyphs;
+  if (!shapeDisplayText(m_displayFace, text, rasterSize, glyphs))
+    return;
+  float penPxX = 0.0F, penPxY = 0.0F;
+  for (const auto& shaped : glyphs) {
+    CacheEntry* entry =
+        lookupOrRasterize(contentScale, static_cast<char32_t>(shaped.index), fontSize, true, shaped.index);
+    if (entry == nullptr || entry->texture.id == 0)
+      return;
+    const float invScale = 1.0F / contentScale;
+    const float gx = x + (penPxX + shaped.xOffset) * invScale;
+    const float quadW = static_cast<float>(entry->pixelWidth) * invScale;
+    const float quadH = static_cast<float>(entry->pixelHeight) * invScale;
+    const Mat3 local = Mat3::translation(
+        gx - entry->baselineXPx * invScale,
+        baselineY - (penPxY + shaped.yOffset) * invScale - entry->baselinePx * invScale
+    );
+    Mat3 world = transform * local;
+    if (isAxisAligned(world)) {
+      world.m[6] = snapToBufferPixel(world.m[6], contentScale);
+      world.m[7] = snapToBufferPixel(world.m[7], contentScale);
+    }
+    m_backend->drawGlyph(
+        RenderGlyphDraw{
+            .texture = entry->texture.id,
+            .surfaceWidth = surfaceWidth,
+            .surfaceHeight = surfaceHeight,
+            .width = quadW,
+            .height = quadH,
+            .opacity = 1.0F,
+            .tint = color,
+            .tinted = true,
+            .transform = world
+        }
+    );
+    penPxX += shaped.xAdvance;
+    penPxY += shaped.yAdvance;
+  }
 }

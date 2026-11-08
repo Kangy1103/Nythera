@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="100" viewBox="0 0 1000 100" preserveAspectRatio="none">
+  <defs>
+    <radialGradient id="wash" cx="15%" cy="48%" r="94%">
+      <stop offset="0" stop-color="#fff" stop-opacity=".09"/>
+      <stop offset=".36" stop-color="#fff" stop-opacity=".06"/>
+      <stop offset=".78" stop-color="#fff" stop-opacity=".015"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity=".72"/>
+      <stop offset=".72" stop-color="#fff" stop-opacity=".98"/>
+      <stop offset="1" stop-color="#fff" stop-opacity=".62"/>
+    </linearGradient>
+    <filter id="glow" x="-10%" y="-30%" width="120%" height="160%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+    <filter id="stripeGlow" x="-15%" y="-25%" width="130%" height="150%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="3.1"/>
+    </filter>
+    <linearGradient id="stripes" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity=".12"/>
+      <stop offset=".55" stop-color="#fff" stop-opacity=".27"/>
+      <stop offset="1" stop-color="#fff" stop-opacity=".10"/>
+    </linearGradient>
+  </defs>
+
+  <!-- White is an alpha mask; Image::setForegroundTint supplies the live Primary palette colour. -->
+  <rect width="1000" height="100" fill="url(#wash)"/>
+
+  <!-- Continuous under-brand line turning into the main rising slash. -->
+  <path d="M0 96H455L530 0" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="square"
+        stroke-linejoin="bevel" opacity=".13" filter="url(#glow)"/>
+  <path d="M0 96H455L530 0" fill="none" stroke="url(#edge)" stroke-width="2.4" stroke-linecap="square"
+        stroke-linejoin="bevel"/>
+
+  <!-- Soft, low-opacity halos sit beneath crisp stripes; tapered lower ends avoid blunt cutoffs. -->
+  <g fill="#fff" opacity=".12" filter="url(#stripeGlow)">
+    <path d="M560 0H580L518 80L503 86L498 80Z"/>
+    <path d="M598 0H618L556 79L542 85L536 79Z"/>
+    <path d="M636 0H656L595 78L581 84L575 78Z"/>
+  </g>
+  <path d="M560 0H580L518 80L503 86L498 80Z" fill="url(#stripes)"/>
+  <path d="M598 0H618L556 79L542 85L536 79Z" fill="url(#stripes)"/>
+  <path d="M636 0H656L595 78L581 84L575 78Z" fill="url(#stripes)"/>
+</svg>

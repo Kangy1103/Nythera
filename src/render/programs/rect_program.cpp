@@ -49,7 +49,7 @@ uniform vec4 u_gradient_color0;
 uniform vec4 u_gradient_color1;
 uniform vec4 u_gradient_color2;
 uniform vec4 u_gradient_color3;
-uniform vec4 u_corner_shapes; // tl, tr, br, bl: 0 = convex, 1 = concave
+uniform vec4 u_corner_shapes; // tl, tr, br, bl: 0 = convex, 1 = concave, 2 = chamfered
 uniform vec4 u_logical_inset; // left, top, right, bottom
 uniform vec4 u_radii;  // tl, tr, br, bl
 uniform float u_softness;
@@ -87,6 +87,16 @@ float shape_distance(vec2 point, vec2 size, vec4 radii, vec4 corner_shapes, vec4
     vec2 body_size = max(body_max - body_min, vec2(0.0));
     float max_radius = max(min(body_size.x, body_size.y) * 0.5, 0.0);
     vec4 r = clamp(radii, vec4(0.0), vec4(max_radius));
+
+    if (all(greaterThan(corner_shapes, vec4(1.5)))) {
+        vec2 centered = point - (body_min + body_max) * 0.5;
+        vec2 half_size = body_size * 0.5;
+        float box_distance = max(max(abs(centered.x) - half_size.x, abs(centered.y) - half_size.y), 0.0)
+            + min(max(abs(centered.x) - half_size.x, abs(centered.y) - half_size.y), 0.0);
+        float chamfer_distance = (abs(centered.x) + abs(centered.y) - half_size.x - half_size.y + r.x) * 0.70710678;
+        float visual_clip = max(max(-point.x, point.x - size.x), max(-point.y, point.y - size.y));
+        return max(max(box_distance, chamfer_distance), visual_clip);
+    }
 
     bool tl_concave = corner_shapes.x > 0.5;
     bool tr_concave = corner_shapes.y > 0.5;
@@ -537,7 +547,17 @@ void RectProgram::draw(
   glUniform4f(m_gradientColor1Location, stop1.color.r, stop1.color.g, stop1.color.b, stop1.color.a);
   glUniform4f(m_gradientColor2Location, stop2.color.r, stop2.color.g, stop2.color.b, stop2.color.a);
   glUniform4f(m_gradientColor3Location, stop3.color.r, stop3.color.g, stop3.color.b, stop3.color.a);
-  const auto cornerShapeValue = [](CornerShape shape) { return shape == CornerShape::Concave ? 1.0F : 0.0F; };
+  const auto cornerShapeValue = [](CornerShape shape) {
+    switch (shape) {
+    case CornerShape::Convex:
+      return 0.0F;
+    case CornerShape::Concave:
+      return 1.0F;
+    case CornerShape::Chamfered:
+      return 2.0F;
+    }
+    return 0.0F;
+  };
   glUniform4f(
       m_cornerShapesLocation, cornerShapeValue(style.corners.tl), cornerShapeValue(style.corners.tr),
       cornerShapeValue(style.corners.br), cornerShapeValue(style.corners.bl)

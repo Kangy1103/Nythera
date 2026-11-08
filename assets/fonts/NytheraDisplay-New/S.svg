@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 710 830" width="710" height="830">
+  <title>Nythera Display — S</title>
+  <!-- Exact outline extracted from NytheraDisplay-Regular(3).ttf. Font coordinates preserved; baseline y=600. -->
+  <g fill="#ffffff" transform="translate(0 600) scale(1 -1)">
+    <path d="M652 450H277Q67 450 67 325Q67 200 272 200H437Q597 200 597 120Q597 45 447 45H107L42 -5H457Q662 -5 662 120Q662 250 442 250H272Q132 250 132 325Q132 400 277 400H587Z"/>
+  </g>
+</svg>

@@ -37,6 +37,8 @@ struct TextFont {
   FontWeight weight = FontWeight::Normal;
   std::string family;
   std::string features;
+  // Explicitly bypass Pango and use the bundled Nythera Display face.
+  bool directDisplay = false;
 
   bool operator==(const TextFont&) const = default;
 };
