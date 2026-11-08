@@ -1,6 +1,6 @@
 # Nythera application identity
 
-Nythera is an independent fork of [Noctalia](https://github.com/noctalia-dev/noctalia). The repository remains [Kangy1103/noctalia](https://github.com/Kangy1103/noctalia), on `dev`; Git remotes have not been renamed. Original MIT licensing and third-party acknowledgements remain intact.
+Nythera is an independent fork of [Noctalia](https://github.com/noctalia-dev/noctalia). The repository is now [Kangy1103/Nythera](https://github.com/Kangy1103/Nythera), with `main` and `dev` branches. Local Git remote names and URLs must be verified on each checkout rather than assumed. Original MIT licensing and third-party acknowledgements remain intact.
 
 ## Runtime and build
 
@@ -34,7 +34,7 @@ Encrypted on-disk stores retain their existing versioned magic/KDF context bytes
 - Upstream Luau plugins still publish a `noctalia` global. At source ingestion, Nythera translates that identifier to its `nythera` API before compilation, including required modules. It does not register a runtime `noctalia` alias. Comments, long strings, URLs and catalogue IDs are preserved. Literal host commands (`noctalia` or `noctalia ...`) and `dev.noctalia.*` helper identifiers are explicitly rewired too. Dynamically constructed shell commands outside these recognised forms require plugin-side updates. Bundled consumers and Nythera documentation use `nythera`.
 - Firefox uses the third-party Pywalfox extension: native host `pywalfox`, extension ID `pywalfox@frewacom.org`, `pywalfox.json`, extension settings and message fields remain its external contract. The registered executable and Nythera-owned host description/runtime socket are renamed. A pre-existing foreign/Noctalia manifest is not silently overwritten; explicitly install Nythera's host when switching the extension to this shell.
 - Standard services/interfaces (`org.freedesktop.*`, `org.mpris.MediaPlayer2`, etc.), system package/library names, and protocol definitions are unchanged.
-- Upstream-only GitHub project, mirror and Cachix workflows retain upstream repository guards and external destinations; these remain disabled on the personal fork. Nythera build/release targets and artifact names are renamed. No Git remotes were changed.
+- Upstream-only GitHub project, mirror and Cachix workflows retain upstream repository guards and external destinations; these remain disabled on the personal fork. Nythera build/release targets and artifact names are renamed. The local Git remote configuration is not documented here; inspect it before integration.
 
 See [CREDITS.md](CREDITS.md) and [LICENSE](LICENSE) for source and asset attribution. This rename reuses the existing artwork and glyphs; it does not claim new authorship or redesign the interface.
 
@@ -46,6 +46,6 @@ See [CREDITS.md](CREDITS.md) and [LICENSE](LICENSE) for source and asset attribu
 - Migration exercised missing sources, existing destination files, partial/repeated copies, symlink safety, XDG roots and source preservation. Live import copied 3,769 files and one keyring item, with no reported failures; the absent old data tree was skipped.
 - Live config validation: valid with the same seven legacy warnings. Nythera started on four outputs, shut down gracefully, restarted from a relative executable path, answered `nythera msg status`, and registered renamed debug/MPRIS services. The notification server reports Nythera/Kangy1103.
 - Fish switcher round trip Nythera → packaged Noctalia → Nythera passed. Final profile/runtime is Nythera; the old Noctalia IPC command reports no running instance. Existing visualizer plugin's schema warning was verified in the old log too; no new runtime error lines were observed.
-- Repository identifier audit classified all surviving old names as attribution, real upstream URLs/services, external plugin/data-format contracts, or explicit migration code/tests. No old application-owned filenames remain. LICENSE, CREDITS.md, third_party and protocols were not modified; Git remotes are unchanged.
+- Repository identifier audit classified all surviving old names as attribution, real upstream URLs/services, external plugin/data-format contracts, or explicit migration code/tests. No old application-owned filenames remain. LICENSE, CREDITS.md, third_party and protocols were not modified; Local Git remotes were not verified as part of this historical validation.
 
 Limits: Nix/Guix packages were updated but not built here. Firefox native messaging was covered by automated tests; no local Pywalfox host is installed for an end-to-end browser check. Interactive authentication prompts and every third-party plugin action were not manually exercised. No visual redesign or browser screenshot comparison was performed.
