@@ -40,4 +40,5 @@ private:
   GLint m_hasBackdropLocation = -1;
   GLint m_backdropOpacityLocation = -1;
   GLint m_bandNeckLocation = -1;
+  GLint m_bandChamferLocation = -1;
 };

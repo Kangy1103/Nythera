@@ -44,6 +44,7 @@ uniform vec4 u_band_spans[32]; // first two spans
 uniform vec4 u_band_fill[32];
 uniform vec4 u_band_border[32];
 uniform vec4 u_band_neck[32]; // neck span, neck depth, compound enabled
+uniform vec2 u_band_chamfer[32]; // upper join smoothing, lower radius
 varying vec2 v_local;
 float roundedDistance(vec2 p, vec2 halfSize, float r) {
   r = min(r, min(halfSize.x, halfSize.y));
@@ -79,7 +80,7 @@ float roundedQuadDistance(vec2 p, vec2 vertices[4], float radius) {
   float distanceToInset = sqrt(nearestSquared);
   return (inside ? -distanceToInset : distanceToInset) - radius;
 }
-float chamferedBandDistance(vec2 p, vec2 span, float depth, float rail,
+float chamferedBandDistance(vec2 p, vec2 span, float depth, float rail, float radius,
                             bool chamferStart, bool chamferEnd) {
   float outer = -2.0 * depth;
   float extent = depth - outer;
@@ -88,7 +89,7 @@ float chamferedBandDistance(vec2 p, vec2 span, float depth, float rail,
   vertices[1] = vec2(span.y + (chamferEnd ? extent : 0.0), outer);
   vertices[2] = vec2(span.y, depth);
   vertices[3] = vec2(span.x, depth);
-  float safeRadius = min(36.0, min((depth - rail) * 0.7, (span.y - span.x) * 0.45));
+  float safeRadius = min(radius, min((depth - rail) * 0.7, (span.y - span.x) * 0.45));
   return roundedQuadDistance(p, vertices, safeRadius);
 }
 void main() {
@@ -136,7 +137,7 @@ void main() {
           && span.y > 0.0 && span.y + chamferGap < edgeLength;
       bool chamfered = chamferStart || chamferEnd;
       if (chamfered)
-        bd = chamferedBandDistance(buv, span, shape.z, u_frame.z,
+        bd = chamferedBandDistance(buv, span, shape.z, u_frame.z, u_band_chamfer[b].y,
                                    chamferStart, chamferEnd);
       vec4 neck = u_band_neck[b];
       if (neck.w > 0.0) {
@@ -149,7 +150,7 @@ void main() {
         bd = max(bd, roundedDistance(buv - vec2((bounds.x + bounds.y) * 0.5, (depth + outer) * 0.5),
             vec2((bounds.y - bounds.x) * 0.5, (depth - outer) * 0.5), 0.0));
       }
-      float join = chamfered ? min(meta.x, 12.0) : meta.x;
+      float join = chamfered ? min(min(meta.x, 12.0) * u_band_chamfer[b].x / 12.0, chamferGap) : meta.x;
       float blend = join > 0.0 ? clamp(0.5 + (d - bd) / (2.0 * join), 0.0, 1.0) : (bd < d ? 1.0 : 0.0);
       float h = join > 0.0 ? max(join - abs(d - bd), 0.0) / join : 0.0;
       d = min(d, bd) - h * h * join * 0.25;
@@ -204,6 +205,7 @@ void ScreenFrameProgram::ensureInitialized() {
   m_bandFillLocation = glGetUniformLocation(m_program.id(), "u_band_fill[0]");
   m_bandBorderLocation = glGetUniformLocation(m_program.id(), "u_band_border[0]");
   m_bandNeckLocation = glGetUniformLocation(m_program.id(), "u_band_neck[0]");
+  m_bandChamferLocation = glGetUniformLocation(m_program.id(), "u_band_chamfer[0]");
   if (m_positionLocation < 0
       || m_surfaceSizeLocation < 0
       || m_sizeLocation < 0
@@ -222,7 +224,7 @@ void ScreenFrameProgram::ensureInitialized() {
       || m_bandMetaLocation < 0
       || m_bandSpansLocation < 0
       || m_bandFillLocation < 0
-      || m_bandBorderLocation < 0 || m_bandNeckLocation < 0
+      || m_bandBorderLocation < 0 || m_bandNeckLocation < 0 || m_bandChamferLocation < 0
       || m_backdropLocation < 0 || m_backdropSourceLocation < 0 || m_backdropBoundsLocation < 0
       || m_hasBackdropLocation < 0 || m_backdropOpacityLocation < 0)
     throw std::runtime_error("failed to query screen-frame shader locations");
@@ -266,9 +268,12 @@ void ScreenFrameProgram::draw(
   if (g.bands.size() > kMaxScreenFrameBands)
     throw std::runtime_error("shared screen frame exceeds 32 bar tracks on one output");
   std::array<GLfloat, kMaxScreenFrameBands * 4> shapes{}, meta{}, bandSpans{}, fills{}, borders{}, necks{};
+  std::array<GLfloat, kMaxScreenFrameBands * 2> chamfers{};
   for (std::size_t i = 0; i < g.bands.size(); ++i) {
     const auto& b = g.bands[i];
     const auto o = i * 4;
+    chamfers[i * 2] = b.chamferUpper;
+    chamfers[i * 2 + 1] = b.chamferLower;
     necks[o] = b.neckSpan.begin;
     necks[o + 1] = b.neckSpan.end;
     necks[o + 2] = b.neckDepth;
@@ -297,6 +302,7 @@ void ScreenFrameProgram::draw(
   const auto count = static_cast<GLsizei>(g.bands.size());
   glUniform1i(m_bandCountLocation, count);
   if (count > 0) {
+    glUniform2fv(m_bandChamferLocation, count, chamfers.data());
     glUniform4fv(m_bandNeckLocation, count, necks.data());
     glUniform4fv(m_bandShapeLocation, count, shapes.data());
     glUniform4fv(m_bandMetaLocation, count, meta.data());

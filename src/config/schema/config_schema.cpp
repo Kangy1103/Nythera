@@ -2603,6 +2603,8 @@ namespace nythera::config::schema {
           field(&ScreenWrapConfig::enabled, "enabled"),
           field(&ScreenWrapConfig::wallpaperBacking, "wallpaper_backing"),
           field(&ScreenWrapConfig::barChamfer, "bar_chamfer"),
+          field(&ScreenWrapConfig::chamferUpper, "chamfer_upper", kBarWrapRadiusRange),
+          field(&ScreenWrapConfig::chamferLower, "chamfer_lower", kBarWrapRadiusRange),
           field(&ScreenWrapConfig::width, "width", kBarWrapWidthRange),
           field(&ScreenWrapConfig::clearance, "clearance", kBarRadiusRange),
           field(&ScreenWrapConfig::radius, "radius", kBarWrapRadiusRange),

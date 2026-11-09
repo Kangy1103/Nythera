@@ -1187,6 +1187,8 @@ int main() {
 enabled = true
 wallpaper_backing = true
 bar_chamfer = true
+chamfer_upper = 7
+chamfer_lower = 41
 width = 9
 radius = 24
 joined_corner_gap = 17
@@ -1199,6 +1201,8 @@ join_distance = 0
     if (!shell.screenWrap.enabled
         || !shell.screenWrap.wallpaperBacking
         || !shell.screenWrap.barChamfer
+        || shell.screenWrap.chamferUpper != 7
+        || shell.screenWrap.chamferLower != 41
         || shell.screenWrap.width != 9
         || shell.screenWrap.joinedCornerGap != 17
         || shell.screenWrap.freeCornerGap != 0

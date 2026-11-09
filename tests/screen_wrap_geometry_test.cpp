@@ -18,6 +18,8 @@ int main() {
     const auto chamfered = [&](float u, float v) {
       return screenFrameChamferedBandDistance(u, v, span, 50.0F, 10.0F, true, true);
     };
+    assert(std::abs(screenFrameChamferedBandDistance(200.0F, 50.0F, span, 50.0F, 10.0F, true, true, 0.0F)) < 0.02F);
+    assert(screenFrameChamferedBandDistance(200.0F, 50.0F, span, 50.0F, 10.0F, true, true, 36.0F) > 0.0F);
     const float lowerTangent = 28.0F * (std::sqrt(2.0F) - 1.0F); // clamped by the available depth
     const float invSqrtTwo = 1.0F / std::sqrt(2.0F);
     const float diagTopU = 150.0F;
@@ -45,6 +47,12 @@ int main() {
     assert(std::abs(screenFrameDistance(wrapped, 180.0F, 30.0F)) < 0.01F);
     assert(screenFrameDistance(wrapped, 199.0F, 30.0F) < 0.0F);
     assert(screenFrameDistance(wrapped, 150.0F, 30.0F) > 0.0F);
+    wrapped.bands[0].join = 24.0F;
+    wrapped.bands[0].chamferUpper = 0.0F;
+    const float sharpJoin = screenFrameDistance(wrapped, 170.0F, 10.0F);
+    wrapped.bands[0].chamferUpper = 24.0F;
+    assert(screenFrameDistance(wrapped, 170.0F, 10.0F) < sharpJoin);
+    wrapped.bands[0].join = 0.0F;
     wrapped.bands[0].softChamfer = false;
     assert(screenFrameDistance(wrapped, 180.0F, 30.0F) > 0.0F);
     wrapped.bands[0].softChamfer = true;
@@ -523,6 +531,9 @@ int main() {
     assert(visible("wrap_joined_corner_gap") && visible("wrap_free_corner_gap"));
     assert(visible("wrap_join_distance") && !visible("margin_edge") && !visible("shadow"));
     assert(visible("wrap_bar_chamfer"));
+    assert(!visible("wrap_chamfer_upper") && !visible("wrap_chamfer_lower"));
+    config.shell.screenWrap.barChamfer = true;
+    assert(visible("wrap_chamfer_upper") && visible("wrap_chamfer_lower"));
     b.surfaceMode = "islands";
     assert(visible("wrap_join_distance") && visible("start"));
     b.surfaceMode = "dynamic";

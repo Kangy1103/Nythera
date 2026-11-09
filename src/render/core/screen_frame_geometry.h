@@ -25,6 +25,7 @@ struct ScreenFrameBand {
   bool edgeAttached = true;
   float outer = 0, depth = 50, radius = 12, join = 24;
   bool softChamfer = false;
+  float chamferUpper = 12, chamferLower = 36;
   std::array<ScreenFrameSpan, 3> spans{};
   ScreenFrameSpan neckSpan{};
   float neckDepth = 0;
@@ -85,7 +86,6 @@ inline float screenFrameRoundedDistance(float x, float y, float halfWidth, float
 struct ScreenFramePoint {
   float x = 0, y = 0;
 };
-inline constexpr float kScreenFrameChamferRadius = 36.0F;
 
 inline float screenFrameRoundedQuadDistance(
     const std::array<ScreenFramePoint, 4>& vertices, float x, float y, float radius
@@ -127,7 +127,8 @@ inline float screenFrameRoundedQuadDistance(
 }
 
 inline float screenFrameChamferedBandDistance(
-    float u, float v, ScreenFrameSpan span, float depth, float rail, bool chamferStart, bool chamferEnd
+    float u, float v, ScreenFrameSpan span, float depth, float rail, bool chamferStart, bool chamferEnd,
+    float radius = 36.0F
 ) {
   // Keep the upper polygon corners outside the display: the frame's join
   // smoothing then rounds the meeting with the rail without a second curve.
@@ -138,7 +139,7 @@ inline float screenFrameChamferedBandDistance(
   const std::array<ScreenFramePoint, 4> vertices{{
       {leftTop, outer}, {rightTop, outer}, {span.end, depth}, {span.begin, depth}
   }};
-  const float safeRadius = std::min({kScreenFrameChamferRadius, (depth - rail) * 0.7F,
+  const float safeRadius = std::min({radius, (depth - rail) * 0.7F,
                                      (span.end - span.begin) * 0.45F});
   return screenFrameRoundedQuadDistance(vertices, u, v, safeRadius);
 }
@@ -183,7 +184,7 @@ inline float screenFrameDistance(const ScreenFrameContour& g, float x, float y) 
       const bool chamfered = chamferStart || chamferEnd;
       if (chamfered)
         shape = screenFrameChamferedBandDistance(bandU, bandV, span, band.depth, g.rail,
-                                                 chamferStart, chamferEnd);
+                                                 chamferStart, chamferEnd, band.chamferLower);
       if (band.neckSpan.end > band.neckSpan.begin) {
         const auto neck = band.neckSpan;
         const float nd = screenFrameRoundedDistance(
@@ -198,7 +199,9 @@ inline float screenFrameDistance(const ScreenFrameContour& g, float x, float y) 
             bandU - (begin + end) / 2, bandV - (depth + outer) / 2,
             (end - begin) / 2, (depth - outer) / 2, 0));
       }
-      const float join = chamfered ? std::min(band.join, 12.0F) : band.join;
+      const float join = chamfered
+          ? std::min(std::min(band.join, 12.0F) * band.chamferUpper / 12.0F, chamferGap)
+          : band.join;
       const float h = join > 0
           ? std::max(join - std::abs(d - shape), 0.0F) / join
           : 0.0F;

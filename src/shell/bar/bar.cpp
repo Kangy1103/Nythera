@@ -55,6 +55,8 @@ namespace {
       candidate.screenWrap = settings.enabled;
       candidate.wrapWallpaperBacking = settings.wallpaperBacking;
       candidate.wrapChamfer = settings.barChamfer;
+      candidate.wrapChamferUpper = settings.chamferUpper;
+      candidate.wrapChamferLower = settings.chamferLower;
       candidate.wrapWidth = settings.width;
       candidate.wrapClearance = settings.clearance;
       candidate.wrapRadius = settings.radius;
@@ -832,6 +834,8 @@ namespace {
         && a.screenWrap == b.screenWrap
         && a.wrapWallpaperBacking == b.wrapWallpaperBacking
         && a.wrapChamfer == b.wrapChamfer
+        && a.wrapChamferUpper == b.wrapChamferUpper
+        && a.wrapChamferLower == b.wrapChamferLower
         && a.wrapWidth == b.wrapWidth
         && a.wrapClearance == b.wrapClearance
         && a.wrapJoinedCornerGap == b.wrapJoinedCornerGap

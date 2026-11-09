@@ -187,6 +187,7 @@ struct BarConfig {
   bool screenWrap = false;
   bool wrapWallpaperBacking = false;
   bool wrapChamfer = false;
+  std::int32_t wrapChamferUpper = 12, wrapChamferLower = 36;
   std::int32_t wrapWidth = 6;
   std::int32_t wrapClearance = 0;
   std::int32_t wrapRadius = 20;
@@ -1193,6 +1194,7 @@ struct ScreenWrapConfig {
   bool enabled = false;
   bool wallpaperBacking = false;
   bool barChamfer = false;
+  std::int32_t chamferUpper = 12, chamferLower = 36;
   std::int32_t width = 6, clearance = 0, radius = 20, joinDistance = 80, joinedCornerGap = 12, freeCornerGap = 12;
   bool operator==(const ScreenWrapConfig&) const = default;
 };

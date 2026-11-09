@@ -32,6 +32,7 @@
 #include <format>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <utility>
 
 namespace settings {
@@ -1688,6 +1689,17 @@ namespace settings {
       );
       chamfer.visibleWhen = [](const Config& c) { return c.shell.screenWrap.enabled; };
       entries.push_back(std::move(chamfer));
+      for (const auto& [key, label, description, value] : {
+               std::tuple{"chamfer_upper", "Chamfer Upper Curvature", "Smooth the outward join to the frame; logical pixels", frame.chamferUpper},
+               std::tuple{"chamfer_lower", "Chamfer Lower Curvature", "Round the join to the island edge; logical pixels", frame.chamferLower}}) {
+        p = path;
+        p.push_back(key);
+        auto entry = makeEntry(SettingsSection::Desktop, "screen-wrap", label, description, p,
+                               SliderSetting{static_cast<float>(value), 0.0F, 100.0F, 1.0F, true},
+                               "screen wrap bar chamfer curvature");
+        entry.visibleWhen = [](const Config& c) { return c.shell.screenWrap.enabled && c.shell.screenWrap.barChamfer; };
+        entries.push_back(std::move(entry));
+      }
       struct Control {
         const char* key;
         const char* label;
