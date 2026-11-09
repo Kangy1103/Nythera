@@ -14,6 +14,73 @@
 
 int main() {
   {
+    const ScreenFrameSpan span{200.0F, 400.0F};
+    const auto chamfered = [&](float u, float v) {
+      return screenFrameChamferedBandDistance(u, v, span, 50.0F, 10.0F, true, true);
+    };
+    const float lowerTangent = 28.0F * (std::sqrt(2.0F) - 1.0F); // clamped by the available depth
+    const float invSqrtTwo = 1.0F / std::sqrt(2.0F);
+    const float diagTopU = 150.0F;
+    const float diagTopV = 0.0F;
+    const float diagLowerU = 200.0F - lowerTangent * invSqrtTwo;
+    const float diagLowerV = 50.0F - lowerTangent * invSqrtTwo;
+    assert(std::abs(chamfered(150.0F, 0.0F)) < 0.02F); // straight diagonal at the screen edge
+    assert(std::abs(chamfered(200.0F + lowerTangent, 50.0F)) < 0.02F); // lower horizontal tangent
+    assert(std::abs(chamfered((diagTopU + diagLowerU) / 2.0F, (diagTopV + diagLowerV) / 2.0F)) < 0.02F);
+    assert(chamfered(140.0F, 0.0F) > 0.0F);
+    assert(chamfered(199.0F, 30.0F) < 0.0F);
+    assert(chamfered(140.0F, 30.0F) > 0.0F);
+    // The option changes the existing attached island contour; floating
+    // islands still use their original rounded-box distance.
+    ScreenFrameContour wrapped;
+    wrapped.width = wrapped.height = 600.0F;
+    wrapped.rail = 10.0F;
+    ScreenFrameBand wrappedBand;
+    wrappedBand.depth = 50.0F;
+    wrappedBand.radius = 0.0F;
+    wrappedBand.join = 0.0F;
+    wrappedBand.softChamfer = true;
+    wrappedBand.spans[1] = span;
+    wrapped.bands.push_back(wrappedBand);
+    assert(std::abs(screenFrameDistance(wrapped, 180.0F, 30.0F)) < 0.01F);
+    assert(screenFrameDistance(wrapped, 199.0F, 30.0F) < 0.0F);
+    assert(screenFrameDistance(wrapped, 150.0F, 30.0F) > 0.0F);
+    wrapped.bands[0].softChamfer = false;
+    assert(screenFrameDistance(wrapped, 180.0F, 30.0F) > 0.0F);
+    wrapped.bands[0].softChamfer = true;
+    for (int edge = 0; edge < 4; ++edge) {
+      wrapped.bands[0].edge = edge;
+      const float x = edge == 1 ? 570.0F : edge == 3 ? 30.0F : 180.0F;
+      const float y = edge == 2 ? 570.0F : edge == 0 ? 30.0F : 180.0F;
+      assert(std::abs(screenFrameDistance(wrapped, x, y)) < 0.01F);
+    }
+    auto joined = wrapped;
+    joined.bands[0].edge = 0;
+    joined.bands[0].spans[1] = {0.0F, 200.0F};
+    auto unjoinedStyle = joined;
+    unjoinedStyle.bands[0].softChamfer = false;
+    assert(std::abs(screenFrameDistance(joined, -1.0F, 30.0F)
+                    - screenFrameDistance(unjoinedStyle, -1.0F, 30.0F)) < 0.001F);
+    ScreenFrameContour panelContour;
+    auto panelOwner = wrapped.bands[0];
+    appendScreenFrameTool(panelContour, panelOwner, {210.0F, 390.0F}, 90.0F, 1);
+    assert(!panelContour.bands.back().softChamfer);
+
+    ScreenFrameContour detached;
+    detached.width = detached.height = 600.0F;
+    detached.rail = -1.0F;
+    ScreenFrameBand floating;
+    floating.edgeAttached = false;
+    floating.depth = 50.0F;
+    floating.radius = 12.0F;
+    floating.softChamfer = true;
+    floating.spans[1] = span;
+    detached.bands.push_back(floating);
+    const float detachedDistance = screenFrameDistance(detached, 180.0F, 30.0F);
+    detached.bands[0].softChamfer = false;
+    assert(std::abs(screenFrameDistance(detached, 180.0F, 30.0F) - detachedDistance) < 0.001F);
+  }
+  {
     // Exercise actual IPC snapshot parsing, output filtering and geometry-only
     // change notifications, without connecting to or moving any real windows.
     compositors::umbriel::UmbrielRuntime runtime;
@@ -455,6 +522,7 @@ int main() {
     assert(visible("wrap_width"));
     assert(visible("wrap_joined_corner_gap") && visible("wrap_free_corner_gap"));
     assert(visible("wrap_join_distance") && !visible("margin_edge") && !visible("shadow"));
+    assert(visible("wrap_bar_chamfer"));
     b.surfaceMode = "islands";
     assert(visible("wrap_join_distance") && visible("start"));
     b.surfaceMode = "dynamic";

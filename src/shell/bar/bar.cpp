@@ -54,6 +54,7 @@ namespace {
       auto settings = frame;
       candidate.screenWrap = settings.enabled;
       candidate.wrapWallpaperBacking = settings.wallpaperBacking;
+      candidate.wrapChamfer = settings.barChamfer;
       candidate.wrapWidth = settings.width;
       candidate.wrapClearance = settings.clearance;
       candidate.wrapRadius = settings.radius;
@@ -830,6 +831,7 @@ namespace {
         && a.transparencyMode == b.transparencyMode
         && a.screenWrap == b.screenWrap
         && a.wrapWallpaperBacking == b.wrapWallpaperBacking
+        && a.wrapChamfer == b.wrapChamfer
         && a.wrapWidth == b.wrapWidth
         && a.wrapClearance == b.wrapClearance
         && a.wrapJoinedCornerGap == b.wrapJoinedCornerGap

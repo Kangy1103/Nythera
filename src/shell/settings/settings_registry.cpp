@@ -1679,6 +1679,15 @@ namespace settings {
       );
       backing.visibleWhen = [](const Config& c) { return c.shell.screenWrap.enabled; };
       entries.push_back(std::move(backing));
+      p = path;
+      p.push_back("bar_chamfer");
+      auto chamfer = makeEntry(
+          SettingsSection::Desktop, "screen-wrap", "Bar Soft Chamfer",
+          "Move Screen Wrap island top corners outwards to form 45-degree sides",
+          p, ToggleSetting{frame.barChamfer}, "bar island chamfer"
+      );
+      chamfer.visibleWhen = [](const Config& c) { return c.shell.screenWrap.enabled; };
+      entries.push_back(std::move(chamfer));
       struct Control {
         const char* key;
         const char* label;

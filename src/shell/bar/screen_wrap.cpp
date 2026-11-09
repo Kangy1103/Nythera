@@ -310,6 +310,7 @@ struct ScreenWrap::Shared {
       band.depth = band.outer + b.depth;
       band.radius = rounding;
       band.join = std::max(0.0F, join);
+      band.softChamfer = c.wrapChamfer;
       band.spans = b.spans;
       band.fill = colorForRole(ColorRole::Surface, c.backgroundOpacity * b.opacity);
       // Geometry and fill belong to each bar, but the union has one outline.

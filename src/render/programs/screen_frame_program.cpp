@@ -38,7 +38,7 @@ uniform vec4 u_fill;
 uniform vec4 u_border;
 uniform float u_border_width;
 uniform int u_band_count;
-uniform vec4 u_band_shape[32]; // edge, outer, depth, radius
+uniform vec4 u_band_shape[32]; // edge, outer (-1 attached, -2 attached + chamfer), depth, radius
 uniform vec4 u_band_meta[32]; // join, border width, third span
 uniform vec4 u_band_spans[32]; // first two spans
 uniform vec4 u_band_fill[32];
@@ -49,6 +49,47 @@ float roundedDistance(vec2 p, vec2 halfSize, float r) {
   r = min(r, min(halfSize.x, halfSize.y));
   vec2 q = abs(p) - halfSize + r;
   return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+}
+float roundedQuadDistance(vec2 p, vec2 vertices[4], float radius) {
+  vec2 inset[4];
+  for (int i = 0; i < 4; ++i) {
+    int prev = i == 0 ? 3 : i - 1;
+    int next = i == 3 ? 0 : i + 1;
+    vec2 vertex = vertices[i];
+    vec2 edgePrev = vertex - vertices[prev];
+    vec2 edgeNext = vertices[next] - vertex;
+    float lenPrev = length(edgePrev), lenNext = length(edgeNext);
+    vec2 normalPrev = vec2(-edgePrev.y, edgePrev.x) / max(lenPrev, 1e-5);
+    vec2 normalNext = vec2(-edgeNext.y, edgeNext.x) / max(lenNext, 1e-5);
+    float scale = radius / max(1.0 + dot(normalPrev, normalNext), 1e-4);
+    inset[i] = vertex + (normalPrev + normalNext) * scale;
+  }
+  bool inside = true;
+  float nearestSquared = 1e20;
+  for (int i = 0; i < 4; ++i) {
+    int next = i == 3 ? 0 : i + 1;
+    vec2 a = inset[i], edge = inset[next] - a;
+    vec2 relative = p - a;
+    inside = inside && edge.x * relative.y - edge.y * relative.x >= 0.0;
+    float edgeLengthSquared = dot(edge, edge);
+    float t = edgeLengthSquared > 0.0 ? clamp(dot(relative, edge) / edgeLengthSquared, 0.0, 1.0) : 0.0;
+    vec2 delta = relative - t * edge;
+    nearestSquared = min(nearestSquared, dot(delta, delta));
+  }
+  float distanceToInset = sqrt(nearestSquared);
+  return (inside ? -distanceToInset : distanceToInset) - radius;
+}
+float chamferedBandDistance(vec2 p, vec2 span, float depth, float rail,
+                            bool chamferStart, bool chamferEnd) {
+  float outer = -2.0 * depth;
+  float extent = depth - outer;
+  vec2 vertices[4];
+  vertices[0] = vec2(span.x - (chamferStart ? extent : 0.0), outer);
+  vertices[1] = vec2(span.y + (chamferEnd ? extent : 0.0), outer);
+  vertices[2] = vec2(span.y, depth);
+  vertices[3] = vec2(span.x, depth);
+  float safeRadius = min(36.0, min((depth - rail) * 0.7, (span.y - span.x) * 0.45));
+  return roundedQuadDistance(p, vertices, safeRadius);
 }
 void main() {
   vec2 p = v_local + u_offset;
@@ -81,11 +122,22 @@ void main() {
     else if (shape.x == 2.0) buv.y = u_frame.y - p.y;
     else if (shape.x == 3.0) buv = p.yx;
     float outer = shape.y < 0.0 ? -(side ? u_frame.x : u_frame.y) : shape.y;
+    float chamferGap = max(0.0, shape.z - u_frame.z);
+    float edgeLength = side ? u_frame.y : u_frame.x;
     for (int j = 0; j < 3; ++j) {
       vec2 span = j == 0 ? u_band_spans[b].xy : j == 1 ? u_band_spans[b].zw : meta.zw;
       if (span.y <= span.x) continue;
       float bd = roundedDistance(buv - vec2((span.x + span.y) * 0.5, (shape.z + outer) * 0.5),
           vec2((span.y - span.x) * 0.5, (shape.z - outer) * 0.5), shape.w);
+      bool chamferEnabled = shape.y < -1.5;
+      bool chamferStart = chamferEnabled && shape.y < 0.0 && chamferGap > 0.0
+          && span.x > chamferGap && span.x < edgeLength;
+      bool chamferEnd = chamferEnabled && shape.y < 0.0 && chamferGap > 0.0
+          && span.y > 0.0 && span.y + chamferGap < edgeLength;
+      bool chamfered = chamferStart || chamferEnd;
+      if (chamfered)
+        bd = chamferedBandDistance(buv, span, shape.z, u_frame.z,
+                                   chamferStart, chamferEnd);
       vec4 neck = u_band_neck[b];
       if (neck.w > 0.0) {
         float nd = roundedDistance(buv - vec2((neck.x + neck.y) * 0.5, (neck.z + outer) * 0.5),
@@ -97,9 +149,10 @@ void main() {
         bd = max(bd, roundedDistance(buv - vec2((bounds.x + bounds.y) * 0.5, (depth + outer) * 0.5),
             vec2((bounds.y - bounds.x) * 0.5, (depth - outer) * 0.5), 0.0));
       }
-      float blend = meta.x > 0.0 ? clamp(0.5 + (d - bd) / (2.0 * meta.x), 0.0, 1.0) : (bd < d ? 1.0 : 0.0);
-      float h = meta.x > 0.0 ? max(meta.x - abs(d - bd), 0.0) / meta.x : 0.0;
-      d = min(d, bd) - h * h * meta.x * 0.25;
+      float join = chamfered ? min(meta.x, 12.0) : meta.x;
+      float blend = join > 0.0 ? clamp(0.5 + (d - bd) / (2.0 * join), 0.0, 1.0) : (bd < d ? 1.0 : 0.0);
+      float h = join > 0.0 ? max(join - abs(d - bd), 0.0) / join : 0.0;
+      d = min(d, bd) - h * h * join * 0.25;
       materialFill = mix(materialFill, u_band_fill[b], blend);
       materialBorder = mix(materialBorder, u_band_border[b], blend);
       materialWidth = mix(materialWidth, meta.y, blend);
@@ -221,7 +274,7 @@ void ScreenFrameProgram::draw(
     necks[o + 2] = b.neckDepth;
     necks[o + 3] = b.neckSpan.end > b.neckSpan.begin ? 1.0F : 0.0F;
     shapes[o] = static_cast<float>(b.edge);
-    shapes[o + 1] = b.edgeAttached ? -1.0F : b.outer;
+    shapes[o + 1] = b.edgeAttached ? (b.softChamfer ? -2.0F : -1.0F) : b.outer;
     shapes[o + 2] = b.depth;
     shapes[o + 3] = b.radius;
     meta[o] = b.join;
