@@ -163,20 +163,31 @@ int main() {
     left = top; left.position = "left"; left.thickness = 40;
     std::vector<BarConfig> bars{top, left};
     auto mark = screen_wrap::topLeftBrandingRect(bars);
-    assert(mark.x == 0 && mark.y == 0 && mark.width == 65 && mark.height == 65);
+    assert(mark.x == 0 && mark.y == 0 && mark.width == 60 && mark.height == 60);
     bars[0].thickness = 100; bars[1].thickness = 80;
-    assert(screen_wrap::topLeftBrandingRect(bars).width == 130);
+    assert(screen_wrap::topLeftBrandingRect(bars).width == 120);
     bars[0].thickness = 25; bars[1].thickness = 20;
-    assert(screen_wrap::topLeftBrandingRect(bars).width == 33);
+    assert(screen_wrap::topLeftBrandingRect(bars).width == 30);
     bars[0].thickness = 50; bars[1].thickness = 40;
     bars[0].marginEdge = 20; bars[1].marginEdge = 10;
-    assert(screen_wrap::topLeftBrandingRect(bars).width == 65);
+    assert(screen_wrap::topLeftBrandingRect(bars).width == 60);
     bars[1].enabled = false;
     assert(screen_wrap::topLeftBrandingRect(bars).width == 0);
     bars[1].enabled = true; bars[0].screenWrap = false;
     assert(screen_wrap::topLeftBrandingRect(bars).width == 0);
     bars[0].screenWrap = true; bars[0].position = "bottom";
     assert(screen_wrap::topLeftBrandingRect(bars).width == 0);
+    ScreenFrameContour contour;
+    ScreenFrameBand topBand, leftBand;
+    topBand.edge = 0; topBand.spans[0] = {-40, 100};
+    leftBand.edge = 3; leftBand.spans[0] = {-50, 100};
+    contour.bands = {topBand, leftBand};
+    assert(screen_wrap::hasTopLeftJoin(contour));
+    contour.bands[0].spans[0] = {10, 100};
+    assert(!screen_wrap::hasTopLeftJoin(contour));
+    contour.bands[0].spans[0] = {-40, 100};
+    contour.bands[1].spans[0] = {};
+    assert(!screen_wrap::hasTopLeftJoin(contour));
   }
   for (int edge = 0; edge < 4; ++edge) {
     ScreenFrameContour frame;

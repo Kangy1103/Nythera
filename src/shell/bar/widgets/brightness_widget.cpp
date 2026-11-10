@@ -117,8 +117,10 @@ void BrightnessWidget::syncState(Renderer& renderer) {
   const auto* display = m_brightness != nullptr ? m_brightness->findByOutput(m_output) : nullptr;
   const bool available = display != nullptr && display->controllable;
   const float brightness = available ? display->brightness : -1.0F;
+  const std::string displayLabel = available ? display->label : std::string{};
   if (m_haveLastState
       && available == m_lastAvailable
+      && displayLabel == m_lastDisplayLabel
       && (!available || (std::abs(brightness - m_lastBrightness) < 0.001F && m_isVertical == m_lastVertical))) {
     return;
   }
@@ -126,6 +128,7 @@ void BrightnessWidget::syncState(Renderer& renderer) {
   m_haveLastState = true;
   m_lastAvailable = available;
   m_lastBrightness = brightness;
+  m_lastDisplayLabel = displayLabel;
   m_lastVertical = m_isVertical;
 
   syncWidgetVisibility(available || (m_showWhenUnavailable && m_showGlyph));
@@ -167,8 +170,8 @@ void BrightnessWidget::syncState(Renderer& renderer) {
     int pct = static_cast<int>(std::round(brightness * 100.0F));
     std::vector<TooltipRow> rows;
     rows.push_back({i18n::tr("bar.widgets.brightness.brightness"), std::to_string(pct) + "%"});
-    if (!display->label.empty()) {
-      rows.push_back({i18n::tr("bar.widgets.brightness.display"), display->label});
+    if (!displayLabel.empty()) {
+      rows.push_back({i18n::tr("bar.widgets.brightness.display"), displayLabel});
     }
     static_cast<InputArea*>(rootNode)->setTooltip(std::move(rows));
   }

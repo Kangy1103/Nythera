@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config/config_types.h"
+#include "render/core/screen_frame_geometry.h"
 #include "shell/bar/screen_wrap_geometry.h"
 
 #include <algorithm>
@@ -27,11 +28,26 @@ namespace screen_wrap {
       }
     }
     // Oversize the artwork, keeping its box inside the screen edges.
-    // Preserve the approved 65 px mark at a 40 px narrower joining bar.
+    // Preserve a 60 px mark at a 40 px narrower joining bar.
     // Edge margins position the mark but do not change the artwork's scale.
-    constexpr float ratio = 65.0F / 40.0F;
+    constexpr float ratio = 60.0F / 40.0F;
     const int size = static_cast<int>(std::lround(static_cast<float>(std::min(topThickness, leftThickness)) * ratio));
     return size > 0 ? Rect{std::max(0, (left - size) / 2), std::max(0, (top - size) / 2), size, size} : Rect{};
+  }
+
+  // Both visible bar shapes must actually reach the corner; the frame rails
+  // alone do not constitute the top/left bar join.
+  inline bool hasTopLeftJoin(const ScreenFrameContour& contour) {
+    bool top = false, left = false;
+    for (const auto& band : contour.bands) {
+      if (band.edge != 0 && band.edge != 3) continue;
+      const bool reachesCorner = std::ranges::any_of(band.spans, [](const ScreenFrameSpan& span) {
+        return span.begin <= 0.0F && span.end > 0.0F;
+      });
+      if (band.edge == 0) top |= reachesCorner;
+      if (band.edge == 3) left |= reachesCorner;
+    }
+    return top && left;
   }
 
   inline int edgeIndex(std::string_view edge) {

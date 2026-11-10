@@ -287,7 +287,7 @@ nythera msg island-activity alarm-dismiss
 
 Running/finished timers have a compact stop control. Ringing alarms have compact snooze and close controls. Calls use a **green phone** for a supplied accept/answer action, a **red phone** for a supplied decline/reject/hang-up action, and an X for dismissal; there is no duplicate Dismiss button or unsupported fake call control.
 
-Timers/alarms survive bar/config rebuilds, not shell restarts. They do not wake the machine; wall-clock deadlines are checked after resume. Completion has one notification sound following shell audio preferences, and falls back to a normal persistent notification if its island is unavailable. There is not an existing native timer/alarm tool in this checkout: no replacement expanded timer panel is presented as one.
+Timers/alarms survive bar/config rebuilds, not shell restarts. They do not wake the machine; countdowns and snoozes include suspended time, while scheduled alarms follow local wall-clock time. Deadlines are checked after resume. Completion has one notification sound following shell audio preferences, and falls back to a normal persistent notification if its island is unavailable. There is not an existing native timer/alarm tool in this checkout: no replacement expanded timer panel is presented as one.
 
 Call integration remains notification-backed. It cannot infer real ongoing state, answer/hang-up support or reliable termination without source-provided metadata/actions. Non-English known-app notices need explicit metadata for reliable classification. Native tools can take keyboard focus when opened.
 

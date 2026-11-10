@@ -343,6 +343,9 @@ uint32_t NotificationManager::addOrReplace(NotificationRequest request) {
            || n.imageData != imageData
            || n.category != category
            || n.desktopEntry != desktopEntry);
+      // Identical replacements emit no update event, so a presentation holding
+      // expiry would otherwise have no opportunity to pause the new deadline.
+      const bool preservePausedExpiry = !changed && n.timeout != 0 && !n.expiryTime.has_value();
 
       n.origin = origin;
       n.transient = transient;
@@ -362,9 +365,9 @@ uint32_t NotificationManager::addOrReplace(NotificationRequest request) {
       n.category = std::move(category);
       n.desktopEntry = std::move(desktopEntry);
       n.receivedTime = now;
-      n.expiryTime = scheduleExpiry(now, timeout);
+      n.expiryTime = preservePausedExpiry ? std::nullopt : scheduleExpiry(now, timeout);
       n.receivedWallClock = wallNow;
-      n.expiryWallClock = scheduleExpiryWall(wallNow, timeout);
+      n.expiryWallClock = preservePausedExpiry ? std::nullopt : scheduleExpiryWall(wallNow, timeout);
 
       logNotification(n, "updated");
       if (dispatch.saveHistory) {

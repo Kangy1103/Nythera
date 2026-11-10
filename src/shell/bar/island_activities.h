@@ -16,7 +16,7 @@ public:
   std::function<void(bool, bool)> alert;
   void* timerTarget = nullptr;
   void* alarmTarget = nullptr;
-  std::int64_t timerEnd = 0, alarmAt = 0;
+  std::int64_t timerEnd = 0, alarmAt = 0, alarmSnoozeEnd = 0;
   int timerDuration = 0;
   bool timerFinished = false, alarmRinging = false;
   unsigned timerRevision = 0, alarmRevision = 0;
@@ -24,6 +24,12 @@ public:
   static std::int64_t now() {
     return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch())
         .count();
+  }
+  // Includes suspend time while remaining independent of wall-clock adjustments.
+  static std::int64_t elapsedNow() {
+    timespec ts{};
+    clock_gettime(CLOCK_BOOTTIME, &ts);
+    return ts.tv_sec;
   }
   static bool validTime(const std::string& time) {
     return time.size() == 5
@@ -38,7 +44,7 @@ public:
         && time[4] <= '9'
         && std::stoi(time.substr(0, 2)) < 24;
   }
-  void startTimer(int seconds, void* output, std::int64_t at = now()) {
+  void startTimer(int seconds, void* output, std::int64_t at = elapsedNow()) {
     timerTarget = output;
     timerDuration = seconds;
     timerEnd = at + seconds;
@@ -70,6 +76,7 @@ public:
     }
     alarmTarget = output;
     alarmAt = scheduled;
+    alarmSnoozeEnd = 0;
     alarmRinging = false;
     ++alarmRevision;
     watch();
@@ -78,38 +85,41 @@ public:
   }
   void dismissAlarm() {
     alarmAt = 0;
+    alarmSnoozeEnd = 0;
     alarmRinging = false;
     ++alarmRevision;
     changed.emit();
   }
-  void snooze(int seconds) {
-    alarmAt = now() + seconds;
+  void snooze(int seconds, std::int64_t at = elapsedNow()) {
+    alarmAt = 0;
+    alarmSnoozeEnd = at + seconds;
     alarmRinging = false;
     ++alarmRevision;
     watch();
     changed.emit();
   }
-  void tick(std::int64_t at = now()) {
+  void tick(std::int64_t elapsedAt = elapsedNow(), std::int64_t wallAt = now()) {
     bool timerFired = false, alarmFired = false;
-    if (timerEnd && at >= timerEnd) {
+    if (timerEnd && elapsedAt >= timerEnd) {
       timerFired = true;
       timerEnd = 0;
       timerFinished = true;
       ++timerRevision;
     }
-    if (alarmAt && at >= alarmAt) {
+    if ((alarmAt && wallAt >= alarmAt) || (alarmSnoozeEnd && elapsedAt >= alarmSnoozeEnd)) {
       alarmFired = true;
       alarmAt = 0;
+      alarmSnoozeEnd = 0;
       alarmRinging = true;
       ++alarmRevision;
     }
     if ((timerFired || alarmFired) && alert)
       alert(timerFired, alarmFired);
     changed.emit();
-    if (!timerEnd && !alarmAt)
+    if (!timerEnd && !alarmAt && !alarmSnoozeEnd)
       m_tick.stop();
   }
-  std::string countdown(std::int64_t at = now()) const {
+  std::string countdown(std::int64_t at = elapsedNow()) const {
     auto left = std::max<std::int64_t>(0, timerEnd - at);
     std::ostringstream out;
     out << left / 60 << ':' << std::setfill('0') << std::setw(2) << left % 60;

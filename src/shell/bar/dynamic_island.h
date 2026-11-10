@@ -13,7 +13,10 @@
 #include "shell/panel/attached_panel_context.h"
 #include "ui/signal.h"
 
+#include <array>
 #include <memory>
+#include <string>
+#include <string_view>
 #include <unordered_set>
 
 class Box;
@@ -42,6 +45,9 @@ public:
   bool notification(const Notification&, NotificationEvent);
   void syncActivities();
   bool activityCommand(const std::string&, const std::string&);
+  [[nodiscard]] bool acceptsActivity(std::string_view command) const noexcept;
+  [[nodiscard]] static bool supportsActivity(const BarConfig& config, std::string_view command) noexcept;
+  void refreshPrivacyFilters();
   void toggleExpanded();
   void setVisible(bool);
   void setNativePanelGeometry(std::optional<AttachedPanelGeometry>);
@@ -74,6 +80,7 @@ private:
   std::uint64_t m_spectrumListener = 0;
   std::int64_t m_spectrumTick = 0;
   PrivacyFilter m_privacyFilters[3];
+  std::array<std::string, 3> m_privacyPatterns;
 
   BarServices m_services;
   BarConfig m_config;

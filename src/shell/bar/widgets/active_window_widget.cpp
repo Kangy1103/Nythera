@@ -116,8 +116,8 @@ void ActiveWindowWidget::doLayout(Renderer& renderer, float containerWidth, floa
     m_vertical = isVertical;
   }
   if (isVertical) {
-    const bool showTitle =
-        m_verticalTitle && m_displayMode != ActiveWindowDisplayMode::IconOnly && !m_lastTitle.empty();
+    const bool showTitle = showingEmptyPlaceholder
+        || (m_verticalTitle && m_displayMode != ActiveWindowDisplayMode::IconOnly && !m_lastTitle.empty());
     const bool showIcon =
         !showingEmptyPlaceholder && (m_displayMode != ActiveWindowDisplayMode::TextOnly || !showTitle);
     const float iconMain = showIcon ? iconSize : 0.0F;

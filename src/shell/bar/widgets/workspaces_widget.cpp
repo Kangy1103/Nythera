@@ -87,12 +87,14 @@ WorkspacesWidget::WorkspacesWidget(
 // rule, then label content, then the occupied filter. FocusHint annotates only the
 // focused workspace, so the occupied filter never applies to it.
 // An empty label still annotates when the focused app icon fills the pill.
-bool WorkspacesWidget::shouldShowWorkspaceLabel(const Workspace& workspace, std::string_view label) const noexcept {
+bool WorkspacesWidget::shouldShowWorkspaceLabel(
+    const Workspace& workspace, std::string_view label, wl_output* output
+) const noexcept {
   if (!m_showLabels) {
     return false;
   }
   if (isFocusHint()) {
-    return workspace.active && (!label.empty() || (m_showIcons && !activeWindowAppId().empty()));
+    return workspace.active && (!label.empty() || (m_showIcons && !activeWindowAppId(output).empty()));
   }
   if (label.empty()) {
     return false;
@@ -270,9 +272,11 @@ void WorkspacesWidget::doUpdate(Renderer& renderer) {
       buildDesktopIconIndex();
       activeChange = true;
     }
-    const std::string nextActiveWindowAppId = activeWindowAppId();
-    if (nextActiveWindowAppId != m_cachedActiveWindowAppId) {
+    wl_output* const nextActiveWindowOutput = m_platform.activeToplevelOutput();
+    const std::string nextActiveWindowAppId = activeWindowAppId(nullptr);
+    if (nextActiveWindowAppId != m_cachedActiveWindowAppId || nextActiveWindowOutput != m_cachedActiveWindowOutput) {
       m_cachedActiveWindowAppId = nextActiveWindowAppId;
+      m_cachedActiveWindowOutput = nextActiveWindowOutput;
       activeChange = true;
     }
   }
@@ -416,7 +420,7 @@ void WorkspacesWidget::rebuild(Renderer& renderer) {
               .output = state.output,
               .key = key,
               .label = label,
-              .showLabel = shouldShowWorkspaceLabel(workspace, label),
+              .showLabel = shouldShowWorkspaceLabel(workspace, label, state.output),
               .exiting = false,
               .snapshot = snapshotIndex.has_value() ? &m_rebuildSnapshot[*snapshotIndex] : nullptr,
           }
@@ -438,7 +442,7 @@ void WorkspacesWidget::rebuild(Renderer& renderer) {
               .output = state.output,
               .key = workspaceIdentityKey(workspace, state.output),
               .label = label,
-              .showLabel = shouldShowWorkspaceLabel(workspace, label),
+              .showLabel = shouldShowWorkspaceLabel(workspace, label, state.output),
           }
       );
     }
@@ -509,7 +513,7 @@ void WorkspacesWidget::rebuild(Renderer& renderer) {
 
     if (isFocusHint()) {
       const float dotSize = focusedPillDotSize();
-      const bool hasIcon = m_showIcons && entry.workspace.active && !activeWindowAppId().empty();
+      const bool hasIcon = m_showIcons && entry.workspace.active && !activeWindowAppId(entry.output).empty();
       if (!entry.workspace.active) {
         slot.inactiveWidth = dotSize;
         slot.activeWidth = dotSize;
@@ -849,7 +853,7 @@ void WorkspacesWidget::recalculateItemMetrics(
   const FontWeight configuredFontWeight = labelFontWeight();
 
   item.label = label;
-  item.showLabel = shouldShowWorkspaceLabel(workspace, label);
+  item.showLabel = shouldShowWorkspaceLabel(workspace, label, item.output);
   syncItemTooltip(item, workspace);
 
   if (isWorkspaceHidden(workspace)) {
@@ -883,7 +887,7 @@ void WorkspacesWidget::recalculateItemMetrics(
     }
   } else if (isFocusHint()) {
     const float dotSize = focusedPillDotSize();
-    const bool hasIcon = m_showIcons && workspace.active && !activeWindowAppId().empty();
+    const bool hasIcon = m_showIcons && workspace.active && !activeWindowAppId(item.output).empty();
     if (!workspace.active) {
       item.inactiveWidth = dotSize;
       item.activeWidth = dotSize;
@@ -1257,13 +1261,17 @@ WorkspacesWidget::~WorkspacesWidget() {
   }
 }
 
-std::string WorkspacesWidget::activeWindowAppId() const {
+bool WorkspacesWidget::activeWindowMatchesOutput(wl_output* focused, wl_output* workspace) noexcept {
+  return focused == nullptr || workspace == nullptr || focused == workspace;
+}
+
+std::string WorkspacesWidget::activeWindowAppId(wl_output* output) const {
   const auto active = m_platform.activeToplevel();
   if (!active.has_value() || active->appId.empty()) {
     return {};
   }
   wl_output* const toplevelOutput = m_platform.activeToplevelOutput();
-  if (toplevelOutput != nullptr && m_output != nullptr && toplevelOutput != m_output) {
+  if (!activeWindowMatchesOutput(toplevelOutput, output)) {
     return {};
   }
   return active->appId;
@@ -1396,7 +1404,7 @@ void WorkspacesWidget::syncActiveWindowIcon(Renderer& renderer, Item& item) {
   item.showIcon = true;
   item.icon->setAppIconColorization(effectiveShellAppIconColorizationTint(m_configService.config().shell));
 
-  const std::string appId = activeWindowAppId();
+  const std::string appId = activeWindowAppId(item.output);
   const std::string iconPath = appId.empty() ? std::string{} : resolveIconPath(appId);
   const bool forceReload = m_iconColorizeRefreshPending;
   if (!forceReload && iconPath == item.iconPath) {

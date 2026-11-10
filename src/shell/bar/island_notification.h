@@ -4,6 +4,14 @@
 #include <algorithm>
 #include <cctype>
 
+enum class IslandNotificationTransition { None, ToCall, ToNotice };
+
+inline IslandNotificationTransition islandNotificationTransition(bool call, bool queued, bool storedCall) {
+  if (call && queued) return IslandNotificationTransition::ToCall;
+  if (!call && storedCall) return IslandNotificationTransition::ToNotice;
+  return IslandNotificationTransition::None;
+}
+
 inline bool isIslandCall(const Notification& n) {
   const auto category = n.category.value_or("");
   if (category == "call.incoming" || category == "call.ongoing")

@@ -4,6 +4,7 @@
 #include "shell/bar/widget_custom_image.h"
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -62,6 +63,7 @@ private:
   Label* m_label = nullptr;
   float m_lastVolume = -1.0F;
   std::string m_lastEffectsProfile;
+  std::optional<std::string> m_lastDeviceLabel;
   bool m_lastMuted = false;
   bool m_isVertical = false;
   bool m_lastVertical = false;

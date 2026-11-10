@@ -13,7 +13,11 @@ public:
   static constexpr std::size_t capacity = 8;
   bool push(const Notice& notice, std::int64_t dwell) {
     auto it = std::ranges::find_if(m_items, [&](const auto& e) { return e.notice.id == notice.id; });
-    if (it != m_items.end()) { *it = {notice, dwell}; return true; }
+    if (it != m_items.end()) {
+      if (it == m_items.begin()) m_ticking = false;
+      *it = {notice, dwell};
+      return true;
+    }
     if (m_items.size() >= capacity) return false;
     m_items.push_back({notice, dwell});
     return true;

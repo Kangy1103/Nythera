@@ -87,7 +87,8 @@ private:
   // The workspace name, unless the pill already shows it in full. Empty means no tooltip.
   [[nodiscard]] static std::string
   workspaceTooltipText(const Workspace& workspace, const std::string& label, bool showLabel);
-  [[nodiscard]] std::string activeWindowAppId() const;
+  [[nodiscard]] std::string activeWindowAppId(wl_output* output) const;
+  [[nodiscard]] static bool activeWindowMatchesOutput(wl_output* focused, wl_output* workspace) noexcept;
   [[nodiscard]] std::string resolveIconPath(const std::string& appId);
   [[nodiscard]] float focusedPillIconSize() const noexcept;
   [[nodiscard]] float focusedPillDotSize() const noexcept;
@@ -96,7 +97,8 @@ private:
   ) const noexcept;
   void buildDesktopIconIndex();
   void syncActiveWindowIcon(Renderer& renderer, Item& item);
-  [[nodiscard]] bool shouldShowWorkspaceLabel(const Workspace& workspace, std::string_view label) const noexcept;
+  [[nodiscard]] bool
+  shouldShowWorkspaceLabel(const Workspace& workspace, std::string_view label, wl_output* output) const noexcept;
   [[nodiscard]] bool isMinimal() const noexcept { return m_style == WorkspacesStyle::Minimal; }
   [[nodiscard]] bool isFocusHint() const noexcept { return m_style == WorkspacesStyle::FocusHint; }
   // FocusHint is the only style that draws the focused app icon.
@@ -182,6 +184,7 @@ private:
   bool m_changeColorOnHover = true;
   wl_output* m_lastFocusedOutput = nullptr;
   std::string m_cachedActiveWindowAppId;
+  wl_output* m_cachedActiveWindowOutput = nullptr;
   IconResolver m_iconResolver;
   std::unordered_map<std::string, std::string> m_appIcons;
   std::uint64_t m_desktopEntriesVersion = 0;

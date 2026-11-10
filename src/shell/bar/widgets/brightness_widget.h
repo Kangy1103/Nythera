@@ -2,6 +2,8 @@
 
 #include "shell/bar/widget.h"
 
+#include <string>
+
 class BrightnessService;
 class Glyph;
 class Label;
@@ -35,6 +37,7 @@ private:
   bool m_haveLastState = false;
   bool m_lastAvailable = false;
   float m_lastBrightness = -1.0F;
+  std::string m_lastDisplayLabel;
   bool m_isVertical = false;
   bool m_lastVertical = false;
 };

@@ -13,6 +13,14 @@
 int main() {
   {
     struct Notice { std::uint32_t id; int value; };
+    IslandNoticeQueue<Notice> replacement;
+    assert(replacement.push({1, 10}, 3500));
+    assert(!replacement.advance(1000, true, false));
+    assert(replacement.push({1, 20}, 3500));
+    assert(!replacement.advance(4000, true, false));
+    assert(replacement.front()->remaining == 3500);
+    assert(!replacement.advance(7499, true, false));
+    assert(replacement.advance(7500, true, false)->id == 1);
     IslandNoticeQueue<Notice> queue;
     assert(queue.push({1, 10}, 3500));
     assert(queue.push({2, 20}, 3500));
@@ -64,16 +72,24 @@ int main() {
   };
   activities.startTimer(3, nullptr, 100);
   assert(activities.countdown(101) == "0:02");
-  activities.tick(103);
+  activities.tick(102, 100000);
+  assert(!activities.timerFinished && activities.countdown(102) == "0:01");
+  activities.tick(103, 50);
   assert(activities.timerFinished && !activities.timerEnd);
   activities.cancelTimer();
   assert(!activities.timerFinished);
   activities.alarmAt = 110;
-  activities.tick(110);
+  activities.tick(104, 110);
   assert(activities.alarmRinging);
   assert(timerAlerts == 1 && alarmAlerts == 1);
-  activities.tick(111);
-  assert(timerAlerts == 1 && alarmAlerts == 1);
+  activities.snooze(10, 104);
+  assert(!activities.alarmRinging && activities.alarmAt == 0);
+  activities.tick(105, 100000);
+  assert(!activities.alarmRinging && alarmAlerts == 1);
+  activities.tick(114, 50);
+  assert(activities.alarmRinging && alarmAlerts == 2);
+  activities.tick(115, 111);
+  assert(timerAlerts == 1 && alarmAlerts == 2);
   activities.dismissAlarm();
   assert(!activities.alarmRinging);
   Notification call{};
@@ -89,6 +105,10 @@ int main() {
   call.appName = "KDE Connect";
   call.category = "callReceived";
   assert(isIslandCall(call));
+  assert(islandNotificationTransition(true, true, false) == IslandNotificationTransition::ToCall);
+  assert(islandNotificationTransition(false, false, true) == IslandNotificationTransition::ToNotice);
+  assert(islandNotificationTransition(true, false, true) == IslandNotificationTransition::None);
+  assert(islandNotificationTransition(false, false, false) == IslandNotificationTransition::None);
 
   DynamicIslandState state;
   state.push(IslandEvent::Media, 0, 10000);
@@ -118,6 +138,12 @@ int main() {
   assert(DynamicIsland::nativeToolContext(IslandEvent::Brightness) == "monitor");
   assert(DynamicIsland::nativeToolContext(IslandEvent::Notification) == "notifications");
   assert(DynamicIsland::nativeToolContext(IslandEvent::Call) == "notifications");
+  BarConfig activityBar;
+  activityBar.dynamicTimers = false;
+  activityBar.dynamicAlarms = true;
+  assert(!DynamicIsland::supportsActivity(activityBar, "timer-start"));
+  assert(DynamicIsland::supportsActivity(activityBar, "alarm-arm"));
+  assert(!DynamicIsland::supportsActivity(activityBar, "invalid"));
   BarConfig bar;
   using namespace nythera::config::schema;
   Diagnostics diagnostics;

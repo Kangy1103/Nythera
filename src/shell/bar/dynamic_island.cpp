@@ -68,10 +68,7 @@ DynamicIsland::DynamicIsland(
     : m_services(services), m_config(config), m_surface(surface), m_animations(animations), m_wrap(wrap),
       m_output(output), m_outputWidth(width), m_outputHeight(height), m_vertical(vertical(config)),
       m_reverse(config.position == "bottom" || config.position == "right") {
-  const auto& privacy = m_services.config.config().shell.privacy;
-  m_privacyFilters[0].update("shell.privacy.mic_filter_regex", privacy.micFilterRegex);
-  m_privacyFilters[1].update("shell.privacy.cam_filter_regex", privacy.camFilterRegex);
-  m_privacyFilters[2].update("shell.privacy.screen_filter_regex", privacy.screenFilterRegex);
+  refreshPrivacyFilters();
   m_paletteConnection = paletteChanged().connect([this] { m_surface.requestUpdate(); });
   if (m_services.activities) {
     m_activityConnection = m_services.activities->changed.connect([this] { syncActivities(); });
@@ -207,6 +204,17 @@ void DynamicIsland::syncSpectrum(bool enabled) {
     m_spectrumListener = 0;
     m_spectrumTick = 0;
   }
+}
+
+void DynamicIsland::refreshPrivacyFilters() {
+  const auto& privacy = m_services.config.config().shell.privacy;
+  const std::array<std::string, 3> patterns{privacy.micFilterRegex, privacy.camFilterRegex, privacy.screenFilterRegex};
+  if (patterns == m_privacyPatterns) return;
+  m_privacyPatterns = patterns;
+  m_privacyFilters[0].update("shell.privacy.mic_filter_regex", patterns[0]);
+  m_privacyFilters[1].update("shell.privacy.cam_filter_regex", patterns[1]);
+  m_privacyFilters[2].update("shell.privacy.screen_filter_regex", patterns[2]);
+  m_surface.requestUpdate();
 }
 
 void DynamicIsland::syncIndicators(Renderer& renderer) {
@@ -490,14 +498,17 @@ void DynamicIsland::layout(Renderer& renderer) {
         m_alive
     );
     if (!path.empty() && path != m_artPath) {
-      m_artPath = path;
-      m_art->setSourceFile(renderer, path, std::max(64, static_cast<int>(std::ceil(artSize))));
-      m_animations.cancelForOwner(m_art);
-      m_art->setOpacity(0);
-      m_animations.animate(0, 1, 180, Easing::EaseOutCubic,
-          [this](float t) { m_art->setOpacity(t); m_surface.requestLayout(); }, {}, m_art);
+      if (m_art->setSourceFile(renderer, path, std::max(64, static_cast<int>(std::ceil(artSize))))) {
+        m_artPath = path;
+        m_animations.cancelForOwner(m_art);
+        m_art->setOpacity(0);
+        m_animations.animate(0, 1, 180, Easing::EaseOutCubic,
+            [this](float t) { m_art->setOpacity(t); m_surface.requestLayout(); }, {}, m_art);
+      } else {
+        m_artPath.clear();
+      }
     }
-    if (!path.empty()) {
+    if (!path.empty() && path == m_artPath && m_art->hasImage()) {
       m_art->setVisible(true);
       m_art->setSize(artSize, artSize);
       m_art->setRadius(6 * scale);
@@ -545,7 +556,7 @@ void DynamicIsland::layout(Renderer& renderer) {
           break;
         }
       }
-    action("x", [this] { dismissEvent(); });
+    action("x", [this, id = n.id] { (void)m_services.notifications->close(id, CloseReason::Dismissed); });
   } else if (kind == IslandEvent::Timer || kind == IslandEvent::TimerFinished)
     action("player-stop", [this] { dismissEvent(); });
   else if (kind == IslandEvent::Alarm) {
@@ -786,6 +797,8 @@ void DynamicIsland::dismissEvent() {
 
 bool DynamicIsland::notification(const Notification& n, NotificationEvent event) {
   const bool call = isIslandCall(n);
+  const bool queued = m_noticeQueue.contains(n.id);
+  const bool storedCall = m_notices[1].id == n.id;
   if (event == NotificationEvent::Closed) m_noticeQueue.erase(n.id);
   const auto kind = call ? IslandEvent::Call : IslandEvent::Notification;
   auto& stored = m_notices[call ? 1 : 0];
@@ -800,17 +813,26 @@ bool DynamicIsland::notification(const Notification& n, NotificationEvent event)
     m_surface.requestUpdate();
     return false;
   }
+  if (event == NotificationEvent::Updated
+      && islandNotificationTransition(call, queued, storedCall) != IslandNotificationTransition::None) {
+    if (queued) m_noticeQueue.erase(n.id);
+    if (storedCall) {
+      m_notices[1] = {};
+      m_state.clear(IslandEvent::Call);
+    }
+    m_surface.requestUpdate();
+  }
   if (!m_visible || (call ? !m_config.dynamicCalls : !m_config.dynamicNotifications))
     return false;
   if (!call) {
-    if (event == NotificationEvent::Updated && !m_noticeQueue.contains(n.id)) return false;
+    if (event == NotificationEvent::Updated && !queued && !storedCall) return false;
     if (!m_noticeQueue.push(n, m_config.dynamicDwellMs)) return false;
     if (m_services.notifications && n.timeout != 0) m_services.notifications->pauseExpiry(n.id);
     m_state.hold(IslandEvent::Notification);
     m_surface.requestUpdate();
     return true;
   }
-  if (event == NotificationEvent::Updated && stored.id != n.id)
+  if (event == NotificationEvent::Updated && !storedCall && !queued)
     return false;
   stored = n;
   if (call && n.timeout == 0)
@@ -842,6 +864,16 @@ void DynamicIsland::syncActivities() {
   m_timerRevision = a->timerRevision;
   m_alarmRevision = a->alarmRevision;
   m_surface.requestUpdate();
+}
+
+bool DynamicIsland::supportsActivity(const BarConfig& config, std::string_view command) noexcept {
+  if (command == "timer-start" || command == "timer-cancel") return config.dynamicTimers;
+  if (command == "alarm-arm" || command == "alarm-dismiss" || command == "alarm-snooze") return config.dynamicAlarms;
+  return false;
+}
+
+bool DynamicIsland::acceptsActivity(std::string_view command) const noexcept {
+  return supportsActivity(m_config, command);
 }
 
 bool DynamicIsland::activityCommand(const std::string& command, const std::string& value) {

@@ -109,6 +109,7 @@ void VolumeWidget::syncState(Renderer& renderer) {
   }
 
   const auto* node = m_target == VolumeWidgetTarget::Input ? m_audio->defaultSource() : m_audio->defaultSink();
+  const std::optional<std::string> deviceLabel = node != nullptr ? std::optional{audioDeviceLabel(*node)} : std::nullopt;
   float volume = node != nullptr ? node->volume : 0.0F;
   bool muted = node != nullptr ? node->muted : false;
   const auto kind =
@@ -126,6 +127,7 @@ void VolumeWidget::syncState(Renderer& renderer) {
       && muted == m_lastMuted
       && m_isVertical == m_lastVertical
       && effectsProfile == m_lastEffectsProfile
+      && deviceLabel == m_lastDeviceLabel
       && micActive == m_lastMicActive) {
     return;
   }
@@ -134,6 +136,7 @@ void VolumeWidget::syncState(Renderer& renderer) {
   m_lastMuted = muted;
   m_lastVertical = m_isVertical;
   m_lastEffectsProfile = effectsProfile;
+  m_lastDeviceLabel = deviceLabel;
   m_lastMicActive = micActive;
 
   const bool showWidget = !m_hideWhenInactive || micActive;
@@ -172,8 +175,8 @@ void VolumeWidget::syncState(Renderer& renderer) {
           {i18n::tr(m_target == VolumeWidgetTarget::Input ? "bar.widgets.volume.mic" : "bar.widgets.volume.volume"),
            std::to_string(pct) + "%"}
       );
-      if (std::string deviceLabel = audioDeviceLabel(*node); !deviceLabel.empty()) {
-        rows.push_back({i18n::tr("bar.widgets.volume.device"), std::move(deviceLabel), TextEllipsize::Middle});
+      if (deviceLabel && !deviceLabel->empty()) {
+        rows.push_back({i18n::tr("bar.widgets.volume.device"), *deviceLabel, TextEllipsize::Middle});
       }
       if (!effectsProfile.empty()) {
         rows.push_back({i18n::tr("control-center.audio.effects-profile"), effectsProfile});

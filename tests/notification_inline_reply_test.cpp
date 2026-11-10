@@ -34,6 +34,21 @@ namespace {
 } // namespace
 
 int main() {
+  {
+    NotificationManager expiryManager;
+    NotificationRequest request{.appName = "expiry-test", .summary = "Notice", .sender = ":1.42", .timeout = 5000};
+    const auto id = expiryManager.addOrReplace(request);
+    request.replacesId = id;
+    expiryManager.pauseExpiry(id);
+    TEST_CHECK(!expiryManager.all().front().expiryTime.has_value());
+    TEST_CHECK(expiryManager.addOrReplace(request) == id);
+    TEST_CHECK(!expiryManager.all().front().expiryTime.has_value());
+    TEST_CHECK(!expiryManager.all().front().expiryWallClock.has_value());
+    expiryManager.resumeExpiry(id, 5000);
+    TEST_CHECK(expiryManager.addOrReplace(request) == id);
+    TEST_CHECK(expiryManager.all().front().expiryTime.has_value());
+    TEST_CHECK(expiryManager.all().front().expiryWallClock.has_value());
+  }
   NotificationManager manager;
   std::vector<ReplyCall> replies;
   std::vector<std::pair<uint32_t, CloseReason>> closes;

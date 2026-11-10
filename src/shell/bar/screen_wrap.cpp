@@ -192,13 +192,13 @@ struct ScreenWrap::Shared {
       }
       const auto logo = screen_wrap::topLeftBrandingRect(visibleBars);
       const bool logoResized = strip.cornerLogo->width() != static_cast<float>(logo.width);
-      strip.cornerLogo->setVisible(logo.width > 0);
+      strip.cornerLogo->setVisible(logo.width > 0 && screen_wrap::hasTopLeftJoin(material.contour));
       strip.cornerLogo->setPosition(static_cast<float>(logo.x - strip.rect.x), static_cast<float>(logo.y - strip.rect.y));
       strip.cornerLogo->setSize(static_cast<float>(logo.width), static_cast<float>(logo.height));
       strip.cornerLogo->setOpacity(std::min(topOpacity, leftOpacity));
       // Shared frame surfaces otherwise request paint only. Their prepare
       // callback (which loads the SVG) is not run for a redraw-only frame.
-      if (logo.width > 0 && (logoResized || !strip.cornerLogo->hasImage())) strip.surface->requestLayout();
+      if (strip.cornerLogo->visible() && (logoResized || !strip.cornerLogo->hasImage())) strip.surface->requestLayout();
     }
 
     strip.surface->setInputRegion({});
@@ -343,6 +343,13 @@ struct ScreenWrap::Shared {
             static_cast<float>(b.hole.x), static_cast<float>(b.hole.y), static_cast<float>(b.hole.width),
             static_cast<float>(b.hole.height)
         };
+    }
+    if (screen_wrap::hasTopLeftJoin(material.contour)) {
+      std::vector<BarConfig> visibleBars;
+      for (const auto& [id, bar] : bars)
+        if (bar.opacity > 0.001F) visibleBars.push_back(bar.config);
+      const auto logo = screen_wrap::topLeftBrandingRect(visibleBars);
+      screen_wrap::reserveIslandSpace(geometry, "top", logo.y + logo.height);
     }
     for (std::size_t i = 0; i < strips.size(); ++i) {
       auto& strip = strips[i];

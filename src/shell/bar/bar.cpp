@@ -1854,6 +1854,8 @@ bool Bar::initialize(const BarServices& services) {
   m_config->addReloadCallback(
       [this] {
         const auto& cfg = m_config->config();
+        for (const auto& instance : m_instances)
+          if (instance->dynamicIsland) instance->dynamicIsland->refreshPrivacyFilters();
         if (cfg.bars == m_lastBars
             && cfg.widgets == m_lastWidgets
             && cfg.shell.shadow == m_lastShadow
@@ -4795,11 +4797,12 @@ void Bar::registerIpc(IpcService& ipc) {
     if (input >> extra)
       return "error: expected action and optional value\n";
     for (const auto& instance : m_instances)
-      if (instance->dynamicIsland && instance->output == m_platform->preferredInteractiveOutput())
+      if (instance->dynamicIsland && instance->output == m_platform->preferredInteractiveOutput()
+          && instance->dynamicIsland->acceptsActivity(command))
         return instance->dynamicIsland->activityCommand(command, value)
             ? "ok\n"
             : "error: invalid action/value or event disabled\n";
-    return "error: no Dynamic Island on focused output\n";
+    return "error: no Dynamic Island on focused output supports this action\n";
   });
   ipc.bind(nythera::cli::msg::barIslandToggle, [this](const std::string& args) {
     return toggleDynamicIslandIpc(args);
@@ -4880,10 +4883,10 @@ void Bar::setIslandAlertCallback(std::function<void()> sound) {
     if (m_notifications) {
       if (timerFired && !timerVisible)
         m_notifications->addInternal(
-            "Cyberpunk Shell", "Timer finished", "Your countdown has finished", Urgency::Normal, 0
+            "Nythera", "Timer finished", "Your countdown has finished", Urgency::Normal, 0
         );
       if (alarmFired && !alarmVisible)
-        m_notifications->addInternal("Cyberpunk Shell", "Alarm", "Your scheduled alarm is due", Urgency::Normal, 0);
+        m_notifications->addInternal("Nythera", "Alarm", "Your scheduled alarm is due", Urgency::Normal, 0);
     }
     if (sound)
       sound();
