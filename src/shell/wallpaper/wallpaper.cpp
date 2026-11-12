@@ -369,6 +369,15 @@ std::optional<WallpaperDrawParams> Wallpaper::backingSource(wl_output* output) c
     WallpaperDrawParams source;
     source.from = {inst->currentSourceKind, texture.id, inst->currentColor,
                    static_cast<float>(texture.width), static_cast<float>(texture.height)};
+    source.to = source.from;
+    if (inst->transitioning) {
+      const auto next = inst->nextImage.texture();
+      source.to = {inst->nextSourceKind, next.id, inst->nextColor,
+                   static_cast<float>(next.width), static_cast<float>(next.height)};
+      source.transition = inst->activeTransition;
+      source.progress = transitionProgressForTime(inst->transitionTime);
+      source.params = inst->transitionParams;
+    }
     source.fillMode = static_cast<float>(node->fillMode());
     source.fillColor = node->fillColor();
     source.span = node->spanParams();
@@ -575,6 +584,7 @@ std::vector<WallpaperChange> Wallpaper::onStateChange() {
         inst->transitionDirection = WallpaperTransitionDirection::Forward;
         updateRendererState(*inst);
         inst->surface->requestRedraw();
+        m_backingTransitionChanged.emit(inst->output);
       }
       continue;
     }
@@ -1552,12 +1562,16 @@ void Wallpaper::startTransitionAnimation(
   // motion system: animateTimer ignores both the animation-speed multiplier and the
   // animations-enabled toggle (disabling animations must not skip the crossfade).
   instance.transitionAnimId = instance.animations.animateTimer(
-      fromTime, toTime, durationMs, Easing::Linear, [inst](float time) { setTransitionTime(*inst, time); },
+      fromTime, toTime, durationMs, Easing::Linear, [this, inst](float time) {
+        setTransitionTime(*inst, time);
+        m_backingTransitionChanged.emit(inst->output);
+      },
       [this, inst] { finishTransition(*inst); }
   );
 
   updateRendererState(instance);
   instance.surface->requestRedraw();
+  m_backingTransitionChanged.emit(instance.output);
 }
 
 void Wallpaper::finishTransition(WallpaperInstance& instance) {
@@ -1575,6 +1589,7 @@ void Wallpaper::finishTransition(WallpaperInstance& instance) {
   instance.transitionDirection = WallpaperTransitionDirection::Forward;
   updateRendererState(instance);
   instance.surface->requestRedraw();
+  m_backingTransitionChanged.emit(instance.output);
 
   if (displayedWallpaperChanged) {
     m_changed.emit();

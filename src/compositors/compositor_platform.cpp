@@ -1602,7 +1602,7 @@ bool CompositorPlatform::hasVisibleLeftUnderlap(wl_output* output, int reservedL
   const auto* info = findOutputByWl(output);
   return info && m_workspaceMetadataBackend && m_workspaceMetadataBackend->hasVisibleLeftUnderlap(
       connectorNameForOutput(output), info->logicalX + reservedLeft,
-      info->effectiveLogicalWidth() - reservedLeft - reservedRight);
+      info->effectiveLogicalWidth() - reservedLeft - reservedRight, info->logicalX);
 }
 
 std::vector<std::string> CompositorPlatform::openOverlayWorkspaceKeys(wl_output* outputFilter) const {

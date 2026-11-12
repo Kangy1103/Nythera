@@ -49,6 +49,7 @@ struct ScreenWrap::Shared {
   Wallpaper* wallpaper;
   std::optional<WallpaperDrawParams> wallpaperSource;
   Signal<>::ScopedConnection wallpaperChanged;
+  Signal<wl_output*>::ScopedConnection wallpaperTransitionChanged;
   bool backingLogged = false;
   bool leftWallpaperUnderlap = false;
   Timer backingRestoreTimer;
@@ -74,6 +75,18 @@ struct ScreenWrap::Shared {
           strip.surface->requestRedraw();
         }
       });
+      wallpaperTransitionChanged = wallpaper->backingTransitionChanged().connect([this](wl_output* changedOutput) {
+        if (changedOutput != output) return;
+        wallpaperSource = wallpaper->backingSource(output);
+        if (std::ranges::none_of(bars, [](const auto& entry) {
+              return entry.second.config.wrapWallpaperBacking && entry.second.opacity > 0.0F;
+            })) return;
+        for (auto& strip : strips) {
+          if (!strip.root) continue;
+          buildBacking(strip);
+          strip.surface->requestRedraw();
+        }
+      });
     }
   }
 
@@ -81,9 +94,10 @@ struct ScreenWrap::Shared {
     std::array<int, 4> depths{};
     std::array<float, 4> opacities{};
     for (const auto& [id, bar] : bars) {
-      if (!bar.config.wrapWallpaperBacking || !bar.config.enabled) continue;
+      if (!bar.config.wrapWallpaperBacking || !bar.config.enabled || bar.config.position == "top") continue;
       const auto edge = screen_wrap::edgeIndex(bar.config.position);
-      depths[edge] = std::max(depths[edge], bar.config.marginEdge + bar.config.thickness);
+      const int extension = edge == 3 ? screen_wrap::leftBackingExtension : 0;
+      depths[edge] = std::max(depths[edge], bar.config.marginEdge + bar.config.thickness + extension);
       opacities[edge] = std::max(opacities[edge], bar.opacity);
     }
     const auto rects = screen_wrap::wallpaperBackingRects(width, height, depths);
@@ -112,8 +126,9 @@ struct ScreenWrap::Shared {
       node->setPosition(static_cast<float>(-x), static_cast<float>(-y));
       node->setSize(static_cast<float>(width), static_cast<float>(height));
       node->setSources(source.from.kind, source.from.texture, source.from.color,
-          source.from.kind, source.from.texture, source.from.color,
-          source.from.imageWidth, source.from.imageHeight, source.from.imageWidth, source.from.imageHeight);
+          source.to.kind, source.to.texture, source.to.color,
+          source.from.imageWidth, source.from.imageHeight, source.to.imageWidth, source.to.imageHeight);
+      node->setTransition(source.transition, source.progress, source.params);
       node->setFillMode(static_cast<WallpaperFillMode>(source.fillMode));
       node->setFillColor(fill);
       node->setSpan(source.span);
@@ -301,6 +316,8 @@ struct ScreenWrap::Shared {
       screen_wrap::reserveIslandSpace(
           geometry, c.position, static_cast<int>(std::ceil(std::max(stableDepth, static_cast<float>(c.marginEdge) + b.toolBufferDepth) + std::max(0.0F, join))) + 1
       );
+      if (c.enabled && c.wrapWallpaperBacking && c.position == "left")
+        screen_wrap::reserveIslandSpace(geometry, c.position, c.marginEdge + c.thickness + screen_wrap::leftBackingExtension);
       if (b.opacity <= 0)
         continue;
       ScreenFrameBand band;
@@ -434,7 +451,8 @@ void ScreenWrap::updateWallpaperUnderlap(const CompositorPlatform& platform) {
   }
   const auto zones = screen_wrap::boundedReservations(
       screen_wrap::reservations(configs, requests), m_shared->width, m_shared->height);
-  const bool underlap = platform.hasVisibleLeftUnderlap(m_shared->output, zones[3], zones[1]);
+  const bool underlap = platform.hasVisibleLeftUnderlap(
+      m_shared->output, zones[3] + screen_wrap::leftBackingExtension, zones[1]);
   if (underlap) m_shared->backingRestoreTimer.stop();
   if (underlap == m_shared->leftWallpaperUnderlap) return;
   if (underlap) {

@@ -1,52 +1,31 @@
 # Nythera Agent Instructions
 
-These instructions apply to AI coding agents working in this repository. Their purpose is to minimise tokens, tool calls, build time, and unnecessary iteration **without weakening correctness, maintainability, or visual quality**.
+Repository-specific guidance supplementing the global Codex `AGENTS.md`. Follow global instructions for general research, initiative, safety, efficient tool use and reporting; do not treat this file as replacing them.
 
-## Priority and project context
+## Project context and invariants
 
-- Follow the user's current request first. Respect existing project guidance in `ARCHITECTURE.md`, `CONTRIBUTING.md`, `BUILDING.md`, `SCOPE.md`, and `REBRAND.md` when relevant. If instructions conflict, surface the conflict briefly rather than silently bypassing a technical invariant.
-- This is **Nythera**, a C++23 native Wayland shell fork, built with **Meson/Ninja** and orchestrated by `just`; do not treat it as the original Noctalia or a QML project.
-- Development primarily targets **Umbriel**; preserve other compositor integrations unless a change explicitly targets them. Route compositor-specific behaviour through `CompositorPlatform` and the appropriate backend.
-- Preserve stable upstream functionality. The design direction includes floating islands, dynamic bars, screen wrapping, configurable styling, and a dark sci-fi/fantasy aesthetic. Do not impose unrelated redesigns.
-- Treat user-approved layout, appearance, behaviour and naming decisions as fixed until the user changes them. Never quietly reinterpret the requested design.
-- Distinguish Nythera-owned components from Umbriel-owned components. Trace identifier ownership before renaming or modifying integrations. Shared development origins do not imply shared ownership.
+- **Nythera** is a C++23 native Wayland shell fork, built with **Meson/Ninja** and orchestrated by `just`—not the original Noctalia or a QML project.
+- Development primarily targets **Umbriel**. Preserve other compositor integrations unless explicitly changing them; route compositor-specific behaviour through `CompositorPlatform` and its backend.
+- Preserve upstream functionality and approved Nythera design decisions: floating islands, dynamic bars, screen wrapping, configurable styling and dark sci-fi/fantasy aesthetics. Do not reinterpret approved behaviour or introduce unrelated redesigns.
+- Distinguish Nythera-owned identifiers from Umbriel-owned integration contracts before renaming or modifying them.
+- Follow relevant project documentation listed below. Surface conflicts with documented technical invariants rather than silently bypassing them.
 
-## Research, initiative and implementation
+## Repository workflow
 
-- **Investigation is not implementation.** When asked how existing functionality works, whether a change is feasible, or what implementation would involve, proactively inspect relevant source code and configuration before answering.
-- Do not provide speculative implementation outlines when the repository can establish the actual answer. Do not ask permission to perform routine, non-invasive investigation already implied by the request.
-- For informational questions, investigate and explain without modifying code unless implementation is also requested.
-- For explicit implementation requests, investigate and execute without repeatedly asking for permission to make routine decisions.
-- During an ongoing implementation or debugging task, interpret follow-up questions, reported defects and visual observations in the context of the established objective. Investigate and correct outstanding defects without requiring another explicit implementation command.
-- Ask for clarification only when genuinely different interpretations would substantially affect the result, or when an action could cause unwanted or destructive changes.
-- Do not silently expand the scope. Distinguish necessary implementation work from unrelated improvements.
+1. **Orient and inspect.** Check `git status --short` before edits. Identify the owning subsystem using `rg --files`, focused `rg -n` searches and bounded `sed -n` reads. Exclude `third_party/`, build trees, generated output, caches and large assets unless relevant. Check only relevant docs and diffs.
+2. **Implement coherently.** Keep related edits together and avoid touching unrelated code or mass reformatting. For research-only requests, inspect and explain without editing.
+3. **Validate proportionately.** Use the change-type matrix below, generally one incremental build and focused tests rather than whole-tree checks. Additional validation is justified by concrete failures, risk or cross-cutting impact.
+4. **Verify live UI when appropriate.** Use `nythera restart` only after successful build/applicable tests, when necessary and explicitly authorised to interrupt the active shell. Never restart during a locked session or after a failed build/test.
+5. **Review before finishing.** Use `git diff --check`, review the changed-file list and focused diff, and check affected architectural invariants. Recheck after subsequent edits when necessary.
 
-## Execution budget (default for every task)
+## Nythera-specific tool practices
 
-1. **Orient once.** Run `git status --short` and inspect relevant changed files/diff only if needed. Identify the feature's owning subsystem with targeted path/name searches. Read the relevant portions of existing documentation and code; do not recursively dump the repository.
-2. **Plan briefly and execute when authorised.** For straightforward implementation tasks, proceed immediately. For cross-cutting changes, form a short internal plan and communicate only material decisions. For investigation-only requests, inspect the implementation and provide a grounded answer without changing files.
-3. **Search narrowly.** Use `rg --files`, `rg -n 'specificSymbol' src/<subsystem> tests/`, and bounded reads (`sed -n 'START,ENDp'`). Check file names before searching contents. Exclude `third_party/`, build trees, generated output, caches, and large assets unless directly relevant. Expand search only when evidence warrants it.
-4. **Batch coherent edits.** Finish related changes in one deliberate pass where practical. Avoid multiple small edit/review cycles, mass reformatting, and touching unrelated code.
-5. **Validate at the appropriate level.** Aim for one coherent validation pass using the smallest checks that actually exercise the change (matrix below). Combine independent checks where feasible. Repeat validation only after relevant changes, failures, or new evidence that justifies another pass.
-6. **Live verification.** After successful build and applicable tests, use `nythera restart` only when live verification is necessary and interruption of the active shell has been authorised. Do not restart during a locked session or when doing so could disrupt ongoing work. Never restart after a failed build or test.
-7. **Final diff review.** Aim for one final review of `git diff --check`, the changed-file list and focused diff. Check requested behaviour, unintended changes and applicable architectural invariants. Repeat only when subsequent edits or new evidence warrant it.
-8. **Report concisely.** State what changed, what validation passed or failed, and any genuine limitations. No verbose command transcripts, speculative concerns, or long narrated reasoning.
-
-The budget is a **default, not an excuse to ship broken code**. Expand investigation or validation for a concrete failure, unverified safety-critical behaviour, or clearly cross-cutting impact. State the reason briefly.
-
-## Tool and output discipline
-
-- Prefer repository-local tools and direct file reads to browsing. Consult external docs only for an actual API uncertainty, compatibility question, or changed upstream behaviour; do not repeatedly fetch the same sources.
-- Reuse results, existing build directories and cached context. Do not re-read files already understood unless they changed or a new question requires it.
-- Default to concise command output: filenames, matching lines, error summaries and exit codes. Avoid dumping large files, compiler logs, repository-wide diffs, encoded assets or unconstrained search results. Capture full diagnostic output locally and inspect focused excerpts; retain the full log for deeper debugging when needed.
-- **Use the simplest effective tool, not the fewest tools at any cost.** Prefer direct Git for ordinary Git operations, `rg`/`sed` for scoped source inspection and focused patches for small edits. Python and shell scripts are encouraged when they simplify multi-step work, structured processing, image/font work, reliable transformations or reproducible diagnostics. Avoid generating a fresh script solely to wrap one trivial command. Do not treat Python usage itself as an error.
-- **Avoid redundant inspection.** Combine related read-only Git checks when useful; reuse unchanged status/history, file contents and prior results within the task. Check a changed-file summary before requesting large diffs, but inspect enough actual diff to catch regressions. Re-check after meaningful edits, unexpected results or failures rather than following a rigid tool-call quota.
-- **Keep visual evidence purposeful.** Use existing captures when they answer the question; capture again when the rendered state changed or the earlier view is insufficient. Crop to the affected area or prepare a comparison sheet when that improves diagnosis, and retain enough surrounding context to judge alignment. Avoid repeatedly viewing unchanged full-resolution images. Image payload size in local session logs is *not* equivalent to billed model tokens; do not avoid necessary visual verification to optimise that metric.
-- **Build/test processes:** prefer a completed command result or supported wait mechanism over frequent polling. Store verbose output in a temporary log, check the exit status, and inspect failure context selectively. Never mistake truncated output or an initiated process for a successful build/test.
-- Use batch/parallel reads for independent files; avoid simultaneous commands that mutate the same paths, build directory or Git index.
-- Do not delegate to subagents by default. Delegate only clearly independent, bounded work that saves more effort than coordination costs; prevent duplicate inspection and overlapping edits. Return a short, actionable summary from each subagent.
-- Do not create planning documents, scratch markdown, screenshots, diagnostics scripts, benchmark harnesses or new dependencies for routine tasks unless they serve a specific need. Temporary debug instrumentation must be removed.
-- Never install system packages, alter global configuration, run privileged commands, clean build directories, or modify live user configuration without explicit authorisation.
+- Prefer repository source to external browsing; consult external docs for unresolved API, compatibility or upstream-change questions.
+- Prefer direct Git, `rg`/`sed` and focused patches for ordinary operations. Use Python or shell scripts for structured processing, image/font work, reliable transformations or reproducible diagnostics—not to wrap a single trivial command.
+- Keep compiler/test output in local logs and inspect error excerpts rather than dumping full logs. Await process completion without repeated polling; check exit codes.
+- Use existing captures for unchanged visual states. Capture new or cropped views when rendered behaviour changes or evidence is insufficient. The user's visual review can be the final acceptance check; do not equate compilation with visual verification.
+- Do not use subagents for routine work; delegate only independent bounded work where coordination costs are justified.
+- Do not modify live shell configuration, install packages, clean builds or change global system configuration without explicit authorisation.
 
 ## Choose validation by change type
 
@@ -67,24 +46,20 @@ The budget is a **default, not an excuse to ship broken code**. Expand investiga
 - Prefer formatting **only touched C++ files** with the project's configured clang-format version (currently 22). Project-wide `just format-code` rewrites all source/test files and should not be used for narrow changes.
 - For docs, use the repository remark formatter or `just format-docs-check` when needed; note that the docs recipe may install its pinned local npm dependencies.
 - Before a targeted Meson test, use `meson test -C build-debug --list` if the exact test name is unknown; do this once, not repeatedly. If no matching test exists, don't invent an arbitrary test merely to tick a box.
-- The user's own visual review can be the appropriate final visual acceptance check. Start with one targeted GUI capture when useful; repeat only for changed states, incomplete evidence or concrete defects. Complex visual features may need multiple distinct states or comparisons for adequate verification.
-- Never claim visual verification when only compilation ran. Compare visual results against the actual requested layout and behaviour, not merely whether the application rendered successfully.
-- Distinguish **not run** from **passed**, and report failures accurately.
 
 ## Working with project documentation
 
-- `AGENTS.md` is the entry point, not the entire knowledge base. Consult the relevant sections of existing documents rather than loading all of them for every task.
 - `ARCHITECTURE.md`: UI lifecycle, rendering, services, surfaces and other implementation invariants; required for architectural/refactoring work.
 - `CONTRIBUTING.md` and `BUILDING.md`: coding conventions, build/test guidance and contributor process as relevant.
 - `SCOPE.md`: distinguish approved scope, experiments and future plans.
 - `REBRAND.md`: Nythera-owned identity, external Noctalia contracts, plugin translations and migration; required for naming/API changes.
 - `docs/NYTHERA-CUSTOMISATIONS.md`: documented Nythera behaviours, development status and compatibility risks. Check actual code before treating an item as implemented.
 - `docs/UPSTREAM-INTEGRATION.md`: required procedure for integrating changes from Noctalia upstream. Do not use the standard narrow-change budget to justify skipping cross-subsystem compatibility checks for a broad update.
-- When a task materially changes a documented behavioural contract or architectural rule, update its owning document in the same change. Avoid duplicating the same rules in multiple files.
+- When changing a documented behaviour or architectural contract, update its owning document without duplicating rules across files.
 
 ## Git safety and upstream integration
 
-- Inspect the current branch/status before making repository changes. Protect uncommitted work; do not reset, overwrite, stash, rebase, force-push, or merge into `main` without explicit approval and an accounted-for state.
+- Protect uncommitted work: do not reset, overwrite, stash, rebase, force-push or merge into `main` without explicit approval and an accounted-for state.
 - Use `dev` for ordinary development. For substantial or risky changes, especially upstream integrations, create a temporary task/integration branch (or a separate worktree when warranted). Do not create a branch for every trivial adjustment.
 - Treat upstream integration as a **semantic migration**, not just Git conflict resolution: evaluate changed APIs and indirect Nythera dependencies, including custom files absent from the upstream diff.
 - Preserve Nythera's **intended behaviour**, not necessarily old code. Where upstream replaces an architecture, migrate customisation to the new interface instead of blindly retaining obsolete mechanisms.

@@ -48,7 +48,7 @@ public:
   appIdsByWorkspace(const std::string& outputName = {}) const override;
   [[nodiscard]] std::vector<WorkspaceWindow> workspaceWindows(const std::string& outputName = {}) const override;
   [[nodiscard]] bool hasVisibleLeftUnderlap(
-      const std::string& outputName, int usableLeft, int usableWidth
+      const std::string& outputName, int usableLeft, int usableWidth, int screenLeft
   ) const override;
   [[nodiscard]] bool hasExactWindowIdentity() const noexcept override { return true; }
   [[nodiscard]] std::optional<std::string> focusedWindowId() const override;
@@ -75,6 +75,9 @@ private:
     std::int32_t y = 0;
     std::int32_t width = 0;
     bool visible = false;
+    bool fullscreen = false;
+    bool maximized = false;
+    bool floating = false;
     std::optional<WindowMinimizeState> minimizeState;
 
     bool operator==(const Window&) const = default;

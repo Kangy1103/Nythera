@@ -67,10 +67,13 @@ public:
 
   // Prefer a landscape image; otherwise use the first available image.
   [[nodiscard]] TextureHandle currentTexture() const;
-  // Settled, output-specific source for static foreground backing. Borrows the
-  // resident texture; consumers refresh it synchronously on changed(). No capture
-  // or transition tick is needed, and externally managed outputs return nullopt.
+  // Output-specific wallpaper sources and transition for foreground backing.
+  // Textures are borrowed; consumers refresh synchronously on changed() and
+  // backingTransitionChanged(). Externally managed outputs return nullopt.
   [[nodiscard]] std::optional<WallpaperDrawParams> backingSource(wl_output* output) const;
+  // Fired for the affected output only while a wallpaper transition advances,
+  // and when it starts or ends. Does not signal unrelated wallpaper listeners.
+  [[nodiscard]] Signal<wl_output*>& backingTransitionChanged() noexcept { return m_backingTransitionChanged; }
   // Path of currentTexture(); when no instance shows an image while wallpaper is enabled,
   // falls back to the palette wallpaper path so consumers still show what drives colors.
   [[nodiscard]] std::string currentPath() const;
@@ -81,6 +84,7 @@ public:
   [[nodiscard]] Signal<>& changed() noexcept { return m_changed; }
 
 private:
+  friend class WallpaperBackingTestAccess;
   enum class TransitionRedirect {
     Unrelated,
     AlreadyTargeting,
@@ -158,6 +162,7 @@ private:
   wallpaper::ShuffleState m_shuffleState;
   Signal<>::ScopedConnection m_paletteConn;
   Signal<> m_changed;
+  Signal<wl_output*> m_backingTransitionChanged;
   std::vector<std::unique_ptr<WallpaperInstance>> m_instances;
   std::unordered_set<std::string> m_externallyManagedOutputs;
 };

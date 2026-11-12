@@ -11,24 +11,11 @@ Widget hover tooltips open on the side of the bar facing into the screen (below 
 
 ## Wallpaper backing with Screen Wrap
 
-**Settings → Desktop → Screen Wrap → Wallpaper Backing** paints an aligned,
-unblurred copy of each monitor's wallpaper behind its bar tracks, including gaps
-between islands. Enable it to conceal offscreen applications behind transparent
-bars. It reuses the resident wallpaper texture and existing frame buffers; it does
-not capture the screen or add a blur pass. This option requires Screen Wrap.
+**Settings → Desktop → Screen Wrap → Wallpaper Backing** paints an aligned, unblurred copy of each monitor's wallpaper behind its side and bottom bar tracks, including gaps between islands. Enable it to conceal offscreen applications behind transparent bars. It reuses the resident wallpaper texture and existing frame buffers; it does not capture the screen or add a blur pass. The backing follows Nythera wallpaper transitions and redraws while they run. This option requires Screen Wrap; externally managed wallpapers do not provide a backing source.
 
-On Umbriel, the left backing automatically hides when a visible window wider
-than **50% of that monitor's usable width** overlaps the reserved left bar track and
-still extends into the usable area. This lets a large, partially scrolled window
-show naturally beneath the bar. Ordinary half-width columns and windows entirely
-outside the usable area remain covered. The rule checks all visible windows on
-that output, regardless of keyboard focus; hidden workspaces and minimized windows
-do not trigger it. Other edges retain their backing, and the bar and outline stay
-visible. Backing restoration waits 400 ms after the window is reported clear,
-because Umbriel reports tiled destination geometry before its movement animation
-finishes; renewed overlap cancels the pending restoration. Geometry comes from
-the existing compositor event cache, without polling.
-Other compositors retain the static backing until they provide this geometry.
+The left backing extends eight pixels past its bar track to cover the usual window-shadow gap. Top bars do not draw wallpaper backing.
+
+On Umbriel, the left backing automatically hides when visible tiled window content crosses the backing track and reaches the usable area, regardless of window width. Floating and maximised windows can reveal their content as soon as it crosses the monitor's left edge; fullscreen windows hide the backing even while reported geometry is catching up. Ordinary tiled remnants outside the usable area remain covered. The rule checks all visible windows on that output, regardless of keyboard focus; hidden workspaces and minimised windows do not trigger it. Bottom and right edges retain their backing, and the bar and outline stay visible. Backing restoration waits 400 ms after the window is reported clear, because Umbriel reports tiled destination geometry before its movement animation finishes; renewed overlap cancels the pending restoration. Geometry comes from the existing compositor event cache, without polling. Other compositors keep the backing visible until they provide this geometry.
 
 ```toml
 [shell.screen_wrap]
@@ -200,15 +187,15 @@ Select **Bar → General → Surface → Dynamic Island** (`surface_mode = "dyna
 
 The island supplies compact event feedback. **Hovering opens the actual registered Nythera tool directly**, growing out of the island; there is no intermediate preview card or duplicate expanded player/audio/notification UI. Clicking also opens the corresponding native tool. The resting clock opens Dashboard/Home even when a media player is available.
 
-| Compact state | Content | Native destination on hover/click |
-| --- | --- | --- |
-| Resting | Clock | Dashboard/Home |
-| Media | Artwork and track title | Media |
-| Volume / microphone | Icon, percentage and level bar | Audio, including existing output/input controls |
-| Brightness | Icon, percentage and level bar | Monitor |
-| Notification | Icon and summary | Notifications |
-| Call | Summary and supported compact phone actions | Notifications |
-| Timer / alarm | Countdown/alert and compact acknowledgement controls | Dashboard/Home |
+| Compact state       | Content                                              | Native destination on hover/click               |
+| ------------------- | ---------------------------------------------------- | ----------------------------------------------- |
+| Resting             | Clock                                                | Dashboard/Home                                  |
+| Media               | Artwork and track title                              | Media                                           |
+| Volume / microphone | Icon, percentage and level bar                       | Audio, including existing output/input controls |
+| Brightness          | Icon, percentage and level bar                       | Monitor                                         |
+| Notification        | Icon and summary                                     | Notifications                                   |
+| Call                | Summary and supported compact phone actions          | Notifications                                   |
+| Timer / alarm       | Countdown/alert and compact acknowledgement controls | Dashboard/Home                                  |
 
 The existing `PanelManager` opens its registered `ControlCenterPanel` with the relevant context. Native tool settings, tab selection, keyboard handling, menus, popups and dismissal remain with that host. Dynamic Island adds a scoped attached presentation: the native reveal's progress drives both its content clip and the island's widening/lengthening join. It does not create a second Control Center instance or recreate native controls.
 
@@ -235,18 +222,18 @@ Explicit `call.ongoing` metadata is labelled as an ongoing call. It does not inf
 
 #### Registered events
 
-| Event | Trigger |
-| --- | --- |
-| Volume / microphone | Existing Nythera audio feedback: default-device level, mute or route changes, including its feedback commands. Existing suppression/deduplication remains. |
-| Privacy | Existing filtered microphone/camera/screen-capture OSD transitions; activity badges use current filtered PipeWire captures. |
-| Device | Existing Wi-Fi, Bluetooth and power-profile OSD feedback. |
-| Brightness | A changed controllable-display brightness percentage, or its feedback command. |
-| Media track | The active MPRIS player's titled track changes while Playing, after 400 ms metadata settling. |
-| Media Play / Resume | The active player's known non-Playing state changes to Playing. Waits for a title if needed. Pause, repeated Playing updates and first discovery do not announce an event. |
-| Notifications | Eligible arrivals after existing filters/DND checks. Updates/closures update or remove the matching compact event; history is not replayed. The normal toast is suppressed only when the island handles the arrival. |
-| Calls | Explicit notification category `call.incoming`/`call.ongoing`, KDE Connect `callReceived`, or conservative known-app incoming-call phrases. The source must supply updates/actions. |
-| Countdown | Starting the shared session timer; its countdown updates each second. Completion becomes a persistent compact alert until acknowledged. |
-| Alarm | Reaching an explicitly armed one-shot local-time deadline. Remains as a compact alert until dismissed or snoozed. |
+| Event               | Trigger                                                                                                                                                                                                              |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Volume / microphone | Existing Nythera audio feedback: default-device level, mute or route changes, including its feedback commands. Existing suppression/deduplication remains.                                                           |
+| Privacy             | Existing filtered microphone/camera/screen-capture OSD transitions; activity badges use current filtered PipeWire captures.                                                                                          |
+| Device              | Existing Wi-Fi, Bluetooth and power-profile OSD feedback.                                                                                                                                                            |
+| Brightness          | A changed controllable-display brightness percentage, or its feedback command.                                                                                                                                       |
+| Media track         | The active MPRIS player's titled track changes while Playing, after 400 ms metadata settling.                                                                                                                        |
+| Media Play / Resume | The active player's known non-Playing state changes to Playing. Waits for a title if needed. Pause, repeated Playing updates and first discovery do not announce an event.                                           |
+| Notifications       | Eligible arrivals after existing filters/DND checks. Updates/closures update or remove the matching compact event; history is not replayed. The normal toast is suppressed only when the island handles the arrival. |
+| Calls               | Explicit notification category `call.incoming`/`call.ongoing`, KDE Connect `callReceived`, or conservative known-app incoming-call phrases. The source must supply updates/actions.                                  |
+| Countdown           | Starting the shared session timer; its countdown updates each second. Completion becomes a persistent compact alert until acknowledged.                                                                              |
+| Alarm               | Reaching an explicitly armed one-shot local-time deadline. Remains as a compact alert until dismissed or snoozed.                                                                                                    |
 
 Feedback is routed to the focused output's visible island. Timer/alarm ownership stays with the initiating output. Priority remains alarm/finished timer, calls, notifications, volume/brightness, media, countdown, clock. Ordinary notifications use an eight-entry FIFO with replacement by notification ID. Their display dwell and native expiry are paused while queued behind higher-priority events or held for interaction. The next notice receives its own display time; overflow falls back to the ordinary toast. Only the owning island consumes updates. Other transient categories coalesce repeated feedback and use the newest equal-priority event. Transient events use the configured dwell time; active tools are not replaced underneath the user by a different native panel.
 
@@ -328,7 +315,6 @@ Four disjoint, click-through edge buffers paint the shared fill and outline. The
 Reserve Space remains a per-bar choice. Clearance is a display setting: while any bar reserves space, all frame rails are reserved even at zero clearance. Clearance adds one logical pixel per step beyond that footprint, without a special jump at zero, and requests are bounded to retain a nonempty work area. Reservations stay independent of island/panel animation. They request compositor work area; they do not force scrolling, floating or fullscreen windows to stop at it.
 
 Old per-bar `screen_wrap` / `wrap_*` settings migrate to `[shell.screen_wrap]` in version 18. Version 19 retains the global settings, removes frame monitor overrides and splits the former `corner_gap` into `joined_corner_gap` and `free_corner_gap`, preserving its value in both. Old bar keys are removed from the settings sidecar and normalised out of base configuration on read.
-
 
 ## Auto-hide
 

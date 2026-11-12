@@ -191,7 +191,7 @@ bool UmbrielWorkspaceBackend::closeWindowById(const std::string& windowId) {
 }
 
 bool UmbrielWorkspaceBackend::hasVisibleLeftUnderlap(
-    const std::string& outputName, int usableLeft, int usableWidth
+    const std::string& outputName, int usableLeft, int usableWidth, int screenLeft
 ) const {
   if (outputName.empty() || usableWidth <= 0) return false;
   const auto prefix = outputName + ":";
@@ -199,9 +199,9 @@ bool UmbrielWorkspaceBackend::hasVisibleLeftUnderlap(
     const auto& window = entry.second;
     return window.visible && window.workspaceId.starts_with(prefix)
         && (!window.minimizeState || !window.minimizeState->minimized)
-        && static_cast<std::int64_t>(window.width) * 2 > usableWidth
-        && window.x < usableLeft
-        && static_cast<std::int64_t>(window.x) + window.width > usableLeft;
+        && (window.fullscreen || (window.width > 0 && window.x < usableLeft
+        && static_cast<std::int64_t>(window.x) + window.width
+            > (window.maximized || window.floating ? screenLeft : usableLeft)));
   });
 }
 
@@ -310,6 +310,9 @@ void UmbrielWorkspaceBackend::handleEvent(std::string_view event, const nlohmann
       window.y = entry.value("y", 0);
       window.width = entry.value("w", 0);
       window.visible = entry.value("visible", false);
+      window.fullscreen = entry.value("fullscreen", false);
+      window.maximized = entry.value("maximized", false);
+      window.floating = entry.value("floating", false);
       window.minimizeState = parseMinimizeState(entry);
       if (window.active && !focused.has_value()) {
         focused = id;

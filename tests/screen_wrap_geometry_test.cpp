@@ -7,12 +7,53 @@
 #include "shell/panel/attached_panel_context.h"
 #include "shell/panel/panel_snapshot.h"
 #include "shell/settings/settings_registry.h"
+#include "shell/wallpaper/wallpaper.h"
+#include "shell/wallpaper/wallpaper_instance.h"
 
 #include <cassert>
 #include <string_view>
 #include <utility>
 
+class WallpaperBackingTestAccess {
+public:
+  static void add(Wallpaper& wallpaper, std::unique_ptr<WallpaperInstance> instance) {
+    wallpaper.m_instances.push_back(std::move(instance));
+  }
+};
 int main() {
+  {
+    Wallpaper wallpaper;
+    WallpaperNode node;
+    int outputToken = 0, otherOutputToken = 0;
+    auto* output = reinterpret_cast<wl_output*>(&outputToken);
+    auto* otherOutput = reinterpret_cast<wl_output*>(&otherOutputToken);
+    auto instance = std::make_unique<WallpaperInstance>();
+    instance->output = output;
+    instance->wallpaperNode = &node;
+    instance->currentSourceKind = WallpaperSourceKind::Color;
+    instance->currentColor = rgba(1.0F, 0.0F, 0.0F, 1.0F);
+    instance->nextSourceKind = WallpaperSourceKind::Color;
+    instance->nextColor = rgba(0.0F, 0.0F, 1.0F, 1.0F);
+    instance->activeTransition = WallpaperTransition::Wipe;
+    instance->transitionParams.direction = 1;
+    instance->transitioning = true;
+    instance->transitionTime = 0.5F;
+    auto* instancePtr = instance.get();
+    WallpaperBackingTestAccess::add(wallpaper, std::move(instance));
+
+    assert(!wallpaper.backingSource(otherOutput));
+    const auto transitioning = wallpaper.backingSource(output);
+    assert(transitioning && transitioning->from.color == rgba(1.0F, 0.0F, 0.0F, 1.0F));
+    assert(transitioning->to.color == rgba(0.0F, 0.0F, 1.0F, 1.0F));
+    assert(transitioning->transition == WallpaperTransition::Wipe);
+    assert(transitioning->params.direction == 1);
+    assert(transitioning->progress > 0.0F && transitioning->progress < 1.0F);
+    instancePtr->transitionTime = 0.25F;
+    assert(wallpaper.backingSource(output)->progress < transitioning->progress);
+    instancePtr->transitioning = false;
+    const auto settled = wallpaper.backingSource(output);
+    assert(settled && settled->to.color == settled->from.color && settled->progress == 0.0F);
+  }
   {
     const ScreenFrameSpan span{200.0F, 400.0F};
     const auto chamfered = [&](float u, float v) {
@@ -100,9 +141,9 @@ int main() {
         {"minimized", false}, {"minimizable", true}};
     const auto underlap = [&] {
       backend.handleEvent("windows", nlohmann::json::array({window}));
-      return backend.hasVisibleLeftUnderlap("DP-3", 140, 1000);
+      return backend.hasVisibleLeftUnderlap("DP-3", 140, 1000, 100);
     };
-    assert(!underlap()); // exactly half-width retains its backing
+    assert(underlap()); // a half-width window crossing the backing hides it
     const int before = changes;
     window["w"] = 501;
     assert(underlap() && changes > before); // width-only changes wake the bar
@@ -114,24 +155,35 @@ int main() {
     assert(!underlap()); // restore only after the complete bar track is clear
     window["x"] = -800;
     window["w"] = 900;
-    assert(!underlap()); // only an offscreen remnant beneath the bar
-    window["x"] = -759;
-    assert(underlap()); // actual content reaches into usable space
+    assert(!underlap()); // window ends exactly at the screen edge
+    window["x"] = -799;
+    assert(!underlap()); // a normal tiled remnant remains covered
+    window["maximized"] = true;
+    assert(underlap()); // a maximised window crossing the screen edge is shown
+    window["maximized"] = false;
+    window["floating"] = true;
+    assert(underlap()); // floating windows can be dragged across screens
+    window["floating"] = false;
     window["visible"] = false;
     assert(!underlap()); // inactive workspace / hidden window
     window["visible"] = true;
     window["minimized"] = true;
     assert(!underlap());
     window["minimized"] = false;
+    window["fullscreen"] = true;
+    window["x"] = 200;
+    assert(underlap()); // fullscreen hides the backing even with delayed geometry
+    window["fullscreen"] = false;
+    window["x"] = -799;
     window["workspace"] = "DP-1:1";
     assert(!underlap()); // independent monitors, regardless of focus
     window["workspace"] = "DP-3:1";
     window["x"] = -1600;
     window["w"] = 700;
     backend.handleEvent("windows", nlohmann::json::array({window}));
-    assert(backend.hasVisibleLeftUnderlap("DP-3", -1460, 1000));
+    assert(backend.hasVisibleLeftUnderlap("DP-3", -1460, 1000, -1500));
     backend.handleStreamReset();
-    assert(!backend.hasVisibleLeftUnderlap("DP-3", -1460, 1000));
+    assert(!backend.hasVisibleLeftUnderlap("DP-3", -1460, 1000, -1500));
     backend.setWindowChangeCallback({});
   }
   {

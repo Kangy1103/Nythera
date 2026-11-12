@@ -179,7 +179,7 @@ namespace compositors {
     // Cached window geometry, when the compositor supplies it. A wide window
     // overlapping the reserved left bar track still has content in the work area.
     [[nodiscard]] virtual bool hasVisibleLeftUnderlap(
-        const std::string& /*outputName*/, int /*usableLeft*/, int /*usableWidth*/
+        const std::string& /*outputName*/, int /*usableLeft*/, int /*usableWidth*/, int /*screenLeft*/
     ) const { return false; }
     // True when ext-foreign-toplevel identifiers produced by this compositor
     // are exact compositor window IDs suitable for focus/close actions and

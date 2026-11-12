@@ -54,6 +54,10 @@ namespace screen_wrap {
     return edge == "right" ? 1 : edge == "bottom" ? 2 : edge == "left" ? 3 : 0;
   }
 
+  // Extend the left backing over the usual eight-pixel window gap so that a
+  // neighbouring window's shadow does not darken the exposed wallpaper.
+  inline constexpr int leftBackingExtension = 8;
+
   // Stable configured tracks, independent of widget sizes and island animation.
   struct Tracks {
     std::array<int, 4> depth{};
