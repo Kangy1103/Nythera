@@ -39,6 +39,12 @@ void ActiveWindowWidget::create() {
   auto rootNode = ui::inputArea({});
   rootNode->setAcceptedButtons(InputArea::buttonMask(BTN_LEFT));
   rootNode->setOnClick([this](const InputArea::PointerData& data) {
+    // The inspector may hold keyboard focus, leaving no active application to
+    // resolve. Closing it must work before looking up a fresh window context.
+    if (const auto* panels = PanelManager::current(); panels && panels->isOpenPanel("window-inspector")) {
+      requestPanelToggle("window-inspector", {}, data.sceneX, data.sceneY);
+      return;
+    }
     const auto window = m_platform.activeToplevel();
     if (!window) {
       return;
