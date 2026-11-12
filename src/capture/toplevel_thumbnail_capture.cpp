@@ -6,6 +6,7 @@
 #include "render/core/image_resize.h"
 #include "wayland/wayland_connection.h"
 
+#include <algorithm>
 #include <cerrno>
 #include <chrono>
 #include <limits>
@@ -118,17 +119,25 @@ struct ToplevelThumbnailCapturePending {
     if (source != nullptr) {
       ext_image_capture_source_v1_destroy(source);
     }
+    releaseBuffer();
+  }
+
+  void releaseBuffer() {
     if (buffer != nullptr) {
       wl_buffer_destroy(buffer);
+      buffer = nullptr;
     }
     if (pool != nullptr) {
       wl_shm_pool_destroy(pool);
+      pool = nullptr;
     }
     if (mapped != MAP_FAILED) {
       munmap(mapped, mappedSize);
+      mapped = MAP_FAILED;
     }
     if (fd >= 0) {
       close(fd);
+      fd = -1;
     }
   }
 
@@ -169,7 +178,7 @@ struct ToplevelThumbnailCapturePending {
   static void constraintsDone(void* data, ext_image_copy_capture_session_v1*) {
     auto& pending = *static_cast<ToplevelThumbnailCapturePending*>(data);
     pending.receivingConstraints = false;
-    if (pending.frame == nullptr) {
+    if (pending.frame == nullptr && !pending.owner->m_nextFrame.active()) {
       pending.captureFrame();
     }
   }
@@ -207,6 +216,15 @@ struct ToplevelThumbnailCapturePending {
     auto* owner = static_cast<ToplevelThumbnailCapturePending*>(data)->owner;
     switch (reason) {
     case EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_BUFFER_CONSTRAINTS:
+      if (owner->m_live) {
+        ext_image_copy_capture_frame_v1_destroy(owner->m_pending->frame);
+        owner->m_pending->frame = nullptr;
+        owner->m_nextFrame.start(owner->m_liveInterval, [owner] {
+          if (owner->m_pending && !owner->m_pending->receivingConstraints)
+            owner->m_pending->captureFrame();
+        });
+        return;
+      }
       owner->fail("toplevel capture buffer constraints changed");
       return;
     case EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_STOPPED:
@@ -248,32 +266,38 @@ struct ToplevelThumbnailCapturePending {
       owner->fail("toplevel capture buffer is too large");
       return;
     }
-    bufferWidth = static_cast<int>(width);
-    bufferHeight = static_cast<int>(height);
-    bufferFormat = format;
-    const int stride = bufferWidth * 4;
-    mappedSize = static_cast<std::size_t>(stride) * height;
+    if (buffer == nullptr
+        || bufferWidth != static_cast<int>(width)
+        || bufferHeight != static_cast<int>(height)
+        || bufferFormat != format) {
+      releaseBuffer();
+      bufferWidth = static_cast<int>(width);
+      bufferHeight = static_cast<int>(height);
+      bufferFormat = format;
+      const int stride = bufferWidth * 4;
+      mappedSize = static_cast<std::size_t>(stride) * height;
 #ifdef __linux__
-    fd = memfd_create("nythera-toplevel-thumbnail", MFD_CLOEXEC | MFD_ALLOW_SEALING);
+      fd = memfd_create("nythera-toplevel-thumbnail", MFD_CLOEXEC | MFD_ALLOW_SEALING);
 #endif
-    if (fd < 0 || ftruncate(fd, static_cast<off_t>(mappedSize)) < 0) {
-      owner->fail("failed to allocate toplevel capture shared-memory file");
-      return;
-    }
-    mapped = mmap(nullptr, mappedSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (mapped == MAP_FAILED) {
-      owner->fail("failed to map toplevel capture shared-memory buffer");
-      return;
-    }
-    pool = wl_shm_create_pool(owner->m_wayland.shm(), fd, static_cast<std::int32_t>(mappedSize));
-    if (pool == nullptr) {
-      owner->fail("failed to create toplevel capture shared-memory pool");
-      return;
-    }
-    buffer = wl_shm_pool_create_buffer(pool, 0, bufferWidth, bufferHeight, stride, bufferFormat);
-    if (buffer == nullptr) {
-      owner->fail("failed to create toplevel capture shared-memory buffer");
-      return;
+      if (fd < 0 || ftruncate(fd, static_cast<off_t>(mappedSize)) < 0) {
+        owner->fail("failed to allocate toplevel capture shared-memory file");
+        return;
+      }
+      mapped = mmap(nullptr, mappedSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+      if (mapped == MAP_FAILED) {
+        owner->fail("failed to map toplevel capture shared-memory buffer");
+        return;
+      }
+      pool = wl_shm_create_pool(owner->m_wayland.shm(), fd, static_cast<std::int32_t>(mappedSize));
+      if (pool == nullptr) {
+        owner->fail("failed to create toplevel capture shared-memory pool");
+        return;
+      }
+      buffer = wl_shm_pool_create_buffer(pool, 0, bufferWidth, bufferHeight, stride, bufferFormat);
+      if (buffer == nullptr) {
+        owner->fail("failed to create toplevel capture shared-memory buffer");
+        return;
+      }
     }
     frame = ext_image_copy_capture_session_v1_create_frame(session);
     if (frame == nullptr || ext_image_copy_capture_frame_v1_add_listener(frame, &frameListener, this) != 0) {
@@ -347,13 +371,27 @@ void ToplevelThumbnailCapture::capture(
   }
 }
 
+void ToplevelThumbnailCapture::startLive(
+    ext_foreign_toplevel_handle_v1* handle, int maxWidth, int maxHeight, std::chrono::milliseconds interval,
+    CompletionCallback onFrame
+) {
+  cancelInFlight();
+  m_live = true;
+  m_liveInterval = std::max(interval, std::chrono::milliseconds(50));
+  capture(handle, maxWidth, maxHeight, std::move(onFrame));
+}
+
 void ToplevelThumbnailCapture::cancelInFlight() {
+  m_live = false;
+  m_nextFrame.stop();
   m_timeout.stop();
   m_pending.reset();
   m_onComplete = {};
 }
 
 void ToplevelThumbnailCapture::fail(std::string message) {
+  m_live = false;
+  m_nextFrame.stop();
   auto onComplete = std::exchange(m_onComplete, {});
   m_timeout.stop();
   m_pending.reset();
@@ -363,6 +401,20 @@ void ToplevelThumbnailCapture::fail(std::string message) {
 }
 
 void ToplevelThumbnailCapture::finish(ScreencopyImage image) {
+  if (m_live && m_pending) {
+    m_timeout.stop();
+    ext_image_copy_capture_frame_v1_destroy(m_pending->frame);
+    m_pending->frame = nullptr;
+    // Copy the callback: a consumer may stop or replace this session from it.
+    auto onFrame = m_onComplete;
+    m_nextFrame.start(m_liveInterval, [this] {
+      if (m_pending && !m_pending->receivingConstraints)
+        m_pending->captureFrame();
+    });
+    if (onFrame)
+      onFrame(std::move(image), {});
+    return;
+  }
   auto onComplete = std::exchange(m_onComplete, {});
   m_timeout.stop();
   m_pending.reset();

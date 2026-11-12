@@ -907,6 +907,7 @@ _nythera_sources = files(
   'src/capture/screencopy_capture.cpp',
   'src/capture/pointer_cursor_capture.cpp',
   'src/capture/toplevel_thumbnail_capture.cpp',
+  'src/shell/window_inspector/window_inspector_panel.cpp',
   'src/capture/screencopy_util.cpp',
   'src/capture/screenshot_capture.cpp',
   'src/capture/screenshot_image.cpp',
@@ -1254,6 +1255,25 @@ if build_tests
     command: [wayland_scanner, 'server-header', '@INPUT@', '@OUTPUT@'],
   )
 
+  inspector_capture_server_headers = []
+  foreach protocol : [
+    ['ext-image-copy-capture-v1', 'ext-image-copy-capture'],
+    ['ext-image-capture-source-v1', 'ext-image-capture-source'],
+    ['ext-foreign-toplevel-list-v1', 'ext-foreign-toplevel-list'],
+  ]
+    inspector_capture_server_headers += custom_target(protocol[0] + '-test-server-header',
+      input: wayland_protos_dir / 'staging' / protocol[1] / (protocol[0] + '.xml'),
+      output: protocol[0] + '-test-server-protocol.h',
+      command: [wayland_scanner, 'server-header', '@INPUT@', '@OUTPUT@'],
+    )
+  endforeach
+  inspector_capture_test = executable('toplevel_live_capture_test',
+    sources: files('tests/toplevel_live_capture_test.cpp') + inspector_capture_server_headers,
+    dependencies: [nythera_core_dep, wayland_server_dep],
+    override_options: ['b_ndebug=false'],
+  )
+  test('toplevel_live_capture', inspector_capture_test)
+
   _cpp_test_names = [
     'annotation_document',
     'annotation_raster',
@@ -1417,6 +1437,9 @@ if build_tests
     'widget_definition',
     'widget_settings_schema',
     'window_minimize_state',
+    'window_inspector_target',
+    'window_inspector_layout',
+    'window_inspector_backend',
     'window_switcher_membership',
     'window_switcher_shortcut_state',
     'workspace_alert_service',

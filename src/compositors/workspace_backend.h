@@ -1,6 +1,7 @@
 #pragma once
 
 #include "system/window_state.h"
+#include "compositors/window_inspector.h"
 
 #include <cstdint>
 #include <functional>
@@ -147,6 +148,12 @@ namespace compositors {
     using ChangeCallback = std::function<void()>;
 
     virtual ~WorkspaceMetadataBackend() = default;
+    [[nodiscard]] virtual std::optional<InspectorWindowDetails> inspectorWindowDetails(std::string_view) const {
+      return std::nullopt;
+    }
+    [[nodiscard]] virtual std::vector<InspectorWorkspace> inspectorWorkspaces() const { return {}; }
+    [[nodiscard]] virtual InspectorWindowCapabilities inspectorWindowCapabilities(std::string_view) const { return {}; }
+    virtual bool runInspectorWindowAction(std::string_view, InspectorWindowAction, std::string_view) { return false; }
     virtual void setChangeCallback(ChangeCallback callback) = 0;
     // Overrides take ownership of the callback.
     // NOLINTNEXTLINE(performance-unnecessary-value-param)

@@ -102,6 +102,11 @@ public:
   void probeFocusedOutput(std::function<void(wl_output*)> callback, std::chrono::milliseconds timeout);
 
   [[nodiscard]] std::optional<ActiveToplevel> activeToplevel() const;
+  [[nodiscard]] std::optional<InspectorWindowDetails> inspectorWindowDetails(std::string_view windowId) const;
+  [[nodiscard]] std::vector<InspectorWorkspace> inspectorWorkspaces() const;
+  [[nodiscard]] InspectorWindowCapabilities inspectorWindowCapabilities(std::string_view windowId) const;
+  bool
+  runInspectorWindowAction(std::string_view windowId, InspectorWindowAction action, std::string_view workspaceId = {});
   [[nodiscard]] wl_output* activeToplevelOutput() const;
   [[nodiscard]] std::vector<std::string> runningAppIds(wl_output* outputFilter = nullptr) const;
   [[nodiscard]] std::vector<ToplevelInfo>

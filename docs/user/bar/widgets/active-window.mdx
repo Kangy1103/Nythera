@@ -7,15 +7,15 @@ sidebar:
 
 Shows the active window icon and title for the current output. The window icon uses global `[shell.app_icon_colorize]` when enabled (see [Shell → App icon colorization](/nythera/configuration/shell/#app-icon-colorization)).
 
-| Setting            | Type   | Default           | Description                                                                                                                                     |
-| ------------------ | ------ | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `min_length`       | number | `80`              | Minimum widget length in pixels                                                                                                                 |
-| `max_length`       | number | `260`             | Maximum widget length in pixels                                                                                                                 |
-| `icon_size`        | number | `16`              | Icon size in pixels                                                                                                                             |
-| `title_scroll`     | string | `"none"`          | Title scrolling mode: `"none"`, `"always"`, or `"on_hover"`                                                                                     |
-| `display`          | string | `"icon_and_text"` | Content mode: `"icon_and_text"`, `"icon_only"`, or `"text_only"`. Vertical titles rotate 90° anticlockwise when enabled. |
-| `vertical_title` | bool | `true` | Show the rotated focused-window title on vertical bars; turn off for the original icon-only vertical presentation. Respects `display = "icon_only"`. |
-| `show_empty_label` | bool   | `false`           | When enabled, show "No active window" instead of hiding the widget when no window is focused                                                    |
+| Setting            | Type   | Default           | Description                                                                                                                                          |
+| ------------------ | ------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `min_length`       | number | `80`              | Minimum widget length in pixels                                                                                                                      |
+| `max_length`       | number | `260`             | Maximum widget length in pixels                                                                                                                      |
+| `icon_size`        | number | `16`              | Icon size in pixels                                                                                                                                  |
+| `title_scroll`     | string | `"none"`          | Title scrolling mode: `"none"`, `"always"`, or `"on_hover"`                                                                                          |
+| `display`          | string | `"icon_and_text"` | Content mode: `"icon_and_text"`, `"icon_only"`, or `"text_only"`. Vertical titles rotate 90° anticlockwise when enabled.                             |
+| `vertical_title`   | bool   | `true`            | Show the rotated focused-window title on vertical bars; turn off for the original icon-only vertical presentation. Respects `display = "icon_only"`. |
+| `show_empty_label` | bool   | `false`           | When enabled, show "No active window" instead of hiding the widget when no window is focused                                                         |
 
 ```toml
 [widget.active_window]
@@ -31,3 +31,15 @@ vertical_title = true
 Title changes crossfade while the widget smoothly resizes along the bar, in both horizontal and vertical layouts. Font size stays fixed. Existing minimum/maximum length and title scrolling controls still apply; animations follow global motion preferences. In the widget settings, use **Show Vertical Title** to hide or show the rotated text.
 
 The centre island follows the widget’s animated size directly, so its background and title grow and shrink together. Resizing and title crossfades use the same smooth easing and 300 ms base duration, scaled by the existing global animation speed.
+
+Click the active-window widget to open the window inspector. It uses the shell’s standard attached panel styling and stays bound to the selected window while open. The default view is a wide two-column panel: an aspect-preserving live preview on the left, and application identity, workspace, output, size and a compact destination selector with Move on the right. A full-width footer groups Focus/Minimise/Close on the left and the interactive window-state toggles on the right; the groups wrap when width is constrained. Technical metadata is always visible beneath the essentials in smaller, muted text, separated by a divider. The information starts at the top of the preview; there is no Details toggle. At narrow widths the columns stack; an outer scroll viewport keeps controls reachable when the shared panel host clamps the panel to a small work area. Normal desktop sizes do not require default-view scrolling.
+
+The borderless preview image preserves the captured image’s actual aspect ratio, uniformly fitting both the column width and a bounded height. Rounded alpha clipping is applied directly to the image; no decorative frame, backing card or padding surrounds it. The preview area follows the fitted image height, with a maximum height to keep portrait captures manageable; the information column is top-aligned alongside it. The panel measures its complete header, viewport, main content, spacing and wrapped footer before the shared host adds decoration padding and caps the result to the available work area. Preview and metadata changes and force-quit confirmation therefore resize the panel naturally, and scrolling is needed only beyond that cap. The preview is never stretched or cropped.
+
+The preview updates at up to eight frames per second while the inspector is open, reusing its capture session and shared-memory buffer. **Pause** freezes the last image; **Resume** resumes capture. While paused, the refresh icon captures a new snapshot without resuming the live stream. Capture stops when the inspector closes, the window disappears or it is minimised. Unsupported capture falls back to an unavailable preview.
+
+**Focus**, **Close** and eligible **Minimise** controls target the selected window. Floating, pinned, fullscreen and maximised controls remain in the default view and highlight their current states. IDs, process ID, precise position and available scrolling, tab, scratchpad, parent and region data appear directly in the right column’s muted technical section. Application names are resolved from desktop entries when available; a distinct window title appears below the name. Missing metadata stays unavailable; the panel has no hard dependency on Umbriel.
+
+Additional Umbriel controls toggle floating, pinned, fullscreen and maximised states, and move the window to a selected workspace/output. Unsupported actions are disabled. Floating requires a tiling layout. Focus-dependent controls are disabled when the target is no longer active, and the backend rechecks Umbriel’s `focused-window` response before sending them; it never silently focuses another window. The current IPC cannot make that check and the following action atomic. Numbered destinations are sent as workspace positions, while named destinations remain names even if they contain only digits.
+
+**Close** remains the normal exit action. **Force quit…** remains a compact secondary warning action in the right column. It requires explicit confirmation and can lose unsaved work or close other windows belonging to the same client. It always uses the selected window’s exact identity.

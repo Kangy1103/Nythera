@@ -2037,3 +2037,20 @@ bool CompositorPlatform::sameWorkspaceModelSnapshot(
   }
   return true;
 }
+
+std::optional<InspectorWindowDetails> CompositorPlatform::inspectorWindowDetails(std::string_view id) const {
+  return m_workspaceMetadataBackend ? m_workspaceMetadataBackend->inspectorWindowDetails(id) : std::nullopt;
+}
+std::vector<InspectorWorkspace> CompositorPlatform::inspectorWorkspaces() const {
+  return m_workspaceMetadataBackend ? m_workspaceMetadataBackend->inspectorWorkspaces()
+                                    : std::vector<InspectorWorkspace>{};
+}
+InspectorWindowCapabilities CompositorPlatform::inspectorWindowCapabilities(std::string_view id) const {
+  return m_workspaceMetadataBackend ? m_workspaceMetadataBackend->inspectorWindowCapabilities(id)
+                                    : InspectorWindowCapabilities{};
+}
+bool CompositorPlatform::runInspectorWindowAction(
+    std::string_view id, InspectorWindowAction action, std::string_view destination
+) {
+  return m_workspaceMetadataBackend && m_workspaceMetadataBackend->runInspectorWindowAction(id, action, destination);
+}

@@ -44,6 +44,7 @@
 #include "shell/tray/tray_drawer_panel.h"
 #include "shell/wallpaper/panel/wallpaper_panel.h"
 #include "shell/wallpaper/wallpaper_paths.h"
+#include "shell/window_inspector/window_inspector_panel.h"
 #include "system/brightness_service.h"
 #include "system/easyeffects_service.h"
 #include "ui/app_icon_colorization.h"
@@ -584,6 +585,7 @@ void Application::initPanelManagerAndPanels() {
   syncClipboardService();
   m_panelManager.registerPanel("session", std::make_unique<SessionPanel>(&m_configService, m_sessionActionRunner));
   m_panelManager.registerPanel("test", std::make_unique<TestPanel>());
+  m_panelManager.registerPanel("window-inspector", std::make_unique<WindowInspectorPanel>(m_compositorPlatform));
   auto controlCenterPanel = std::make_unique<ControlCenterPanel>(ControlCenterServices{
       .notifications = &m_notificationManager,
       .audio = m_pipewireService.get(),

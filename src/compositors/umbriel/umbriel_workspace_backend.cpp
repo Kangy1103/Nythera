@@ -1,6 +1,7 @@
 #include "compositors/umbriel/umbriel_workspace_backend.h"
 
 #include "compositors/umbriel/umbriel_runtime.h"
+#include "compositors/umbriel/umbriel_window_inspector.h"
 #include "core/log.h"
 
 #include <algorithm>
@@ -225,6 +226,8 @@ void UmbrielWorkspaceBackend::cleanup() { m_runtime.cleanup(); }
 void UmbrielWorkspaceBackend::handleStreamReset() {
   const bool overviewWasOpen = m_overviewKnown && m_overviewOpen;
   m_windows.clear();
+  m_inspectorWorkspaces.clear();
+  m_inspectorRememberedFocus.clear();
   m_workspacesByOutput.clear();
   m_focusedWindowId.reset();
   m_overviewKnown = false;
@@ -237,6 +240,35 @@ void UmbrielWorkspaceBackend::handleStreamReset() {
 }
 
 void UmbrielWorkspaceBackend::handleEvent(std::string_view event, const nlohmann::json& data) {
+  if (event == "workspaces") {
+    std::vector<InspectorWorkspace> next;
+    std::string rememberedFocus;
+    if (data.is_array()) {
+      for (const auto& entry : data) {
+        if (!entry.is_object())
+          continue;
+        if (compositors::umbriel::inspectorValue<bool>(entry, "focused").value_or(false))
+          rememberedFocus = jsonString(entry, "focused_window");
+        const auto id = jsonString(entry, "id");
+        if (id.empty())
+          continue;
+        next.push_back(
+            {.id = id,
+             .name = jsonString(entry, "name"),
+             .output = jsonString(entry, "output"),
+             .layout = jsonString(entry, "layout"),
+             .index = compositors::umbriel::inspectorValue<int>(entry, "index"),
+             .named = compositors::umbriel::inspectorValue<bool>(entry, "named")}
+        );
+      }
+    }
+    if (next != m_inspectorWorkspaces || rememberedFocus != m_inspectorRememberedFocus) {
+      m_inspectorRememberedFocus = std::move(rememberedFocus);
+      m_inspectorWorkspaces = std::move(next);
+      notifyWindowsChanged();
+    }
+    return;
+  }
   if (event == "windows") {
     if (!data.is_array()) {
       kLog.warn("windows snapshot must be an array");
@@ -245,6 +277,8 @@ void UmbrielWorkspaceBackend::handleEvent(std::string_view event, const nlohmann
         (void)windowId;
         changed |= window.minimizeState.has_value();
         changed |= window.visible;
+        changed |= window.details != InspectorWindowDetails{};
+        window.details = {};
         window.minimizeState.reset();
         window.visible = false;
       }
@@ -267,6 +301,7 @@ void UmbrielWorkspaceBackend::handleEvent(std::string_view event, const nlohmann
         continue;
       }
       Window window;
+      window.details = compositors::umbriel::parseInspectorDetails(entry);
       window.workspaceId = jsonString(entry, "workspace");
       window.appId = jsonString(entry, "app_id");
       window.title = jsonString(entry, "title");
@@ -322,4 +357,43 @@ void UmbrielWorkspaceBackend::notifyOverviewChanged() const {
   if (m_overviewChangeCallback) {
     m_overviewChangeCallback();
   }
+}
+
+std::optional<InspectorWindowDetails> UmbrielWorkspaceBackend::inspectorWindowDetails(std::string_view id) const {
+  const auto it = std::ranges::find_if(m_windows, [&](const auto& row) { return row.first == id; });
+  return it != m_windows.end() ? std::optional(it->second.details) : std::nullopt;
+}
+
+std::vector<InspectorWorkspace> UmbrielWorkspaceBackend::inspectorWorkspaces() const { return m_inspectorWorkspaces; }
+
+InspectorWindowCapabilities UmbrielWorkspaceBackend::inspectorWindowCapabilities(std::string_view id) const {
+  auto details = inspectorWindowDetails(id);
+  if (details && !m_focusedWindowId && m_inspectorRememberedFocus == id)
+    details->active = true;
+  return details && m_runtime.available() ? compositors::umbriel::inspectorCapabilities(*details, m_inspectorWorkspaces)
+                                          : InspectorWindowCapabilities{};
+}
+
+bool UmbrielWorkspaceBackend::runInspectorWindowAction(
+    std::string_view id, InspectorWindowAction action, std::string_view workspaceId
+) {
+  const auto details = inspectorWindowDetails(id);
+  if (!details || !m_runtime.available())
+    return false;
+  std::string focusedId;
+  if (compositors::umbriel::inspectorActionNeedsFocus(action)) {
+    // Umbriel does not yet accept an expected target on these actions. Recheck
+    // immediately before dispatch; this is deliberately not a focus-then-act path.
+    // A compositor-side expected-window guard is needed to close the IPC race.
+    const auto reply = m_runtime.requestCommand("focused-window");
+    if (!reply || !reply->contains("ok") || !(*reply)["ok"].is_object())
+      return false;
+    focusedId = jsonString((*reply)["ok"], "id");
+  }
+  const auto fields =
+      compositors::umbriel::inspectorActionFields(id, *details, m_inspectorWorkspaces, action, workspaceId, focusedId);
+  if (!fields)
+    return false;
+  const auto name = (*fields)["action"].get<std::string>();
+  return m_runtime.requestAction(name, *fields);
 }

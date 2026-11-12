@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <nlohmann/json.hpp>
 #include <numbers>
 #include <string_view>
 
@@ -36,6 +37,20 @@ ActiveWindowWidget::~ActiveWindowWidget() {
 
 void ActiveWindowWidget::create() {
   auto rootNode = ui::inputArea({});
+  rootNode->setAcceptedButtons(InputArea::buttonMask(BTN_LEFT));
+  rootNode->setOnClick([this](const InputArea::PointerData& data) {
+    const auto window = m_platform.activeToplevel();
+    if (!window) {
+      return;
+    }
+    const auto id = m_platform.focusedCompositorWindowId();
+    const nlohmann::json selection = {
+        {"appId", window->appId},
+        {"windowId", m_platform.hasExactWindowIdentity() && id ? *id : std::string{}},
+        {"handle", reinterpret_cast<std::uintptr_t>(window->handle)},
+    };
+    requestPanelToggle("window-inspector", selection.dump(), data.sceneX, data.sceneY);
+  });
   rootNode->setOnEnter([this](const InputArea::PointerData&) {
     applyTitleScrollMode(m_title != nullptr && m_title->visible());
     requestUpdate();

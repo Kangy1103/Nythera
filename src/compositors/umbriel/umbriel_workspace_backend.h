@@ -57,9 +57,16 @@ public:
   [[nodiscard]] std::optional<WindowMinimizeState> windowMinimizeState(std::string_view windowId) const override;
   bool minimizeWindowById(const std::string& windowId) override;
   void cleanup() override;
+  [[nodiscard]] std::optional<InspectorWindowDetails> inspectorWindowDetails(std::string_view windowId) const override;
+  [[nodiscard]] std::vector<InspectorWorkspace> inspectorWorkspaces() const override;
+  [[nodiscard]] InspectorWindowCapabilities inspectorWindowCapabilities(std::string_view windowId) const override;
+  bool runInspectorWindowAction(
+      std::string_view windowId, InspectorWindowAction action, std::string_view workspaceId
+  ) override;
 
 private:
   struct Window {
+    InspectorWindowDetails details;
     std::string workspaceId;
     std::string appId;
     std::string title;
@@ -81,6 +88,8 @@ private:
   mutable std::vector<std::pair<std::string, WorkspaceList>> m_workspacesByOutput;
   // IPC window snapshot in wire order: (window id, window).
   std::vector<std::pair<std::string, Window>> m_windows;
+  std::vector<InspectorWorkspace> m_inspectorWorkspaces;
+  std::string m_inspectorRememberedFocus;
   std::optional<std::string> m_focusedWindowId;
   bool m_overviewKnown = false;
   bool m_overviewOpen = false;

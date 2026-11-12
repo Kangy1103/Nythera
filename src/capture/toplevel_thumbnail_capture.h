@@ -20,7 +20,7 @@ namespace capture {
   );
 }
 
-// One-shot snapshots from an ext-foreign-toplevel handle: positive bounds downscale; zero bounds keep native size.
+// Window snapshots and retained live capture: positive bounds downscale; zero bounds keep native size.
 class ToplevelThumbnailCapture {
 public:
   using CompletionCallback = std::function<void(std::optional<ScreencopyImage>, std::string error)>;
@@ -31,6 +31,11 @@ public:
   [[nodiscard]] bool available() const noexcept;
   [[nodiscard]] bool busy() const noexcept { return m_pending != nullptr; }
   void capture(ext_foreign_toplevel_handle_v1* handle, int maxWidth, int maxHeight, CompletionCallback onComplete);
+  // Retains the protocol session and shared-memory buffer between frames.
+  void startLive(
+      ext_foreign_toplevel_handle_v1* handle, int maxWidth, int maxHeight, std::chrono::milliseconds interval,
+      CompletionCallback onFrame
+  );
   void cancelInFlight();
 
 private:
@@ -42,4 +47,7 @@ private:
   std::unique_ptr<ToplevelThumbnailCapturePending> m_pending;
   CompletionCallback m_onComplete;
   Timer m_timeout;
+  Timer m_nextFrame;
+  std::chrono::milliseconds m_liveInterval{100};
+  bool m_live = false;
 };
