@@ -1,0 +1,38 @@
+---
+title: Discord / Vesktop
+description: Apply Nythera's bundled System24 theme to Vesktop and Vencord.
+sidebar:
+  order: 9
+---
+
+Nythera ships a System24-based Discord theme with its styles, artwork and required assets bundled locally. It follows Nythera's resolved application palette and is **disabled by default**. No community-template download is needed.
+
+## Setup
+
+1. Open **Nythera Settings → Templates** and enable **Discord / Vesktop** under the built-in templates. The built-in catalog must also be enabled.
+2. Open **Vesktop/Vencord Settings → Themes → Local Themes** and select **Nythera System24**. Disable other full themes that would compete with it.
+
+An existing Vesktop or Vencord configuration directory is required. If the client has never been started, start it first, then reapply Nythera templates. Unmodified Discord needs a compatible theme loader such as Vencord; Nythera does not install one.
+
+The following destinations receive `nythera.theme.css` when the corresponding client configuration exists:
+
+| Client                       | Theme directory                                            |
+| ---------------------------- | ---------------------------------------------------------- |
+| Vesktop                      | `$XDG_CONFIG_HOME/vesktop/themes/`                         |
+| Vesktop Flatpak              | `~/.var/app/dev.vencord.Vesktop/config/vesktop/themes/`    |
+| Discord with Vencord         | `$XDG_CONFIG_HOME/Vencord/themes/`                         |
+| Discord Flatpak with Vencord | `~/.var/app/com.discordapp.Discord/config/Vencord/themes/` |
+
+`$XDG_CONFIG_HOME` defaults to `~/.config`. Theme selection remains under your control in the client; enabling the Nythera template only generates the file. Palette changes regenerate it. If the client does not reload the updated stylesheet automatically, toggle the local theme off and on, or restart the client.
+
+## Switching from the community template
+
+Disable the community **Discord** template if you no longer need its generated styles, then deselect its theme in the client and select **Nythera System24**. Old community files and your manually edited themes are preserved. This integration writes only its own `nythera.theme.css`; edits to that generated file are overwritten on the next application.
+
+## Disable
+
+Deselect **Nythera System24** in the client, then disable **Discord / Vesktop** in Nythera. Nythera removes its generated stylesheet on template application. Disabling the built-in catalog also triggers cleanup. Your other themes, Quick CSS and client settings are left intact. Nythera does not clear the client's saved theme selection, so deselect it there if you do not want it to become active again when regenerated.
+
+## Updating the shipped theme
+
+The maintained stylesheet is `assets/templates/discord/nythera.css` in the Nythera repository. Edit it while preserving the palette placeholders, then run `python3 tools/build-discord-template.py`. This regenerates the bundled template using the pinned System24/Midnight sources and Nythera SVGs. Install the updated assets and reapply templates. See `assets/templates/discord/README.md` for dependency revisions, licences and maintenance details.

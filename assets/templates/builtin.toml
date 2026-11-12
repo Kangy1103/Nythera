@@ -20,6 +20,11 @@ name = "Emacs"
 category = "editor"
 documentation_url = "https://docs.noctalia.dev/noctalia/templates/official/emacs/"
 
+[catalog.discord]
+name = "Discord / Vesktop"
+category = "chat"
+documentation_url = "https://github.com/Kangy1103/Nythera/blob/dev/docs/user/templates/official/discord.mdx"
+
 [catalog.foot]
 name = "Foot"
 category = "terminal"
@@ -123,6 +128,16 @@ input_path = "./emacs/emacs.el"
 output_path_dynamic = "bash '{{ config_dir }}/emacs/output-path.sh'"
 post_hook = "bash '{{ config_dir }}/emacs/apply.sh'"
 undo_hook = "bash '{{ config_dir }}/emacs/undo.sh'"
+
+[templates.discord]
+input_path = "./discord/nythera.theme.css"
+output_path = [
+  "$XDG_CONFIG_HOME/vesktop/themes/nythera.theme.css",
+  "~/.var/app/dev.vencord.Vesktop/config/vesktop/themes/nythera.theme.css",
+  "$XDG_CONFIG_HOME/Vencord/themes/nythera.theme.css",
+  "~/.var/app/com.discordapp.Discord/config/Vencord/themes/nythera.theme.css",
+]
+undo_hook = "bash '{{ config_dir }}/discord/undo.sh'"
 
 [templates.foot]
 input_path = "./foot/foot"

@@ -54,6 +54,10 @@ Bundled in `third_party/` and built from source:
 - **[Material Color Utilities](https://github.com/material-foundation/material-color-utilities)** — Material 3 palette generation (Apache-2.0)
 - **[Wuffs](https://github.com/google/wuffs)** — Memory-safe image decoders (Apache-2.0)
 
+## Bundled Theme Assets
+
+- **[System24](https://github.com/refact0r/system24)** and **[Midnight](https://github.com/refact0r/midnight-discord)** by refact0r — Bundled Discord/Vesktop theme styles and System24 assets (MIT). Licences and pinned revisions are in `assets/templates/discord/`. The Nythera stylesheet retains credit to Ezequielgk for the original adaptation.
+
 ## System Integration
 
 External tools the shell integrates with at runtime when present:

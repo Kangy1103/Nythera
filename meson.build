@@ -1636,6 +1636,14 @@ if build_tests
   )
 
   bash_program = find_program('bash')
+  discord_python = find_program('python3', required: false)
+  if discord_python.found()
+    test('discord_template', discord_python,
+      args: ['tests/discord_template_test.py', nythera_exe.full_path()],
+      depends: nythera_exe,
+      workdir: meson.current_source_dir(),
+    )
+  endif
   test('template_undo_signal',
     bash_program,
     args: ['tests/template_undo_signal_test.sh', meson.current_source_dir() / 'assets/templates'],
