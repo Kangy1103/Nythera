@@ -61,8 +61,6 @@ private:
     bool visible = false;
     std::vector<Tile> tiles;
     Node* scene = nullptr;
-    Label* heading = nullptr;
-    Label* empty = nullptr;
     Box* outputFill = nullptr;
     Box* outputOutline = nullptr;
   };

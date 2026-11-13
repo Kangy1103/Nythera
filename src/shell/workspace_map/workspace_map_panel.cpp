@@ -58,12 +58,12 @@ std::pair<float, float> WorkspaceMapPanel::preferredOutputSize() const {
       const bool active = std::ranges::any_of(visible, [&](const Workspace& current) {
         return current.id == workspace.id && current.active;
       });
-      const float extent = occupied.contains(workspace.id) || active ? monitorMapHeight(bounds, 1) + 16 : 42;
+      const float extent = occupied.contains(workspace.id) || active ? monitorMapHeight(bounds, 1) : 28;
       contentHeight = portrait ? std::max(contentHeight, extent) : contentHeight + extent;
       ++count;
     }
     if (count > 1 && !portrait)
-      contentHeight += static_cast<float>(count - 1) * Style::spaceSm;
+      contentHeight += static_cast<float>(count - 1) * Style::spaceXs;
     size = initialPanelSize(bounds.width / contentScale(), bounds.height / contentScale(), contentHeight + 100);
     break;
   }
@@ -249,7 +249,7 @@ void WorkspaceMapPanel::create() {
   );
   m_horizontal->content()->setDirection(FlexDirection::Vertical);
   m_horizontal->content()->setAlign(FlexAlign::Stretch);
-  m_horizontal->content()->setGap(scaled(Style::spaceSm));
+  m_horizontal->content()->setGap(scaled(Style::spaceXs));
   auto horizontalBar = std::make_unique<Scrollbar>();
   m_horizontalBar = horizontalBar.get();
   horizontalBar->setOrientation(ScrollOrientation::Horizontal);
@@ -329,27 +329,6 @@ void WorkspaceMapPanel::rebuildMap() {
   }
   for (auto& workspace : m_workspaces) {
     auto scene = ui::node({.out = &workspace.scene, .clipChildren = true});
-    scene->addChild(
-        ui::label({
-            .out = &workspace.heading,
-            .text = workspace.name,
-            .fontSize = scaled(Style::fontSizeMini),
-            .color = colorSpecFromRole(workspace.visible ? ColorRole::Primary : ColorRole::OnSurfaceVariant),
-            .maxLines = 1,
-        })
-    );
-    workspace.empty = nullptr;
-    if (workspace.tiles.empty()) {
-      scene->addChild(
-          ui::label({
-              .out = &workspace.empty,
-              .text = i18n::tr("window-switcher.empty"),
-              .fontSize = scaled(Style::fontSizeCaption),
-              .color = colorSpecFromRole(ColorRole::OnSurfaceVariant),
-              .maxLines = 1,
-          })
-      );
-    }
     scene->addChild(
         ui::box({
             .out = &workspace.outputFill,
@@ -474,13 +453,6 @@ void WorkspaceMapPanel::doLayout(Renderer& renderer, float width, float height) 
     );
   }
   const float sectionWidth = std::max(1.0F, m_scroll->contentViewportWidth(true));
-  float sectionTop = 0;
-  for (auto& workspace : m_workspaces) {
-    workspace.heading->setMaxWidth(sectionWidth);
-    workspace.heading->measure(renderer);
-    sectionTop = std::max(sectionTop, workspace.heading->height());
-  }
-  sectionTop += scaled(2.0F);
   // Readable monitor-relative scale is independent of window/workspace count
   // and popup width. Extra columns extend the shared scrollable canvas.
   const float targetHeight = monitorMapHeight(m_outputBounds, contentScale());
@@ -492,7 +464,7 @@ void WorkspaceMapPanel::doLayout(Renderer& renderer, float width, float height) 
   const float workspaceWidth = (viewport.x + viewport.width * 0.5F) * 2;
   const float compactHeight = (viewport.y + viewport.height * 0.5F) * 2;
   const float count = static_cast<float>(m_workspaces.size());
-  const float gutter = scaled(Style::spaceSm);
+  const float gutter = scaled(Style::spaceXs);
   const float rawWidth = count * workspaceWidth + std::max(0.0F, count - 1) * gutter;
   const float sidePadding =
       portrait ? std::max(0.0F, (sectionWidth - (rawWidth > sectionWidth ? workspaceWidth : rawWidth)) * 0.5F) : 0;
@@ -504,8 +476,8 @@ void WorkspaceMapPanel::doLayout(Renderer& renderer, float width, float height) 
   float contentHeight = 0;
   for (auto& workspace : m_workspaces) {
     const float rowHeight = workspace.tiles.empty() && !workspace.visible ? scaled(28.0F) : compactHeight;
-    workspace.scene->setFrameSize(portrait ? workspaceWidth : m_canvasWidth, sectionTop + rowHeight);
-    contentHeight = portrait ? std::max(contentHeight, sectionTop + rowHeight) : contentHeight + sectionTop + rowHeight;
+    workspace.scene->setFrameSize(portrait ? workspaceWidth : m_canvasWidth, rowHeight);
+    contentHeight = portrait ? std::max(contentHeight, rowHeight) : contentHeight + rowHeight;
   }
   if (m_workspaces.size() > 1 && !portrait)
     contentHeight += static_cast<float>(m_workspaces.size() - 1) * gutter;
@@ -537,25 +509,15 @@ void WorkspaceMapPanel::doLayout(Renderer& renderer, float width, float height) 
   syncHorizontalScroll(m_horizontal->scrollOffset());
   std::size_t tileIndex = 0;
   for (auto& workspace : m_workspaces) {
-    workspace.heading->setMaxWidth(portrait ? workspaceWidth : sectionWidth);
-    workspace.heading->measure(renderer);
-    if (workspace.tiles.empty()) {
-      workspace.empty->setMaxWidth(portrait ? workspaceWidth : sectionWidth);
-      workspace.empty->measure(renderer);
-      workspace.empty->setPosition(
-          (portrait ? 0 : m_horizontal->scrollOffset()) + scaled(12.0F), sectionTop + scaled(12.0F)
-      );
-      workspace.empty->setZIndex(3);
-    }
     for (Box* box : {workspace.outputFill, workspace.outputOutline}) {
       box->setVisible(workspace.visible);
-      box->setPosition(viewport.x, sectionTop + viewport.y);
+      box->setPosition(viewport.x, viewport.y);
       box->setFrameSize(viewport.width, viewport.height);
     }
     for (auto& tile : workspace.tiles) {
       tile.frame = projectedTiles[tileIndex++].frame;
       const auto& frame = tile.frame;
-      tile.area->setPosition(frame.x, sectionTop + frame.y);
+      tile.area->setPosition(frame.x, frame.y);
       tile.area->setFrameSize(frame.width, frame.height);
       tile.box->setFrameSize(frame.width, frame.height);
       const float padding = scaled(8.0F);
@@ -602,12 +564,6 @@ void WorkspaceMapPanel::doLayout(Renderer& renderer, float width, float height) 
 
 void WorkspaceMapPanel::syncHorizontalScroll(float offset) {
   m_horizontalBar->update(m_horizontal->contentViewportWidth(), m_canvasWidth, offset);
-  const float labelOffset = m_outputBounds.height > m_outputBounds.width ? 0 : offset;
-  for (auto& workspace : m_workspaces) {
-    workspace.heading->setPosition(labelOffset, 0);
-    if (workspace.empty)
-      workspace.empty->setPosition(labelOffset + scaled(12.0F), workspace.empty->y());
-  }
 }
 
 LayoutRect WorkspaceMapPanel::normalizeTiles(

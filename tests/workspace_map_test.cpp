@@ -135,7 +135,7 @@ public:
       TEST_CHECK(first.tiles[0].frame.y == second.tiles[0].frame.y);
       TEST_CHECK(first.tiles[0].frame.width == second.tiles[0].frame.width);
       TEST_CHECK(first.tiles[0].frame.height == second.tiles[0].frame.height);
-      TEST_CHECK(panel.m_workspaces[2].empty != nullptr);
+      TEST_CHECK(panel.m_workspaces[2].tiles.empty());
     }
     panel.layout(renderer, 600, 420);
     TEST_CHECK(panel.m_scroll->scrollable());
@@ -147,14 +147,12 @@ public:
     TEST_CHECK(
         far.x + far.width - panel.m_horizontal->scrollOffset() <= panel.m_horizontal->contentViewportWidth() + 0.01F
     );
-    for (const auto& workspace : panel.m_workspaces)
-      TEST_CHECK(workspace.heading->x() == panel.m_horizontal->scrollOffset());
     panel.layout(renderer, 600, 420);
     TEST_CHECK(panel.m_workspaces.front().tiles.front().frame.width == windowWidth);
     const auto* firstScene = panel.m_workspaces[0].scene;
     const auto* secondScene = panel.m_workspaces[1].scene;
     // Flex snaps child origins to physical pixels; fractional heights may leave a subpixel difference.
-    TEST_CHECK(std::abs(secondScene->y() - firstScene->y() - firstScene->height() - Style::spaceSm) <= 1.0F);
+    TEST_CHECK(std::abs(secondScene->y() - firstScene->y() - firstScene->height() - Style::spaceXs) <= 1.0F);
   }
   static void checkInactiveWindowInclusion() {
     InspectorWindowDetails details;
@@ -262,7 +260,6 @@ public:
     TEST_CHECK(panel.m_horizontal->scrollable());
     TEST_CHECK(!panel.m_scroll->scrollable());
     panel.m_horizontal->setScrollOffset(panel.m_horizontal->maxScrollOffset());
-    TEST_CHECK(one.heading->x() == 0 && two.heading->x() == 0);
   }
   static void checkInitialPanelSizes() {
     const auto landscape = WorkspaceMapPanel::initialPanelSize(3440, 1440, 520);
