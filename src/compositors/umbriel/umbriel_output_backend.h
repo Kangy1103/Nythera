@@ -1,5 +1,6 @@
 #pragma once
 
+#include "compositors/output_backend.h"
 #include "compositors/umbriel/umbriel_event_handler.h"
 
 #include <functional>
@@ -35,5 +36,7 @@ private:
 namespace compositors::umbriel {
 
   [[nodiscard]] bool setOutputPower(UmbrielRuntime& runtime, bool on);
+  [[nodiscard]] std::optional<OutputWorkArea> parseOutputWorkArea(const nlohmann::json& data, std::string_view output);
+  [[nodiscard]] std::optional<OutputWorkArea> outputWorkArea(const UmbrielRuntime& runtime, std::string_view output);
 
 } // namespace compositors::umbriel

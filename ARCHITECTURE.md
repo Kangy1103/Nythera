@@ -95,6 +95,7 @@ Vertical text centering lives in the `Label` engine, never in widgets. Widgets b
 
 - Every panel (attached, detached, floating, centered) owns its own `nythera-panel` layer surface and draws its own background, shadow, blur, and reveal animation.
 - "Attached" is a placement mode only: the panel's own surface is anchored to the bar's edge at the bar's layer, with a clipped reveal. It is not hosted in the bar surface.
+- A panel can opt into corner resizing through `PanelManager::beginPanelResize()`. The host owns surface resizing, output bounds, input regions and attached geometry; `Panel::onResizeFinished()` lets the owning panel remember its final size in UI state.
 - Attached and single-bar detached placement is computed before commit against a specific bar on a specific output, so a panel needs a concrete output before commit. A NULL layer-shell output would mis-anchor it.
 
 ### Bars, Dock, and Layer Order
@@ -120,6 +121,7 @@ Desktop widgets live under `src/shell/desktop/` and do not use the bar `Widget` 
 
 - `WaylandConnection` is protocol transport only, with no compositor-specific branches. Compositor behavior goes through `CompositorPlatform`.
 - Prefer passing `CompositorPlatform&` over passing both `WaylandConnection&` and `CompositorPlatform&`.
+- `CompositorPlatform::outputWorkArea()` optionally supplies global logical bounds excluding reserved bars. Compositor-specific queries and parsing stay in the integration backend; callers fall back to full output bounds when metadata is unavailable.
 - Detect compositors with `compositors::detect()`, `isHyprland()`, `isNiri()`, `isSway()`, and `isMango()` from `compositor_detect.h`; do not sniff environment variables again.
 - Logout goes through `uwsm stop` when UWSM manages the compositor, otherwise compositor-native logout commands. Niri goes through `NiriRuntime` IPC, not the CLI.
 

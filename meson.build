@@ -908,6 +908,7 @@ _nythera_sources = files(
   'src/capture/pointer_cursor_capture.cpp',
   'src/capture/toplevel_thumbnail_capture.cpp',
   'src/shell/window_inspector/window_inspector_panel.cpp',
+  'src/shell/workspace_map/workspace_map_panel.cpp',
   'src/capture/screencopy_util.cpp',
   'src/capture/screenshot_capture.cpp',
   'src/capture/screenshot_image.cpp',
@@ -1443,6 +1444,8 @@ if build_tests
     'window_switcher_membership',
     'window_switcher_shortcut_state',
     'workspace_alert_service',
+    'workspace_map',
+    'panel_resize',
     'workspaces_widget',
   ]
 

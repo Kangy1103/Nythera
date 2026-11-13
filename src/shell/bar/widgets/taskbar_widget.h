@@ -209,6 +209,7 @@ private:
   void buildDesktopIconIndex();
   [[nodiscard]] ResolvedIcon resolveIcon(const std::string& appId, const std::string& iconNameOrPath);
   void openTaskContextMenu(const TaskModel& task, InputArea& area, const std::vector<TaskRef>& members = {});
+  void openWorkspaceMap(float sceneX, float sceneY);
   void activateAdjacentWorkspace(int direction);
   void activateAdjacentTask(int direction);
   [[nodiscard]] bool activeWorkspaceIndex(std::size_t& index) const;

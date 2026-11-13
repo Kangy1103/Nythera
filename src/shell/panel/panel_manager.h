@@ -124,6 +124,9 @@ public:
   void togglePanel(const std::string& panelId);
 
   bool onPointerEvent(const PointerEvent& event);
+  void beginPanelResize(float sceneX, float sceneY);
+  [[nodiscard]] bool resizeFromLeft() const noexcept { return m_attachedToBar && m_attachedBarPosition == "right"; }
+  [[nodiscard]] bool resizeFromTop() const noexcept { return m_attachedToBar && m_attachedBarPosition == "bottom"; }
   void onKeyboardEvent(const KeyboardEvent& event);
 
   [[nodiscard]] bool isOpen() const noexcept;
@@ -198,6 +201,22 @@ private:
   static PanelManager* s_instance;
 
   void buildScene(std::uint32_t width, std::uint32_t height);
+  bool handleResizePointer(const PointerEvent& event);
+  friend class PanelResizeTestAccess;
+  [[nodiscard]] static InputRect resizeTarget(
+      InputRect initial, bool left, bool top, float deltaX, float deltaY, int outputWidth, int outputHeight,
+      float contentScale
+  );
+  struct ResizeDrag {
+    bool active = false;
+    bool left = false;
+    bool top = false;
+    InputRect initial;
+    float pointerX = 0;
+    float pointerY = 0;
+    int extraWidth = 0;
+    int extraHeight = 0;
+  } m_resizeDrag;
   void prepareFrame(bool needsUpdate, bool needsLayout);
   void applyPendingPanelFocus();
   void destroyPanel();

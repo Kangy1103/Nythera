@@ -1557,6 +1557,22 @@ namespace settings {
         &ShellConfig::PanelConfig::wallpaperPlacement, &ShellConfig::PanelConfig::wallpaperPosition
     ));
 
+    entries.push_back(makeEntry(
+        SettingsSection::Panels, "workspace-map", tr("workspace-map.placement-label"),
+        tr("workspace-map.placement-description"), {"shell", "panel", "workspace_map_placement"},
+        asSegmented(enumSelect(kPanelPlacements, cfg.shell.panel.workspaceMapPlacement)),
+        "workspace map attached floating bar panel"
+    ));
+    entries.push_back(panelPositionEntry(
+        SettingsSection::Panels, "workspace-map", "workspace_map", "workspace-map.position-label",
+        "workspace-map.position-description", cfg.shell.panel.workspaceMapPosition
+    ));
+    entries.push_back(panelOpenNearClickEntry(
+        SettingsSection::Panels, "workspace-map", "workspace_map", "workspace-map.near-click-label",
+        "workspace-map.near-click-description", cfg.shell.panel.openNearClickWorkspaceMap,
+        &ShellConfig::PanelConfig::workspaceMapPlacement, &ShellConfig::PanelConfig::workspaceMapPosition
+    ));
+
     // Control Center
     entries.push_back(makeEntry(
         SettingsSection::ControlCenter, "layout", tr("settings.schema.panels.placement-control-center.label"),

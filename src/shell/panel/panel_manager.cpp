@@ -298,6 +298,8 @@ namespace {
       return "auto";
     }
     const auto& pc = configService->config().shell.panel;
+    if (panelId == "workspace-map")
+      return pc.workspaceMapPosition;
     if (panelId == "control-center") {
       return pc.controlCenterPosition;
     }
@@ -321,6 +323,7 @@ namespace {
 
   [[nodiscard]] bool usesConfiguredFloatingLayer(std::string_view panelId) {
     return panelId == "clipboard"
+        || panelId == "workspace-map"
         || panelId == "control-center"
         || panelId == "launcher"
         || panelId == "session"
@@ -348,6 +351,8 @@ namespace {
     const auto pinned = [](PanelPlacement placement, const std::string& position) {
       return placement == PanelPlacement::Floating && position != "auto";
     };
+    if (panelId == "workspace-map")
+      return !pinned(pc.workspaceMapPlacement, pc.workspaceMapPosition) && pc.openNearClickWorkspaceMap;
     if (panelId == "control-center") {
       return !pinned(pc.controlCenterPlacement, pc.controlCenterPosition) && pc.openNearClickControlCenter;
     }
@@ -1739,6 +1744,7 @@ void PanelManager::handleCaptureCloseFrame(void* data, wl_callback* callback, st
 }
 
 void PanelManager::destroyPanel() {
+  m_resizeDrag.active = false;
   m_captureCloseTimer.stop();
   if (m_captureCloseFrame != nullptr) {
     wl_callback_destroy(m_captureCloseFrame);
@@ -1844,7 +1850,8 @@ void PanelManager::togglePanel(const std::string& panelId, PanelOpenRequest requ
       }
       // Panels placed near the clicked widget must fully reopen so geometry
       // and bar decoration track the new anchor.
-      if (request.hasAnchorPosition && openNearClickEnabled(m_activePanel, panelId, m_config)) {
+      if ((request.output != nullptr && request.output != m_output)
+          || (request.hasAnchorPosition && openNearClickEnabled(m_activePanel, panelId, m_config))) {
         openPanel(panelId, request);
         return;
       }
@@ -1875,6 +1882,109 @@ void PanelManager::togglePanel(const std::string& panelId) {
   openPanel(panelId, PanelOpenRequest{});
 }
 
+InputRect PanelManager::resizeTarget(
+    InputRect initial, bool left, bool top, float deltaX, float deltaY, int outputWidth, int outputHeight,
+    float contentScale
+) {
+  const int maxW = std::max(1, left ? initial.x + initial.width - 8 : outputWidth - initial.x - 8);
+  const int maxH = std::max(1, top ? initial.y + initial.height - 8 : outputHeight - initial.y - 8);
+  const int minW = std::min(maxW, static_cast<int>(400 * contentScale));
+  const int minH = std::min(maxH, static_cast<int>(280 * contentScale));
+  const int width = std::clamp(
+      static_cast<int>(std::lround(static_cast<double>(initial.width) + (left ? -deltaX : deltaX))), minW, maxW
+  );
+  const int height = std::clamp(
+      static_cast<int>(std::lround(static_cast<double>(initial.height) + (top ? -deltaY : deltaY))), minH, maxH
+  );
+  return {
+      initial.x + (left ? initial.width - width : 0), initial.y + (top ? initial.height - height : 0), width, height
+  };
+}
+
+void PanelManager::beginPanelResize(float sceneX, float sceneY) {
+  if (!isOpen()
+      || !m_layerSurface
+      || !m_surface
+      || (m_islandPresentation && !m_regularIslandAttachment)
+      || m_contentFit.enabled)
+    return;
+  m_resizeDrag = {
+      .active = true,
+      .left = resizeFromLeft(),
+      .top = resizeFromTop(),
+      .initial = m_panelScreenRect,
+      .pointerX = sceneX + static_cast<float>(m_panelScreenRect.x - m_panelInsetX),
+      .pointerY = sceneY + static_cast<float>(m_panelScreenRect.y - m_panelInsetY),
+      .extraWidth = static_cast<int>(m_surface->width()) - static_cast<int>(m_panelVisualWidth),
+      .extraHeight = static_cast<int>(m_surface->height()) - static_cast<int>(m_panelVisualHeight)
+  };
+  if (!m_attachedToBar) {
+    // Freeze the floating surface's origin during the drag, even when its
+    // configured resting placement is screen-centred or right/bottom aligned.
+    m_layerSurface->setMargins(m_panelScreenRect.y - m_panelInsetY, 0, 0, m_panelScreenRect.x - m_panelInsetX);
+    m_layerSurface->setAnchorAndSize(
+        LayerShellAnchor::Top | LayerShellAnchor::Left, m_surface->width(), m_surface->height()
+    );
+  }
+}
+
+bool PanelManager::handleResizePointer(const PointerEvent& event) {
+  if (!m_resizeDrag.active || !m_surface || !m_activePanel)
+    return false;
+  if (event.type == PointerEvent::Type::Motion) {
+    const auto& drag = m_resizeDrag;
+    const auto* output = m_platform->findOutputByWl(m_output);
+    if (!output)
+      return true;
+    // Use the configured surface extent, not a pending requested size, to
+    // reconstruct the pointer in output coordinates on bottom/right anchors.
+    const float actualW = static_cast<float>(static_cast<int>(m_surface->width()) - drag.extraWidth);
+    const float actualH = static_cast<float>(static_cast<int>(m_surface->height()) - drag.extraHeight);
+    const float originX = static_cast<float>(drag.initial.x - m_panelInsetX)
+        + (drag.left ? static_cast<float>(drag.initial.width) - actualW : 0.0F);
+    const float originY = static_cast<float>(drag.initial.y - m_panelInsetY)
+        + (drag.top ? static_cast<float>(drag.initial.height) - actualH : 0.0F);
+    const float deltaX = static_cast<float>(event.sx) + originX - drag.pointerX;
+    const float deltaY = static_cast<float>(event.sy) + originY - drag.pointerY;
+    const auto target = resizeTarget(
+        drag.initial, drag.left, drag.top, deltaX, deltaY, output->effectiveLogicalWidth(),
+        output->effectiveLogicalHeight(), m_activePanel->contentScale()
+    );
+    const int width = target.width;
+    const int height = target.height;
+    const int dx = width - static_cast<int>(m_panelVisualWidth);
+    const int dy = height - static_cast<int>(m_panelVisualHeight);
+    if (dx == 0 && dy == 0)
+      return true;
+    m_panelVisualWidth = static_cast<std::uint32_t>(width);
+    m_panelVisualHeight = static_cast<std::uint32_t>(height);
+    m_panelScreenRect = target;
+    m_panelOutputInputRect = m_panelScreenRect;
+    m_clickShield.setPanelInputRect(m_output, m_panelScreenRect);
+    if (m_attachedPanelGeometry) {
+      m_attachedPanelGeometry->x -= drag.left ? static_cast<float>(dx) : 0;
+      m_attachedPanelGeometry->y -= drag.top ? static_cast<float>(dy) : 0;
+      m_attachedPanelGeometry->width += static_cast<float>(dx);
+      m_attachedPanelGeometry->height += static_cast<float>(dy);
+    }
+    m_surface->setInputRegion({{m_panelInsetX, m_panelInsetY, width, height}});
+    m_layerSurface->requestSize(
+        static_cast<std::uint32_t>(width + drag.extraWidth), static_cast<std::uint32_t>(height + drag.extraHeight)
+    );
+    return true;
+  }
+  if (event.type == PointerEvent::Type::Button && event.button == BTN_LEFT && !event.pressed) {
+    m_resizeDrag.active = false;
+    m_inputDispatcher.pointerButton(
+        static_cast<float>(event.sx), static_cast<float>(event.sy), event.button, false, event.serial, event.time,
+        event.touch
+    );
+    m_activePanel->onResizeFinished(static_cast<float>(m_panelVisualWidth), static_cast<float>(m_panelVisualHeight));
+    capturePanelBackdrop();
+  }
+  return true;
+}
+
 bool PanelManager::onPointerEvent(const PointerEvent& event) {
   const bool ignorePointer = (m_activePanel != nullptr && m_activePanel->ignorePointerEvent());
 
@@ -1901,6 +2011,8 @@ bool PanelManager::onPointerEvent(const PointerEvent& event) {
   if (!isOpen() || m_inTransition) {
     return false;
   }
+  if (handleResizePointer(event))
+    return true;
 
   if (m_islandPresentation && event.surface == m_wlSurface
       && event.type == PointerEvent::Type::Button && event.pressed) {

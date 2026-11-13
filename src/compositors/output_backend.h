@@ -2,6 +2,13 @@
 
 struct wl_output;
 
+struct OutputWorkArea {
+  int x = 0;
+  int y = 0;
+  int width = 0;
+  int height = 0;
+};
+
 class OutputLifecycleObserver {
 public:
   virtual ~OutputLifecycleObserver() = default;

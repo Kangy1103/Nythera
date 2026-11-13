@@ -1,3 +1,4 @@
+#include "compositors/umbriel/umbriel_output_backend.h"
 #include "compositors/umbriel/umbriel_runtime.h"
 #include "compositors/umbriel/umbriel_window_inspector.h"
 #include "compositors/umbriel/umbriel_workspace_backend.h"
@@ -6,6 +7,20 @@
 using namespace compositors::umbriel;
 
 int main() {
+  const nlohmann::json outputs = nlohmann::json::array({{
+      {"name", "DP-2"},
+      {"usable_area", {{"x", 1736}, {"y", -1650}, {"width", 3394}, {"height", 1384}}},
+  }});
+  const auto area = parseOutputWorkArea(outputs, "DP-2");
+  TEST_CHECK(area && area->x == 1736 && area->y == -1650 && area->width == 3394 && area->height == 1384);
+  TEST_CHECK(!parseOutputWorkArea(outputs, "DP-1"));
+  auto invalidOutput = outputs;
+  invalidOutput[0]["usable_area"]["width"] = 18446744073709551615ULL;
+  TEST_CHECK(!parseOutputWorkArea(invalidOutput, "DP-2"));
+  invalidOutput[0]["usable_area"]["width"] = 0;
+  TEST_CHECK(!parseOutputWorkArea(invalidOutput, "DP-2"));
+  invalidOutput[0].erase("usable_area");
+  TEST_CHECK(!parseOutputWorkArea(invalidOutput, "DP-2"));
   const nlohmann::json entry = {
       {"id", "window-1"},
       {"app_id", "app"},

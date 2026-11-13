@@ -2038,6 +2038,13 @@ bool CompositorPlatform::sameWorkspaceModelSnapshot(
   return true;
 }
 
+std::optional<OutputWorkArea> CompositorPlatform::outputWorkArea(wl_output* output) const {
+  const auto* info = findOutputByWl(output);
+  if (!info || !compositors::isUmbriel())
+    return std::nullopt;
+  return compositors::umbriel::outputWorkArea(umbrielRuntime(), info->connectorName);
+}
+
 std::optional<InspectorWindowDetails> CompositorPlatform::inspectorWindowDetails(std::string_view id) const {
   return m_workspaceMetadataBackend ? m_workspaceMetadataBackend->inspectorWindowDetails(id) : std::nullopt;
 }

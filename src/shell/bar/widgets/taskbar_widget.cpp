@@ -754,6 +754,11 @@ void TaskbarWidget::dropUnpinnedTasks(std::vector<TaskModel>& tasks, bool showRu
 
 void TaskbarWidget::create() {
   auto container = ui::inputArea({});
+  container->setAcceptedButtons(InputArea::buttonMask(BTN_RIGHT));
+  container->setOnClick([this](const InputArea::PointerData& data) {
+    if (m_groupByWorkspace)
+      openWorkspaceMap(data.sceneX, data.sceneY);
+  });
 
   auto root = ui::row({
       .out = &m_root,
@@ -1203,6 +1208,10 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
           m_suppressTileClick = false;
           return;
         }
+        if (m_groupByWorkspace && data.button == BTN_RIGHT) {
+          openWorkspaceMap(data.sceneX, data.sceneY);
+          return;
+        }
         const TaskModel* current = resolveTask(m_tasks, taskRef, m_taskGeneration);
         if (current == nullptr) {
           return;
@@ -1522,6 +1531,9 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
       auto wsCopy = ws.workspace;
       wl_output* const wsHost = workspaceHostOutput(ws);
       badge->setOnClick([this, wsCopy, wsHost] { m_platform.activateWorkspace(wsHost, wsCopy); });
+      badge->setOnRightClickWithPointer([this](float x, float y, std::uint32_t, std::uint32_t) {
+        openWorkspaceMap(x, y);
+      });
       badge->setTooltip(ws.workspace.name.empty() ? ws.workspace.id : ws.workspace.name);
 
       if (hover) {
@@ -1537,12 +1549,14 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
 
       auto area = ui::inputArea({});
       area->setOpacity(summaryOpacity);
-      area->setAcceptedButtons(InputArea::buttonMask(BTN_LEFT));
+      area->setAcceptedButtons(InputArea::buttonMask({BTN_LEFT, BTN_RIGHT}));
       auto wsCopy = ws.workspace;
       wl_output* const wsHost = workspaceHostOutput(ws);
       area->setOnClick([this, wsCopy, wsHost](const InputArea::PointerData& data) {
         if (data.button == BTN_LEFT) {
           m_platform.activateWorkspace(wsHost, wsCopy);
+        } else if (data.button == BTN_RIGHT) {
+          openWorkspaceMap(data.sceneX, data.sceneY);
         }
       });
       std::size_t minimizedCount = 0;
@@ -1824,12 +1838,14 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
         if (!inlineBadge || !m_showWorkspaceLabel) {
           auto switcher = ui::inputArea({});
           switcher->setFrameSize(tileSize, tileSize);
-          switcher->setAcceptedButtons(InputArea::buttonMask(BTN_LEFT));
+          switcher->setAcceptedButtons(InputArea::buttonMask({BTN_LEFT, BTN_RIGHT}));
           auto wsCopy = ws.workspace;
           wl_output* const wsHost = workspaceHostOutput(ws);
           switcher->setOnClick([this, wsCopy, wsHost](const InputArea::PointerData& data) {
             if (data.button == BTN_LEFT) {
               m_platform.activateWorkspace(wsHost, wsCopy);
+            } else if (data.button == BTN_RIGHT) {
+              openWorkspaceMap(data.sceneX, data.sceneY);
             }
           });
           group->addChild(std::move(switcher));
@@ -3052,6 +3068,11 @@ void TaskbarWidget::updateModels() {
   if (root() != nullptr) {
     root()->markLayoutDirty();
   }
+}
+
+void TaskbarWidget::openWorkspaceMap(float sceneX, float sceneY) {
+  if (const auto* output = m_platform.findOutputByWl(m_output))
+    requestPanelToggle("workspace-map", output->connectorName, sceneX, sceneY);
 }
 
 bool TaskbarWidget::onPointerEvent(const PointerEvent& event) {

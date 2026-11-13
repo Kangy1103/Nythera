@@ -1,6 +1,7 @@
 #include "compositors/umbriel/umbriel_output_backend.h"
 
 #include "compositors/umbriel/umbriel_runtime.h"
+#include "compositors/umbriel/umbriel_window_inspector.h"
 #include "util/string_utils.h"
 
 #include <nlohmann/json.hpp>
@@ -91,6 +92,31 @@ void UmbrielOutputBackend::handleStreamReset() {
 }
 
 namespace compositors::umbriel {
+
+  std::optional<OutputWorkArea> parseOutputWorkArea(const nlohmann::json& data, std::string_view output) {
+    if (!data.is_array())
+      return std::nullopt;
+    for (const auto& item : data) {
+      if (!item.is_object())
+        continue;
+      const auto name = item.find("name");
+      const auto area = item.find("usable_area");
+      if (name == item.end() || !name->is_string() || *name != output || area == item.end() || !area->is_object())
+        continue;
+      const auto x = inspectorValue<int>(*area, "x");
+      const auto y = inspectorValue<int>(*area, "y");
+      const auto width = inspectorValue<int>(*area, "width");
+      const auto height = inspectorValue<int>(*area, "height");
+      if (x && y && width && height && *width > 0 && *height > 0)
+        return OutputWorkArea{*x, *y, *width, *height};
+    }
+    return std::nullopt;
+  }
+
+  std::optional<OutputWorkArea> outputWorkArea(const UmbrielRuntime& runtime, std::string_view output) {
+    const auto reply = runtime.requestCommand("outputs");
+    return reply ? parseOutputWorkArea(reply->at("ok"), output) : std::nullopt;
+  }
 
   bool setOutputPower(UmbrielRuntime& runtime, bool on) { return runtime.requestAction(on ? "dpms-on" : "dpms-off"); }
 

@@ -45,6 +45,7 @@
 #include "shell/wallpaper/panel/wallpaper_panel.h"
 #include "shell/wallpaper/wallpaper_paths.h"
 #include "shell/window_inspector/window_inspector_panel.h"
+#include "shell/workspace_map/workspace_map_panel.h"
 #include "system/brightness_service.h"
 #include "system/easyeffects_service.h"
 #include "ui/app_icon_colorization.h"
@@ -586,6 +587,9 @@ void Application::initPanelManagerAndPanels() {
   m_panelManager.registerPanel("session", std::make_unique<SessionPanel>(&m_configService, m_sessionActionRunner));
   m_panelManager.registerPanel("test", std::make_unique<TestPanel>());
   m_panelManager.registerPanel("window-inspector", std::make_unique<WindowInspectorPanel>(m_compositorPlatform));
+  m_panelManager.registerPanel(
+      "workspace-map", std::make_unique<WorkspaceMapPanel>(m_compositorPlatform, &m_configService)
+  );
   auto controlCenterPanel = std::make_unique<ControlCenterPanel>(ControlCenterServices{
       .notifications = &m_notificationManager,
       .audio = m_pipewireService.get(),

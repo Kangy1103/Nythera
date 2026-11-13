@@ -5501,6 +5501,18 @@
     "hint": "Tab · Shift+Tab · Arrow keys · Release the shortcut modifier to switch · Esc to cancel",
     "title": "Windows"
   },
+  "workspace-map": {
+    "resize": "Drag this corner to resize the map",
+    "placement-label": "Placement",
+    "placement-description": "Attach the window map to its bar or use a floating panel",
+    "position-label": "Position",
+    "position-description": "Floating screen position or alignment along the attached bar",
+    "near-click-label": "Open near click",
+    "near-click-description": "Position the window map near the workspace widget click",
+    "viewport": "Visible workspace boundary",
+    "title": "Window map",
+    "empty": "No windows with reported geometry on this output"
+  },
   "window-inspector": {
     "application-id": "Application ID",
     "pause-short": "Pause",

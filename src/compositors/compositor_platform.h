@@ -1,6 +1,7 @@
 #pragma once
 
 #include "compositors/keyboard_backend.h"
+#include "compositors/output_backend.h"
 #include "compositors/workspace_backend.h"
 #include "wayland/wayland_connection.h"
 
@@ -72,6 +73,9 @@ public:
   [[nodiscard]] bool hasGammaControl() const noexcept;
   [[nodiscard]] const std::vector<WaylandOutput>& outputs() const noexcept;
   [[nodiscard]] const WaylandOutput* findOutputByWl(wl_output* output) const;
+  // Optional compositor-reported work area in global logical coordinates,
+  // excluding reserved bars. Callers may fall back to the full output.
+  [[nodiscard]] std::optional<OutputWorkArea> outputWorkArea(wl_output* output) const;
   [[nodiscard]] wl_output* outputForSurface(wl_surface* surface) const noexcept;
   [[nodiscard]] FocusGrabService* focusGrabService() const noexcept;
   [[nodiscard]] bool hasPointerPosition() const noexcept;

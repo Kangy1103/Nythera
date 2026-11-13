@@ -111,6 +111,12 @@ bool WorkspacesWidget::isWorkspaceHidden(const Workspace& workspace) const noexc
 
 void WorkspacesWidget::create() {
   auto container = ui::inputArea({});
+  container->setAcceptedButtons(InputArea::buttonMask(BTN_RIGHT));
+  container->setOnClick([this](const InputArea::PointerData& data) {
+    if (const auto* output = m_platform.findOutputByWl(m_output)) {
+      requestPanelToggle("workspace-map", output->connectorName, data.sceneX, data.sceneY);
+    }
+  });
   m_container = container.get();
   setRoot(std::move(container));
 
@@ -148,9 +154,14 @@ void WorkspacesWidget::syncWidgetVisibility(bool showWidget) {
 }
 
 void WorkspacesWidget::setWorkspaceClickHandler(InputArea& area, wl_output* output, const Workspace& workspace) {
+  area.setAcceptedButtons(InputArea::buttonMask({BTN_LEFT, BTN_RIGHT}));
   area.setOnClick([this, output, workspace](const InputArea::PointerData& data) {
     if (data.button == BTN_LEFT) {
       m_platform.activateWorkspace(output, workspace);
+    } else if (data.button == BTN_RIGHT) {
+      if (const auto* info = m_platform.findOutputByWl(m_output)) {
+        requestPanelToggle("workspace-map", info->connectorName, data.sceneX, data.sceneY);
+      }
     }
   });
 }
