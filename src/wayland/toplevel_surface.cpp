@@ -5,6 +5,7 @@
 #include "xdg-shell-client-protocol.h"
 
 #include <algorithm>
+#include <span>
 #include <utility>
 
 namespace {
@@ -93,6 +94,10 @@ bool ToplevelSurface::initialize(wl_output* output, const ToplevelSurfaceConfig&
 
 void ToplevelSurface::setClosedCallback(std::function<void()> callback) { m_closedCallback = std::move(callback); }
 
+void ToplevelSurface::setSuspendedCallback(std::function<void(bool)> callback) {
+  m_suspendedCallback = std::move(callback);
+}
+
 void ToplevelSurface::setMinSize(std::uint32_t minWidth, std::uint32_t minHeight) {
   if (m_toplevel != nullptr) {
     xdg_toplevel_set_min_size(m_toplevel, static_cast<std::int32_t>(minWidth), static_cast<std::int32_t>(minHeight));
@@ -103,6 +108,11 @@ void ToplevelSurface::beginMove(std::uint32_t serial) {
   if (m_toplevel != nullptr) {
     xdg_toplevel_move(m_toplevel, m_connection.seat(), serial);
   }
+}
+
+void ToplevelSurface::beginResize(std::uint32_t serial) {
+  if (m_toplevel != nullptr)
+    xdg_toplevel_resize(m_toplevel, m_connection.seat(), serial, XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_RIGHT);
 }
 
 void ToplevelSurface::handleXdgSurfaceConfigure(void* data, xdg_surface* surface, std::uint32_t serial) {
@@ -123,9 +133,19 @@ void ToplevelSurface::handleXdgSurfaceConfigure(void* data, xdg_surface* surface
 }
 
 void ToplevelSurface::handleToplevelConfigure(
-    void* data, xdg_toplevel* /*toplevel*/, std::int32_t width, std::int32_t height, wl_array* /*states*/
+    void* data, xdg_toplevel* /*toplevel*/, std::int32_t width, std::int32_t height, wl_array* states
 ) {
   auto* self = static_cast<ToplevelSurface*>(data);
+  bool suspended = false;
+  if (states) {
+    const std::span values{static_cast<const std::uint32_t*>(states->data), states->size / sizeof(std::uint32_t)};
+    suspended = std::ranges::find(values, XDG_TOPLEVEL_STATE_SUSPENDED) != values.end();
+  }
+  if (self->m_suspended != suspended) {
+    self->m_suspended = suspended;
+    if (self->m_suspendedCallback)
+      self->m_suspendedCallback(suspended);
+  }
   self->m_lastToplevelWidth = width;
   self->m_lastToplevelHeight = height;
   if (width > 0) {

@@ -69,6 +69,7 @@
 #include "shell/tray/tray_drawer_panel.h"
 #include "shell/wallpaper/panel/wallpaper_panel.h"
 #include "shell/wallpaper/wallpaper_paths.h"
+#include "shell/workspace_map/workspace_map_window.h"
 #include "system/brightness_service.h"
 #include "system/distro_info.h"
 #include "system/easyeffects_service.h"
@@ -907,6 +908,10 @@ void Application::initWaylandCallbacks() {
     }
   });
   m_compositorPlatform.setToplevelChangeCallback([this] {
+    // Window-close acknowledgements must reach an open map even when it is otherwise idle.
+    m_panelManager.refreshPanel("workspace-map");
+    if (m_workspaceMapWindow)
+      m_workspaceMapWindow->refresh();
     m_screenTimeService.onFocusChange();
     m_bar.scheduleSmartAutoHideReevaluation();
     m_dock.scheduleSmartAutoHideReevaluation();

@@ -110,6 +110,7 @@ namespace sdbus {
   class IProxy;
 }
 
+class WorkspaceMapWindow;
 class LauncherPanel;
 class AccountsService;
 class BluetoothAgent;
@@ -391,6 +392,7 @@ private:
   Wallpaper m_wallpaper;
   Backdrop m_backdrop;
   SettingsWindow m_settingsWindow;
+  std::unique_ptr<WorkspaceMapWindow> m_workspaceMapWindow;
   LayerPopupHostRegistry m_layerPopupHosts;
   ColorPickerDialogPopup m_colorPickerDialogPopup;
   GlyphPickerDialogPopup m_glyphPickerDialogPopup;

@@ -909,6 +909,7 @@ _nythera_sources = files(
   'src/capture/toplevel_thumbnail_capture.cpp',
   'src/shell/window_inspector/window_inspector_panel.cpp',
   'src/shell/workspace_map/workspace_map_panel.cpp',
+  'src/shell/workspace_map/workspace_map_window.cpp',
   'src/capture/screencopy_util.cpp',
   'src/capture/screenshot_capture.cpp',
   'src/capture/screenshot_image.cpp',

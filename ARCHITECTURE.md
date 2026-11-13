@@ -95,6 +95,8 @@ Vertical text centering lives in the `Label` engine, never in widgets. Widgets b
 
 - Every panel (attached, detached, floating, centered) owns its own `nythera-panel` layer surface and draws its own background, shadow, blur, and reveal animation.
 - "Attached" is a placement mode only: the panel's own surface is anchored to the bar's edge at the bar's layer, with a clipped reveal. It is not hosted in the bar surface.
+- Workspace-map previews reuse `ToplevelThumbnailCapture::capture()` through one shared, serialized capture slot, keyed by compositor window ID. The initial visible snapshot sweep has no idle gap; ongoing previews share at most four captures per second, with adaptive backoff, rather than owning independent live sessions. Pause stops ongoing refreshes but still fills missing visible snapshots; dragging and native-window suspension gate capture work. Closing either host cancels capture and scheduling and drops the bounded frame cache.
+- The expanded workspace map uses a native `ToplevelSurface`, like Settings, and hosts the same map content as the compact panel. Its input, move/resize requests and lifetime belong to the native window host; the compact map remains in `PanelManager`.
 - A panel can opt into corner resizing through `PanelManager::beginPanelResize()`. The host owns surface resizing, output bounds, input regions and attached geometry; `Panel::onResizeFinished()` lets the owning panel remember its final size in UI state.
 - Attached and single-bar detached placement is computed before commit against a specific bar on a specific output, so a panel needs a concrete output before commit. A NULL layer-shell output would mis-anchor it.
 

@@ -49,6 +49,7 @@
 #include "shell/tooltip/tooltip_manager.h"
 #include "shell/tray/tray_drawer_panel.h"
 #include "shell/wallpaper/panel/wallpaper_panel.h"
+#include "shell/workspace_map/workspace_map_window.h"
 #include "system/brightness_poll_source.h"
 #include "system/brightness_service.h"
 #include "system/easyeffects_service.h"
@@ -145,6 +146,7 @@ Application::~Application() {
   GlyphPickerDialog::setPresenter(nullptr);
   FileDialog::setPresenter(nullptr);
   SearchPickerDialog::setPopup(nullptr);
+  m_workspaceMapWindow.reset();
   m_settingsWindow.shutdownDialogPresenter();
   // m_systemMonitor is declared after the plugin hosts, so it is destroyed first; drop the script
   // API's pointer to it here, while both are still alive, or a plugin that used nythera.cpuCores

@@ -6,6 +6,7 @@
 #include "dbus/network/inetwork_service.h"
 #include "pipewire/sound_player.h"
 #include "render/backend/render_backend.h"
+#include "shell/workspace_map/workspace_map_window.h"
 
 #include <algorithm>
 #include <chrono>
@@ -74,6 +75,8 @@ void Application::recoverGraphicsAfterReset() {
     m_lockScreen.onGpuResourcesInvalidated();
     m_trayMenu.requestLayout();
     m_settingsWindow.requestRedraw();
+    if (m_workspaceMapWindow)
+      m_workspaceMapWindow->refresh();
     m_screenCorners.requestRedraw();
     requestAllSurfacesRedraw();
     m_graphicsRecoveryAttempts = 0;

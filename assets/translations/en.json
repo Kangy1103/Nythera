@@ -5502,6 +5502,7 @@
     "title": "Windows"
   },
   "workspace-map": {
+    "expand": "Expand",
     "resize": "Drag this corner to resize the map",
     "placement-label": "Placement",
     "placement-description": "Attach the window map to its bar or use a floating panel",

@@ -46,6 +46,7 @@
 #include "shell/wallpaper/wallpaper_paths.h"
 #include "shell/window_inspector/window_inspector_panel.h"
 #include "shell/workspace_map/workspace_map_panel.h"
+#include "shell/workspace_map/workspace_map_window.h"
 #include "system/brightness_service.h"
 #include "system/easyeffects_service.h"
 #include "ui/app_icon_colorization.h"
@@ -432,6 +433,8 @@ void Application::initInputDispatch() {
     if (m_trayMenu.onPointerEvent(event)) {
       return;
     }
+    if (m_workspaceMapWindow && m_workspaceMapWindow->onPointerEvent(event))
+      return;
     if (m_settingsWindow.onPointerEvent(event))
       return;
     if (m_bar.onPointerEvent(event))
@@ -497,6 +500,8 @@ void Application::initInputDispatch() {
     if (m_pluginLayerHost.onKeyboardEvent(event)) {
       return;
     }
+    if (m_workspaceMapWindow && m_workspaceMapWindow->onKeyboardEvent(event))
+      return;
     if (m_settingsWindow.ownsKeyboardSurface(m_wayland.lastKeyboardSurface())) {
       m_settingsWindow.onKeyboardEvent(event);
       return;
@@ -587,9 +592,17 @@ void Application::initPanelManagerAndPanels() {
   m_panelManager.registerPanel("session", std::make_unique<SessionPanel>(&m_configService, m_sessionActionRunner));
   m_panelManager.registerPanel("test", std::make_unique<TestPanel>());
   m_panelManager.registerPanel("window-inspector", std::make_unique<WindowInspectorPanel>(m_compositorPlatform));
-  m_panelManager.registerPanel(
-      "workspace-map", std::make_unique<WorkspaceMapPanel>(m_compositorPlatform, &m_configService)
-  );
+  m_workspaceMapWindow = std::make_unique<WorkspaceMapWindow>(m_compositorPlatform, m_configService, m_renderContext);
+  auto workspaceMapPanel = std::make_unique<WorkspaceMapPanel>(m_compositorPlatform, &m_configService);
+  workspaceMapPanel->setExpandCallback([this](const std::string& outputName) {
+    m_panelManager.closePanel(false);
+    m_workspaceMapWindow->open(outputName);
+  });
+  m_panelManager.registerPanel("workspace-map", std::move(workspaceMapPanel));
+  m_configService.addReloadCallback([this] {
+    if (m_workspaceMapWindow)
+      m_workspaceMapWindow->refresh();
+  });
   auto controlCenterPanel = std::make_unique<ControlCenterPanel>(ControlCenterServices{
       .notifications = &m_notificationManager,
       .audio = m_pipewireService.get(),

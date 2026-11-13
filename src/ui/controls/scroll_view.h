@@ -23,6 +23,9 @@ public:
   ScrollView();
   void setOrientation(ScrollOrientation orientation);
 
+  // Custom gestures may coordinate multiple scroll views through their viewport areas.
+  [[nodiscard]] InputArea* viewportArea() noexcept { return m_viewportArea; }
+
   [[nodiscard]] Flex* content() noexcept { return m_content; }
   [[nodiscard]] const Flex* content() const noexcept { return m_content; }
 
