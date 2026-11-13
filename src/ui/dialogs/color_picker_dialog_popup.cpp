@@ -19,6 +19,7 @@ void ColorPickerDialogPopup::initialize(
     WaylandConnection& wayland, ConfigService& config, RenderContext& renderContext, LayerPopupHostRegistry& popupHosts
 ) {
   initializeBase(wayland, config, renderContext, popupHosts);
+  setHazeProfile("color-picker");
 }
 
 bool ColorPickerDialogPopup::openColorPicker() {

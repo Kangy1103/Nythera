@@ -19,6 +19,9 @@ class Node;
 
 namespace settings {
 
+  [[nodiscard]] bool settingsHazeEnabled(const Config& config);
+  [[nodiscard]] ColorSpec settingsSidebarFill(const Config& config);
+
   struct SettingsStatusBannerProps {
     std::string message;
     bool error = false;
@@ -49,12 +52,13 @@ namespace settings {
     std::unordered_set<std::string>& expandedGroups;
     Button* pill = nullptr;
     std::function<void(const Node&)> scrollToTop;
+    bool hazeEnabled = false;
   };
 
   [[nodiscard]] Flex* addSettingsGroupCard(SettingsGroupCardProps props);
   // Same card as addSettingsGroupCard without the collapsible header, for transient groupings
   // (search results) that must never start hidden and hold no expanded state.
-  [[nodiscard]] Flex* addSettingsCard(Flex& parent, std::string_view title, float scale);
+  [[nodiscard]] Flex* addSettingsCard(Flex& parent, std::string_view title, float scale, bool hazeEnabled = false);
 
   [[nodiscard]] std::optional<std::size_t>
   optionIndex(const std::vector<SelectOption>& options, std::string_view value);

@@ -17,7 +17,9 @@ namespace {
 } // namespace
 
 SelectDropdownPopup::SelectDropdownPopup(WaylandConnection& wayland, RenderContext& renderContext)
-    : m_popup(wayland, renderContext) {}
+    : m_popup(wayland, renderContext) {
+  m_popup.setHazeProfile("select-menu");
+}
 
 SelectDropdownPopup::~SelectDropdownPopup() = default;
 

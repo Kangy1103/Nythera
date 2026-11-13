@@ -243,6 +243,7 @@ namespace shell::dock {
       instance.panel = static_cast<Box*>(instance.slideRoot->addChild(
           ui::box({
               .configure = [concave](Box& box) {
+                box.setSurfaceBackground();
                 box.setCornerShapes(concave.corners);
                 box.setLogicalInset(concave.logicalInset);
                 box.setRadii(concave.radii);

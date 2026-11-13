@@ -10,6 +10,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <optional>
 #include <set>
 #include <string>
@@ -1070,6 +1071,18 @@ enum class PanelPlacement : std::uint8_t {
   Floating = 1,
 };
 
+enum class PanelHazeMode : std::uint8_t { Static, Animated };
+constexpr EnumOption<PanelHazeMode> kPanelHazeModes[] = {
+    {PanelHazeMode::Static, "static", "settings.options.shell.panel-haze-mode.static"},
+    {PanelHazeMode::Animated, "animated", "settings.options.shell.panel-haze-mode.animated"},
+};
+
+enum class PanelHazeBackground : std::uint8_t { Opaque, Transparent };
+constexpr EnumOption<PanelHazeBackground> kPanelHazeBackgrounds[] = {
+    {PanelHazeBackground::Opaque, "opaque", "settings.options.shell.panel-haze-background.opaque"},
+    {PanelHazeBackground::Transparent, "transparent", "settings.options.shell.panel-haze-background.transparent"},
+};
+
 constexpr EnumOption<PanelPlacement> kPanelPlacements[] = {
     {PanelPlacement::Attached, "attached", "settings.options.shell.panel-placement.attached"},
     {PanelPlacement::Floating, "floating", "settings.options.shell.panel-placement.floating"},
@@ -1216,6 +1229,10 @@ struct ShellConfig {
 
   struct PanelConfig {
     PanelTransparencyMode transparencyMode = PanelTransparencyMode::Solid;
+    bool hazeEnabled = true;
+    std::map<std::string, bool> hazeSurfaces;
+    PanelHazeMode hazeMode = PanelHazeMode::Animated;
+    PanelHazeBackground hazeBackground = PanelHazeBackground::Opaque;
     bool snapshotBlur = true;
     float snapshotBlurStrength = 12.0F;
     bool borders = true; // outline on floating panel surfaces

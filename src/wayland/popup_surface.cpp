@@ -50,7 +50,7 @@ namespace {
 
 } // namespace
 
-PopupSurface::PopupSurface(WaylandConnection& connection) : Surface(connection) {}
+PopupSurface::PopupSurface(WaylandConnection& connection) : Surface(connection) { setHazeProfile("popups"); }
 
 PopupSurface::~PopupSurface() {
   *m_alive = false;

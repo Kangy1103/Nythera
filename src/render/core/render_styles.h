@@ -2,6 +2,7 @@
 
 #include "render/core/color.h"
 #include "render/core/snapshot_backdrop.h"
+#include "render/core/surface_haze.h"
 
 #include <array>
 #include <cstdint>
@@ -86,6 +87,8 @@ constexpr bool operator==(const ImageScrim& lhs, const ImageScrim& rhs) noexcept
 }
 
 struct RoundedRectStyle {
+  bool surfaceBackground = false;
+  SurfaceHazeStyle haze;
   ScreenFrameBackdrop backdrop;
   Color fill{};
   Color border{};
@@ -113,7 +116,9 @@ struct RoundedRectStyle {
 };
 
 constexpr bool operator==(const RoundedRectStyle& lhs, const RoundedRectStyle& rhs) noexcept {
-  return lhs.fill == rhs.fill
+  return lhs.surfaceBackground == rhs.surfaceBackground
+      && lhs.haze == rhs.haze
+      && lhs.fill == rhs.fill
       && lhs.backdrop == rhs.backdrop
       && lhs.border == rhs.border
       && lhs.fillMode == rhs.fillMode

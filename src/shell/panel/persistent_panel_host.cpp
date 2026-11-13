@@ -238,6 +238,7 @@ void PersistentPanelHost::open(const std::string& id, wl_output* output, std::st
   instance->surface = std::make_unique<LayerSurface>(m_platform->wayland(), std::move(surfaceConfig));
   auto* raw = instance.get();
   instance->surface->setRenderContext(m_renderContext);
+  instance->surface->setHazeProfile(id);
   instance->surface->setAnimationManager(&instance->animations);
   instance->surface->setConfigureCallback([raw](std::uint32_t /*width*/, std::uint32_t /*height*/) {
     if (raw->surface != nullptr) {

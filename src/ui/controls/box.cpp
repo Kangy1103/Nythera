@@ -18,9 +18,16 @@ const RoundedRectStyle& Box::style() const noexcept { return m_style; }
 
 void Box::setStyle(const RoundedRectStyle& style) {
   m_style = style;
+  m_style.surfaceBackground = m_surfaceBackground;
   m_resolveFill = false;
   m_resolveBorder = false;
   m_borderWidth = style.borderWidth;
+  syncStyle();
+}
+
+void Box::setSurfaceBackground(bool enabled) {
+  m_surfaceBackground = enabled;
+  m_style.surfaceBackground = enabled;
   syncStyle();
 }
 
@@ -122,6 +129,7 @@ void Box::setFlatStyle() {
 }
 
 void Box::setPanelStyle(bool showBorder) {
+  setSurfaceBackground();
   m_fill = colorSpecFromRole(ColorRole::Surface);
   if (showBorder) {
     m_border = colorSpecFromRole(ColorRole::OutlineVariant);

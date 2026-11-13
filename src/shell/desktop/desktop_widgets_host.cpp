@@ -363,6 +363,7 @@ void DesktopWidgetsHost::createInstance(const DesktopWidgetState& state, const W
   instance->intrinsicHeight = intrinsicHeight;
 
   instance->surface = std::make_unique<LayerSurface>(*m_wayland, std::move(surfaceConfig));
+  instance->surface->setHazeProfile(instance->state.id);
   instance->surface->setRenderContext(m_renderContext);
   instance->surface->setAnimationManager(&instance->animations);
 

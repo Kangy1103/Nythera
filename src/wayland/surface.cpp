@@ -5,6 +5,7 @@
 #include "ext-background-effect-v1-client-protocol.h"
 #include "fractional-scale-v1-client-protocol.h"
 #include "render/animation/animation_manager.h"
+#include "render/animation/surface_haze.h"
 #include "render/render_context.h"
 #include "render/scene/node.h"
 #include "util/sys_utils.h"
@@ -310,6 +311,7 @@ namespace {
 Surface::Surface(WaylandConnection& connection) : m_connection(connection) {}
 
 Surface::~Surface() {
+  SurfaceHaze::instance().detach(this);
   cancelQueuedFrameWork();
   cancelQueuedRender();
   m_invalidationToken.reset();
@@ -318,8 +320,58 @@ Surface::~Surface() {
 }
 
 bool Surface::isRunning() const noexcept { return m_running; }
+void Surface::setRunning(bool running) noexcept {
+  m_running = running;
+  updateHazeScheduling();
+}
 
 void Surface::setDebugName(std::string name) { m_debugName = std::move(name); }
+
+void Surface::setHazeProfile(std::string id) {
+  if (m_hazeProfile == id)
+    return;
+  SurfaceHaze::instance().detach(this);
+  m_hazeProfile = std::move(id);
+  if (m_hazeProfile.empty())
+    return;
+  static std::uint32_t instance = 0;
+  std::uint32_t hash = 2166136261U;
+  for (const unsigned char c : m_hazeProfile) {
+    hash ^= c;
+    hash *= 16777619U;
+  }
+  m_hazeSeed =
+      m_hazeProfile == "workspace-map-window" ? 0.0F : static_cast<float>((hash + ++instance * 7919U) % 8191U) * 0.013F;
+  SurfaceHaze::instance().attach(
+      this, m_hazeProfile,
+      [this](float seconds) {
+        m_hazeTime += seconds;
+        requestHazeRedraw();
+      },
+      [this] {
+        if (m_running)
+          requestHazeRedraw();
+        updateHazeScheduling();
+      }
+  );
+  updateHazeScheduling();
+}
+void Surface::setHazeSuspended(bool suspended) {
+  m_hazeSuspended = suspended;
+  updateHazeScheduling();
+}
+void Surface::updateHazeScheduling() {
+  SurfaceHaze::instance().setReady(
+      this,
+      m_running
+          && m_configured
+          && m_hazeBackgroundVisible
+          && !m_hazeSuspended
+          && m_frameCallback == nullptr
+          && !m_renderQueued
+          && !m_frameWorkQueued
+  );
+}
 
 float Surface::effectiveBufferScale() const noexcept {
   if (m_fractionalScale != nullptr && m_viewport != nullptr) {
@@ -397,6 +449,7 @@ void Surface::handleFrameDone(void* data, wl_callback* callback, std::uint32_t c
     self->queueFrameWork(runFrameTick, deltaMs);
   }
 
+  self->updateHazeScheduling();
   // Keep this last: a derived callback may schedule teardown of its owning surface.
   self->onFrameCallbackDone();
 }
@@ -493,6 +546,8 @@ void Surface::setSceneRoot(Node* root) {
     return;
   }
   m_sceneRoot = root;
+  m_hazeBackgroundVisible = false;
+  updateHazeScheduling();
   if (m_sceneRoot == nullptr) {
     return;
   }
@@ -1207,7 +1262,15 @@ void Surface::requestLayout() {
   kickFrameLoop();
 }
 
+void Surface::requestHazeRedraw() {
+  SurfaceHaze::instance().setReady(this, false);
+  recordSurfaceProfileEvent(*this, SurfaceProfileEvent::RequestRedraw);
+  m_redrawRequested = true;
+  kickFrameLoop();
+}
+
 void Surface::requestRedraw() {
+  SurfaceHaze::instance().setReady(this, false);
   recordSurfaceProfileEvent(*this, SurfaceProfileEvent::RequestRedraw);
   if (m_frameTickCallback != nullptr) {
     m_nextFrameCallbackShouldTick = true;
@@ -1256,7 +1319,11 @@ void Surface::render() {
   requestFrame();
   traceSurfaceEvent(*this, "render-begin");
   const float renderMs = elapsedMs([this] {
-    m_renderContext->renderScene(m_renderTarget, m_sceneRoot, m_wallpaperMask ? &*m_wallpaperMask : nullptr);
+    m_renderContext->renderScene(
+        m_renderTarget, m_sceneRoot, m_wallpaperMask ? &*m_wallpaperMask : nullptr,
+        SurfaceHaze::instance().style(m_hazeProfile, m_hazeTime, m_hazeSeed)
+    );
+    m_hazeBackgroundVisible = m_renderContext->hasSurfaceBackground();
   });
   traceSurfaceEvent(*this, "render-end");
   recordSurfaceProfileEvent(*this, SurfaceProfileEvent::Render, renderMs);
@@ -1269,6 +1336,7 @@ void Surface::render() {
     m_sceneRoot->clearDirty();
   }
   m_redrawRequested = false;
+  updateHazeScheduling();
 }
 
 void Surface::requestFrame() {
@@ -1289,6 +1357,8 @@ void Surface::requestFrame() {
 }
 
 void Surface::destroySurface() {
+  SurfaceHaze::instance().setReady(this, false);
+  m_hazeBackgroundVisible = false;
   cancelQueuedFrameWork();
   cancelQueuedRender();
 

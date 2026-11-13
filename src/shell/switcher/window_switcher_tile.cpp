@@ -50,7 +50,10 @@ WindowSwitcherTile::WindowSwitcherTile(float contentScale, AsyncTextureCache* as
           .fill = colorSpecFromRole(ColorRole::Surface),
           .radius = cardRadius,
           .participatesInLayout = false,
-          .configure = [](Box& box) { box.setClipChildren(true); },
+          .configure = [](Box& box) {
+            box.setClipChildren(true);
+            box.setSurfaceBackground();
+          },
       })
   );
   m_frame->addChild(

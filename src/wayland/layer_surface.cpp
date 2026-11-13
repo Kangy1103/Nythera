@@ -53,6 +53,30 @@ LayerShellLayer layerShellLayerFromConfig(std::string_view layer) {
 LayerSurface::LayerSurface(WaylandConnection& connection, LayerSurfaceConfig config)
     : Surface(connection), m_config(std::move(config)) {
   setDebugName("layer:" + m_config.nameSpace);
+  const auto& name = m_config.nameSpace;
+  // Bar contours, wallpaper/capture planes and invisible input targets are not cards.
+  if (name.starts_with("nythera-bar")
+      || name == "nythera-screen-corner"
+      || name.starts_with("hot_corner_")
+      || name.find("click-shield") != std::string::npos
+      || name == "nythera-wallpaper"
+      || name == "nythera-backdrop"
+      || name == "nythera-overview-launcher")
+    return;
+  if (name == "nythera-notification")
+    setHazeProfile("notifications");
+  else if (name == "nythera-osd")
+    setHazeProfile("osd");
+  else if (name == "nythera-window-switcher")
+    setHazeProfile("window-switcher");
+  else if (name == "nythera-dock")
+    setHazeProfile("dock");
+  else if (name == "nythera-screenshot-region")
+    setHazeProfile("screenshot");
+  else if (name == "nythera-annotate")
+    setHazeProfile("annotation");
+  else if (name.starts_with("nythera-plugin:"))
+    setHazeProfile(name);
 }
 
 LayerSurface::~LayerSurface() {

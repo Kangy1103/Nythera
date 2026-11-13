@@ -5,6 +5,7 @@
 #include "core/deferred_call.h"
 #include "core/ui_phase.h"
 #include "i18n/i18n.h"
+#include "render/animation/surface_haze.h"
 #include "render/render_context.h"
 #include "shell/tooltip/tooltip_manager.h"
 #include "ui/builders.h"
@@ -53,6 +54,7 @@ void WorkspaceMapWindow::open(const std::string& outputName) {
   m_map->create();
   m_surface = std::make_unique<ToplevelSurface>(wayland);
   m_surface->setRenderContext(&m_renderContext);
+  m_surface->setHazeProfile("workspace-map-window");
   m_surface->setAnimationManager(&m_animations);
   m_surface->setClosedCallback([this] { close(); });
   m_surface->setSuspendedCallback([this](bool suspended) {
@@ -116,7 +118,6 @@ void WorkspaceMapWindow::prepareFrame(bool update, bool layout) {
     m_scene->setAnimationManager(&m_animations);
     auto background = ui::box({});
     m_background = background.get();
-    // Match the native Settings window; the compositor owns its outer decoration.
     background->setPanelStyle();
     background->setRadius(0);
     background->clearBorder();
@@ -135,6 +136,15 @@ void WorkspaceMapWindow::prepareFrame(bool update, bool layout) {
     m_surface->setSceneRoot(m_scene.get());
     layout = update = true;
   }
+  float backingOpacity = m_config.config().shell.settingsWindowTranslucent ? 0.8F : 1.0F;
+  const auto haze = SurfaceHaze::instance().style("workspace-map-window", 0, 0);
+  if (haze.enabled && haze.transparent) {
+    // Retain the map prototype's Soft/Glass transparency baseline.
+    backingOpacity = std::min(
+        0.8F, detachedPanelBackgroundOpacityForTransparencyMode(m_config.config().shell.panel.transparencyMode)
+    );
+  }
+  m_background->setFill(colorSpecFromRole(ColorRole::Surface, backingOpacity));
   if (update)
     m_map->update(renderer);
   if (layout || m_scene->layoutDirty()) {
@@ -144,9 +154,6 @@ void WorkspaceMapWindow::prepareFrame(bool update, bool layout) {
     const float width = static_cast<float>(m_surface->width());
     const float height = static_cast<float>(m_surface->height());
     m_scene->setFrameSize(width, height);
-    m_background->setFill(
-        colorSpecFromRole(ColorRole::Surface, m_config.config().shell.settingsWindowTranslucent ? 0.8F : 1.0F)
-    );
     m_background->setFrameSize(width, height);
     m_map->setContentScale(scale);
     m_map->root()->setPosition(padding, padding);

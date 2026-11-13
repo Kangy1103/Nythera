@@ -68,6 +68,8 @@ public:
   // Default app card chrome: filled surface variant with a soft outline.
   // Section card background. The outline follows the [shell].card_borders
   // toggle unless a caller passes an explicit showBorder.
+  void setSurfaceBackground(bool enabled = true);
+  [[nodiscard]] bool hasBackgroundFill() const;
   void setCardStyle(float scale = 1.0F, float fillOpacity = 1.0F, bool showBorder = Style::cardBordersEnabled());
 
   void setMinWidth(float minWidth);

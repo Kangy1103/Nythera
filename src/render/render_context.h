@@ -1,6 +1,7 @@
 #pragma once
 
 #include "render/core/renderer.h"
+#include "render/core/surface_haze.h"
 #include "render/text/cairo_glyph_renderer.h"
 #include "render/text/cairo_text_renderer.h"
 
@@ -32,7 +33,11 @@ public:
   void restoreAfterGraphicsReset(GlSharedContext& shared);
   void finishGraphicsResetRecovery() noexcept { m_graphicsResetPending = false; }
 
-  void renderScene(RenderTarget& target, Node* sceneRoot, const WallpaperMaskDrawParams* wallpaperMask = nullptr);
+  void renderScene(
+      RenderTarget& target, Node* sceneRoot, const WallpaperMaskDrawParams* wallpaperMask = nullptr,
+      const SurfaceHazeStyle& haze = {}
+  );
+  [[nodiscard]] bool hasSurfaceBackground() const noexcept { return m_hasSurfaceBackground; }
   // Returns false if the surface could not be made current (e.g. teardown);
   // best-effort callers may ignore it, render paths must skip the frame.
   bool makeCurrent(RenderTarget& target);
@@ -86,6 +91,8 @@ private:
       bool ignoreNodeOpacity, bool parentPaintContained
   );
 
+  SurfaceHazeStyle m_haze;
+  bool m_hasSurfaceBackground = false;
   std::unique_ptr<RenderBackend> m_backend;
   CairoTextRenderer m_textRenderer;
   CairoGlyphRenderer m_glyphRenderer;

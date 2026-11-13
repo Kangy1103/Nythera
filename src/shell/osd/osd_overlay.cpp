@@ -737,6 +737,7 @@ void OsdOverlay::buildScene(Instance& inst, std::uint32_t width, std::uint32_t h
           .width = cw,
           .height = ch,
           .configure = [cardX, cardY, cw, ch, s, border, borderColor, backgroundOpacity](Box& box) {
+            box.setSurfaceBackground();
             box.setFill(colorSpecFromRole(ColorRole::Surface, backgroundOpacity));
             box.setBorder(borderColor, border);
             box.setRadius(osdCardRadius(cw, ch, s));

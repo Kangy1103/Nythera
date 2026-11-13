@@ -1492,6 +1492,32 @@ namespace nythera::config::schema {
     const Schema<ShellConfig::PanelConfig>& shellPanelSchema() {
       static const Schema<ShellConfig::PanelConfig> s = {
           enumField(&ShellConfig::PanelConfig::transparencyMode, "transparency_mode", kPanelTransparencyModes),
+          field(&ShellConfig::PanelConfig::hazeEnabled, "haze_enabled"),
+          custom<ShellConfig::PanelConfig>(
+              "haze_surfaces",
+              [](const toml::table& tbl, ShellConfig::PanelConfig& out, std::string_view path, Diagnostics& diag) {
+                if (const auto* values = tbl["haze_surfaces"].as_table()) {
+                  out.hazeSurfaces.clear();
+                  for (const auto& [key, value] : *values) {
+                    if (const auto enabled = value.value<bool>())
+                      out.hazeSurfaces.emplace(key.str(), *enabled);
+                    else
+                      warnWrongType(diag, joinPath(joinPath(path, "haze_surfaces"), key.str()), value, "a boolean");
+                  }
+                } else
+                  warnWrongType(tbl, "haze_surfaces", path, diag, "a table");
+              },
+              [](toml::table& tbl, const ShellConfig::PanelConfig& in) {
+                if (in.hazeSurfaces.empty())
+                  return;
+                toml::table values;
+                for (const auto& [id, enabled] : in.hazeSurfaces)
+                  values.insert_or_assign(id, enabled);
+                tbl.insert_or_assign("haze_surfaces", std::move(values));
+              }
+          ),
+          enumField(&ShellConfig::PanelConfig::hazeMode, "haze_mode", kPanelHazeModes),
+          enumField(&ShellConfig::PanelConfig::hazeBackground, "haze_background", kPanelHazeBackgrounds),
           field(&ShellConfig::PanelConfig::snapshotBlur, "snapshot_blur"),
           field(
               &ShellConfig::PanelConfig::snapshotBlurStrength, "snapshot_blur_strength", kPanelSnapshotBlurStrengthRange

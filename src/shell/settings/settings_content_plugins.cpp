@@ -758,6 +758,7 @@ namespace settings {
             .expandedGroups = expandedGroups,
             .pill = sourcesPill,
             .scrollToTop = ctx.scrollContentToTop,
+            .hazeEnabled = ctx.config != nullptr && settingsHazeEnabled(*ctx.config),
         }
     );
 
@@ -850,6 +851,7 @@ namespace settings {
             .expandedGroups = expandedGroups,
             .pill = pluginsPill,
             .scrollToTop = ctx.scrollContentToTop,
+            .hazeEnabled = ctx.config != nullptr && settingsHazeEnabled(*ctx.config),
         }
     );
     std::vector<scripting::PluginStatus> plugins;

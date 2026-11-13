@@ -25,7 +25,7 @@ namespace {
 
 } // namespace
 
-ToplevelSurface::ToplevelSurface(WaylandConnection& connection) : Surface(connection) {}
+ToplevelSurface::ToplevelSurface(WaylandConnection& connection) : Surface(connection) { setHazeProfile("windows"); }
 
 ToplevelSurface::~ToplevelSurface() {
   m_connection.unregisterSurface(m_surface);
@@ -143,6 +143,7 @@ void ToplevelSurface::handleToplevelConfigure(
   }
   if (self->m_suspended != suspended) {
     self->m_suspended = suspended;
+    self->setHazeSuspended(suspended);
     if (self->m_suspendedCallback)
       self->m_suspendedCallback(suspended);
   }

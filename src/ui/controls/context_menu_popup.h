@@ -11,6 +11,8 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string>
+#include <utility>
 #include <vector>
 
 class Node;
@@ -67,6 +69,7 @@ public:
 
   void setOnActivate(std::function<void(const ContextMenuControlEntry&)> callback);
   void setOnDismissed(std::function<void()> callback);
+  void setHazeProfile(std::string profile) { m_hazeProfile = std::move(profile); }
   void setShadowConfig(const ShellConfig::ShadowConfig& shadow);
 
   bool onPointerEvent(const PointerEvent& event);
@@ -116,4 +119,5 @@ private:
   wl_surface* m_keyboardParentWlSurface = nullptr;
 
   static ContextMenuPopup* s_openMenu;
+  std::string m_hazeProfile = "context-menu";
 };

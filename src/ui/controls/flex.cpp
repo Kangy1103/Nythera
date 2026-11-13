@@ -203,6 +203,15 @@ void Flex::setPadding(float all) { setPadding(all, all, all, all); }
 
 void Flex::setPadding(float vertical, float horizontal) { setPadding(vertical, horizontal, vertical, horizontal); }
 
+bool Flex::hasBackgroundFill() const { return m_background != nullptr && m_background->style().fill.a > 0; }
+
+void Flex::setSurfaceBackground(bool enabled) {
+  ensureBackground();
+  auto style = m_background->style();
+  style.surfaceBackground = enabled;
+  m_background->setStyle(style);
+}
+
 void Flex::setFill(const ColorSpec& color) {
   m_fill = color;
   ensureBackground();

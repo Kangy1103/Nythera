@@ -8,6 +8,7 @@
 #include "i18n/i18n.h"
 #include "launcher/panel_catalog.h"
 #include "pipewire/sound_player.h"
+#include "render/animation/surface_haze.h"
 #include "shell/bar/widget_gesture.h"
 #include "shell/bar/widget_gesture_defaults.h"
 #include "shell/control_center/control_center_panel.h"
@@ -87,7 +88,7 @@ namespace settings {
       return defaultKeybindSet(action);
     }
 
-    constexpr std::array<SettingsSectionDescriptor, 25> kSettingsSections{{
+    constexpr std::array<SettingsSectionDescriptor, 26> kSettingsSections{{
         {SettingsSection::Appearance, "appearance", "adjustments-horizontal"},
         {SettingsSection::Wallpaper, "wallpaper", "paint"},
         {SettingsSection::Templates, "templates", "color-swatch"},
@@ -95,6 +96,7 @@ namespace settings {
         {SettingsSection::LockScreen, "lock-screen", "lock"},
         {SettingsSection::Dock, "dock", "layout-bottombar-inactive"},
         {SettingsSection::Panels, "panels", "layout-bottombar"},
+        {SettingsSection::Haze, "haze", "cloud-fog"},
         {SettingsSection::Launcher, "launcher", "rocket"},
         {SettingsSection::ControlCenter, "control-center", "adjustments"},
         {SettingsSection::Notifications, "notifications", "bell"},
@@ -1196,6 +1198,57 @@ namespace settings {
         asSegmented(enumSelect(kPanelTransparencyModes, cfg.shell.panel.transparencyMode)),
         "glass alpha transparency translucent opacity cards blur"
     ));
+    entries.push_back(makeEntry(
+        SettingsSection::Haze, "general", tr("settings.schema.panels.haze-enabled.label"),
+        tr("settings.schema.panels.haze-enabled.description"), {"shell", "panel", "haze_enabled"},
+        ToggleSetting{cfg.shell.panel.hazeEnabled}, "nebula haze background enable disable off"
+    ));
+    auto hazeMode = makeEntry(
+        SettingsSection::Haze, "general", tr("settings.schema.panels.haze-mode.label"),
+        tr("settings.schema.panels.haze-mode.description"), {"shell", "panel", "haze_mode"},
+        asSegmented(enumSelect(kPanelHazeModes, cfg.shell.panel.hazeMode)),
+        "nebula haze static animated motion background"
+    );
+    hazeMode.visibleWhen = [](const Config& c) { return c.shell.panel.hazeEnabled; };
+    entries.push_back(std::move(hazeMode));
+    auto hazeBackground = makeEntry(
+        SettingsSection::Haze, "general", tr("settings.schema.panels.haze-background.label"),
+        tr("settings.schema.panels.haze-background.description"), {"shell", "panel", "haze_background"},
+        asSegmented(enumSelect(kPanelHazeBackgrounds, cfg.shell.panel.hazeBackground)),
+        "nebula haze opaque transparent desktop background"
+    );
+    hazeBackground.visibleWhen = [](const Config& c) { return c.shell.panel.hazeEnabled; };
+    entries.push_back(std::move(hazeBackground));
+
+    std::map<std::string, std::string> hazeProfiles;
+    for (const auto& descriptor : kHazeSurfaces)
+      hazeProfiles.emplace(descriptor.id, tr(descriptor.label));
+    for (const auto& id : SurfaceHaze::instance().profiles()) {
+      std::string label = id;
+      if (id.starts_with("nythera-plugin:"))
+        label = tr("settings.haze.plugin-layer") + " " + id.substr(15);
+      else if (id.starts_with("desktop-widget-"))
+        label = tr("settings.haze.desktop-widget") + " " + id;
+      else if (id.find('/') != std::string::npos)
+        label = tr("settings.haze.plugin-panel") + " " + id;
+      hazeProfiles.try_emplace(id, std::move(label));
+    }
+    for (const auto& [id, enabled] : cfg.shell.panel.hazeSurfaces) {
+      (void)enabled;
+      hazeProfiles.try_emplace(id, id);
+    }
+    for (const auto& [id, label] : hazeProfiles) {
+      const auto configured = cfg.shell.panel.hazeSurfaces.find(id);
+      auto entry = makeEntry(
+          SettingsSection::Haze, "haze-surfaces", label, tr("settings.haze.surface-description"),
+          {"shell", "panel", "haze_surfaces", id},
+          ToggleSetting{configured == cfg.shell.panel.hazeSurfaces.end() || configured->second},
+          "nebula haze surface panel window background"
+      );
+      entry.visibleWhen = [](const Config& c) { return c.shell.panel.hazeEnabled; };
+      entries.push_back(std::move(entry));
+    }
+
     entries.push_back(makeEntry(
         SettingsSection::Panels, "effects", tr("settings.schema.panels.snapshot-blur.label"),
         tr("settings.schema.panels.snapshot-blur.description"), {"shell", "panel", "snapshot_blur"},

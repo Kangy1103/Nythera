@@ -18,6 +18,7 @@ public:
 
   [[nodiscard]] const RoundedRectStyle& style() const noexcept;
   void setStyle(const RoundedRectStyle& style);
+  void setSurfaceBackground(bool enabled = true);
 
   void setFill(const ColorSpec& color);
   // Explicit fixed color.
@@ -51,6 +52,7 @@ private:
   void syncStyle();
 
   RectNode* m_rect = nullptr;
+  bool m_surfaceBackground = false;
   RoundedRectStyle m_style;
   ColorSpec m_fill = clearColorSpec();
   ColorSpec m_border = clearColorSpec();

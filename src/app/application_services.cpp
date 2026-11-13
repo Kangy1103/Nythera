@@ -50,6 +50,7 @@
 #include "pipewire/sound_player.h"
 #include "pipewire/wireplumber_mixer.h"
 #include "render/animation/motion_service.h"
+#include "render/animation/surface_haze.h"
 #include "render/backend/render_backend.h"
 #include "render/core/texture_manager.h"
 #include "scripting/plugin_ipc.h"
@@ -538,6 +539,12 @@ void Application::initStyleThemeAndWayland() {
     auto& motion = MotionService::instance();
     motion.setSpeed(m_configService.config().shell.animation.speed);
     motion.setEnabled(m_configService.config().shell.animation.enabled);
+    const auto& panel = m_configService.config().shell.panel;
+    SurfaceHaze::instance().configure(
+        panel.hazeEnabled,
+        panel.hazeMode == PanelHazeMode::Animated && m_configService.config().shell.animation.enabled,
+        panel.hazeBackground == PanelHazeBackground::Transparent, panel.hazeSurfaces
+    );
   };
   auto applyStyleConfig = [this, lastCornerRadiusScale = std::numeric_limits<float>::quiet_NaN()] mutable {
     const float corner = m_configService.config().shell.cornerRadiusScale;

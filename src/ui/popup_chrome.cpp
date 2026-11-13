@@ -122,6 +122,7 @@ namespace popup_chrome {
   Box* addCardBackground(Node& parent, const Geometry& geometry, float contentScale) {
     auto box = ui::box({});
     box->setCardStyle(contentScale, 1.0F, Style::popupBordersEnabled());
+    box->setSurfaceBackground();
     box->setRadius(Style::scaledRadiusLg(contentScale));
     box->setPosition(geometry.contentX(), geometry.contentY());
     box->setFrameSize(geometry.contentWidth, geometry.contentHeight);

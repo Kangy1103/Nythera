@@ -2,6 +2,7 @@
 
 #include "i18n/i18n.h"
 #include "render/core/renderer.h"
+#include "shell/settings/settings_content_common.h"
 #include "shell/settings/settings_registry.h"
 #include "ui/builders.h"
 #include "ui/controls/roving_list_nav.h"
@@ -164,7 +165,7 @@ namespace settings {
         .scrollbarVisible = true,
         .viewportPaddingH = 0.0F,
         .viewportPaddingV = 0.0F,
-        .fill = ctx.config.shell.settingsWindowTranslucent ? clearColorSpec() : colorSpecFromRole(ColorRole::Surface),
+        .fill = settingsSidebarFill(ctx.config),
         .radius = Style::scaledRadiusXl(scale),
         .minWidth = kSidebarWidth * scale,
         .fillHeight = true,

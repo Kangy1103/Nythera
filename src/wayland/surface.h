@@ -91,6 +91,9 @@ public:
   void setOpaque(bool opaque);
   void clearBlurRegion();
   void setDebugName(std::string name);
+  void setHazeProfile(std::string id);
+  void setHazeSuspended(bool suspended);
+  [[nodiscard]] const std::string& hazeProfile() const noexcept { return m_hazeProfile; }
 
   // Approximates a rounded rectangle as a stack of horizontal axis-aligned strips
   // suitable for `wl_region` (which has no curve primitives). The four corner radii
@@ -170,7 +173,7 @@ protected:
   void requestFrame();
   void destroySurface();
 
-  void setRunning(bool running) noexcept { m_running = running; }
+  void setRunning(bool running) noexcept;
   void setBufferScale(std::int32_t bufferScale) noexcept { m_bufferScale = bufferScale; }
 
   WaylandConnection& m_connection;
@@ -191,6 +194,8 @@ private:
   void renderQueuedFrame();
   bool ensureRenderTargetReady();
   void resizeRenderTarget();
+  void updateHazeScheduling();
+  void requestHazeRedraw();
 
   RenderContext* m_renderContext = nullptr;
   RenderTarget m_renderTarget;
@@ -198,6 +203,9 @@ private:
   Node* m_sceneRoot = nullptr;
   std::optional<WallpaperMaskDrawParams> m_wallpaperMask;
   std::string m_debugName;
+  std::string m_hazeProfile;
+  float m_hazeTime = 0, m_hazeSeed = 0;
+  bool m_hazeBackgroundVisible = false, m_hazeSuspended = false;
   std::shared_ptr<InvalidationToken> m_invalidationToken = std::make_shared<InvalidationToken>();
   ConfigureCallback m_configureCallback;
   PrepareFrameCallback m_prepareFrameCallback;

@@ -577,15 +577,6 @@ void WorkspaceMapPanel::create() {
   horizontalBar->setContentScale(contentScale());
   horizontalBar->setOnScrollChanged([this](float offset) { m_horizontal->setScrollOffset(offset); });
   root->addChild(std::move(horizontalBar));
-  root->addChild(
-      ui::label({
-          .out = &m_legend,
-          .text = i18n::tr("workspace-map.viewport"),
-          .fontSize = scaled(Style::fontSizeMini),
-          .color = colorSpecFromRole(ColorRole::Secondary),
-          .maxLines = 1,
-      })
-  );
   auto grip = ui::inputArea({
       .out = &m_resizeGrip,
       .acceptedButtons = InputArea::buttonMask(BTN_LEFT),
@@ -787,15 +778,12 @@ void WorkspaceMapPanel::doLayout(Renderer& renderer, float width, float height) 
   m_header->setFrameSize(width, scaled(Style::controlHeightSm));
   m_header->layout(renderer);
   const float top = scaled(Style::controlHeightSm + Style::spaceMd);
-  m_legend->setMaxWidth(width);
-  m_legend->measure(renderer);
   const float barHeight = m_horizontalBar->reservedThickness() + scaled(Style::spaceXs);
-  const float mapHeight = std::max(1.0F, height - top - m_legend->height() - scaled(Style::spaceSm) - barHeight);
+  const float mapHeight = std::max(1.0F, height - top - barHeight);
   m_horizontalBar->setPosition(0, top + mapHeight + scaled(Style::spaceXs));
   m_horizontalBar->setFrameSize(
       std::max(1.0F, width - m_scroll->scrollbarGutter()), m_horizontalBar->reservedThickness()
   );
-  m_legend->setPosition(0, top + mapHeight + barHeight + scaled(Style::spaceSm));
   m_scroll->setPosition(0, top);
   m_scroll->setFrameSize(width, mapHeight);
   // All workspaces belong to this one monitor. Fit the union once, then use

@@ -26,6 +26,7 @@ public:
 
 private:
   ShaderProgram m_program;
+  GLint m_hazeLocation = -1;
   GLint m_positionLocation = -1;
   GLint m_surfaceSizeLocation = -1;
   GLint m_quadSizeLocation = -1;

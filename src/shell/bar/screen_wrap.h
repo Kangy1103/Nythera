@@ -29,8 +29,10 @@ public:
   const ScreenFrameContour& contour() const;
   ScreenFrameStyle style() const;
   void setForegroundHole(InputRect);
-  void setAttachedTool(std::optional<ScreenFrameSpan>, float depth = 0, float bufferDepth = 0, int islandIndex = -1,
-                       ScreenFrameBackdrop backdrop = {});
+  void setAttachedTool(
+      std::optional<ScreenFrameSpan>, float depth = 0, float bufferDepth = 0, int islandIndex = -1,
+      ScreenFrameBackdrop backdrop = {}, std::string hazeProfile = {}, std::array<float, 4> hazeBounds = {}
+  );
   std::vector<InputRect> blurRegion(const screen_wrap::Rect&) const;
 
 private:

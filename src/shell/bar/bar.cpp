@@ -116,6 +116,9 @@ namespace {
           {attached->islandToolSpan[0], attached->islandToolSpan[1]},
           band.outer + attached->islandDepth, attached->islandIndex);
       style.backdrop = attached->backdrop;
+      style.hazeProfile = attached->hazeProfile;
+      style.hazeBounds = attached->islandSurface;
+      style.surfaceBackground = !style.hazeProfile.empty();
     }
     style.contour.bands.push_back(band);
     return style;
@@ -1586,12 +1589,15 @@ namespace {
       // backdrop: smooth-union would push its bottom edge out into a bulge.
       const bool hasToolBody = joining
           && attached->islandDepth > static_cast<float>(instance.barConfig.thickness) + 0.001F;
-      instance.screenWrap->setAttachedTool(hasToolBody
-          ? std::optional<ScreenFrameSpan>{{attached->islandToolSpan[0], attached->islandToolSpan[1]}}
-          : std::nullopt, joining ? attached->islandDepth : 0,
+      instance.screenWrap->setAttachedTool(
+          hasToolBody ? std::optional<ScreenFrameSpan>{{attached->islandToolSpan[0], attached->islandToolSpan[1]}}
+                      : std::nullopt,
+          joining ? attached->islandDepth : 0,
           joining ? static_cast<float>(instance.barConfig.thickness) + attached->islandSurface[isVertical ? 2 : 3] : 0,
           joining && instance.barConfig.surfaceMode == "islands" ? attached->islandIndex : -1,
-          joining ? attached->backdrop : ScreenFrameBackdrop{});
+          joining ? attached->backdrop : ScreenFrameBackdrop{}, hasToolBody ? attached->hazeProfile : std::string{},
+          hasToolBody ? attached->islandSurface : std::array<float, 4>{}
+      );
       // One shared backdrop owns both neck and tool; the native host paints controls only.
       instance.screenWrap->setForegroundHole({});
     } else {
@@ -1603,6 +1609,8 @@ namespace {
       }
       if (instance.attachedIslandFrame) {
         instance.attachedIslandFrame->setVisible(joining);
+        if (!joining)
+          instance.surface->setHazeProfile({});
         if (joining) {
           auto style = frameForInstance(instance);
           const auto spec = computeBarSurfaceSpec(instance.barConfig, shadow);
@@ -1614,6 +1622,7 @@ namespace {
               ? instance.outputLogicalHeight - spec.marginBottom - instance.surface->height() : spec.marginTop) + clipY;
           instance.attachedIslandFrame->setSize(instance.islandClip->width(), instance.islandClip->height());
           instance.attachedIslandFrame->setStyle(style);
+          instance.surface->setHazeProfile(style.hazeProfile);
           for (auto* bg : instance.islandBackgrounds) if (bg) bg->setVisible(false);
         }
       }

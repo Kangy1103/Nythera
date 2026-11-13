@@ -100,6 +100,7 @@ bool DialogPopupHost::openPopup(std::uint32_t width, std::uint32_t height) {
   m_parentSurface = parentContext->surface;
 
   auto surface = std::make_unique<PopupSurface>(*m_wayland);
+  surface->setHazeProfile(m_hazeProfile);
   surface->setRenderContext(m_renderContext);
   surface->setAnimationManager(&m_animations);
   surface->setConfigureCallback([this](std::uint32_t /*w*/, std::uint32_t /*h*/) { requestLayout(); });
@@ -156,6 +157,7 @@ bool DialogPopupHost::openPopupAsChild(PopupSurfaceConfig config, const XdgPopup
   m_parentSurface = parent.wlSurface;
 
   auto surface = std::make_unique<PopupSurface>(*m_wayland);
+  surface->setHazeProfile(m_hazeProfile);
   surface->setRenderContext(m_renderContext);
   surface->setAnimationManager(&m_animations);
   surface->setConfigureCallback([this](std::uint32_t /*w*/, std::uint32_t /*h*/) { requestLayout(); });

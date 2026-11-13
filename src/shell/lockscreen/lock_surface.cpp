@@ -155,6 +155,7 @@ namespace {
 } // namespace
 
 LockSurface::LockSurface(WaylandConnection& connection, ConfigService* config) : Surface(connection), m_config(config) {
+  setHazeProfile("lock-screen");
   {
     auto backgroundLayer = ui::node({});
     backgroundLayer->setZIndex(0);
@@ -196,7 +197,10 @@ LockSurface::LockSurface(WaylandConnection& connection, ConfigService* config) :
               .gap = Style::spaceSm,
               .paddingV = Style::spaceLg,
               .paddingH = Style::spaceLg,
-              .configure = [](Flex& flex) { flex.setZIndex(2); },
+              .configure = [](Flex& flex) {
+                flex.setZIndex(2);
+                flex.setSurfaceBackground();
+              },
           }
       )
   );

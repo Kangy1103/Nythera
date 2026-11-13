@@ -404,6 +404,7 @@ void TooltipManager::showPopup() {
   config.grab = false;
 
   m_surface = std::make_unique<PopupSurface>(*m_wayland);
+  m_surface->setHazeProfile("tooltips");
   m_surface->setRenderContext(m_renderContext);
   m_surface->setDismissedCallback([this] { scheduleDestroyPopup(); });
 
@@ -696,7 +697,10 @@ void TooltipManager::buildScene(const TooltipContent& content, float w, float h,
           .radius = Style::scaledRadiusMd(),
           .width = w,
           .height = h,
-          .configure = [](Box& box) { box.setBorder(colorSpecFromRole(ColorRole::OutlineVariant), kBorder); },
+          .configure = [](Box& box) {
+            box.setSurfaceBackground();
+            box.setBorder(colorSpecFromRole(ColorRole::OutlineVariant), kBorder);
+          },
       })
   );
 

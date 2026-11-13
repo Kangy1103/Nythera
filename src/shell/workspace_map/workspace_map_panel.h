@@ -135,7 +135,6 @@ private:
   std::vector<WorkspaceMap> m_workspaces;
   Label* m_heading = nullptr;
   Flex* m_header = nullptr;
-  Label* m_legend = nullptr;
   ScrollView* m_scroll = nullptr;
   ScrollView* m_horizontal = nullptr;
   Scrollbar* m_horizontalBar = nullptr;

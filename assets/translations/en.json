@@ -1499,7 +1499,9 @@
         "weather": "Weather",
         "widget-list": "Widget List",
         "widgets": "Widgets",
-        "window-switcher": "Window Switcher"
+        "window-switcher": "Window Switcher",
+        "workspace-map": "Window Map",
+        "haze-surfaces": "Surfaces"
       },
       "sections": {
         "accessibility": "Accessibility",
@@ -1529,7 +1531,8 @@
         "system": "System",
         "templates": "Templates",
         "umbriel": "Umbriel",
-        "wallpaper": "Wallpaper"
+        "wallpaper": "Wallpaper",
+        "haze": "Nebula Haze"
       }
     },
     "notifications": {
@@ -1718,6 +1721,14 @@
           "glass": "Glass",
           "soft": "Soft",
           "solid": "Solid"
+        },
+        "panel-haze-mode": {
+          "static": "Static",
+          "animated": "Animated"
+        },
+        "panel-haze-background": {
+          "opaque": "Opaque",
+          "transparent": "Transparent"
         },
         "password-style": {
           "filled-circles": "Filled Circles",
@@ -3054,6 +3065,18 @@
         },
         "shadow": {
           "description": "Cast the global surface shadow from panel surfaces"
+        },
+        "haze-enabled": {
+          "label": "Nebula haze",
+          "description": "Show the nebula haze on panels that use it"
+        },
+        "haze-mode": {
+          "label": "Haze animation",
+          "description": "Keep the nebula haze still or let it drift slowly"
+        },
+        "haze-background": {
+          "label": "Haze background",
+          "description": "Show the desktop through haze backgrounds while keeping panel content opaque"
         },
         "snapshot-blur": {
           "label": "Snapshot Blur",
@@ -5293,6 +5316,43 @@
       "support-report-saved": "Support report saved.",
       "support-report-title": "Save Support Report",
       "title": "Settings"
+    },
+    "haze": {
+      "workspace-map-window": "Workspace Map window",
+      "workspace-map": "Workspace Map panel",
+      "control-center": "Control Centre",
+      "window-inspector": "Window Inspector",
+      "launcher": "Launcher",
+      "settings": "Settings",
+      "clipboard": "Clipboard History",
+      "polkit": "Authentication dialogs",
+      "session": "Session menu",
+      "wallpaper": "Wallpaper picker",
+      "setup-wizard": "Setup Wizard",
+      "notifications": "Notifications",
+      "osd": "On-screen displays",
+      "window-switcher": "Window switcher",
+      "dock": "Dock",
+      "tooltips": "Tooltips",
+      "dock-context-menu": "Dock menus",
+      "context-menu": "Context menus",
+      "select-menu": "Dropdown menus",
+      "tray-menu": "Tray menus",
+      "tray-drawer": "Tray drawer",
+      "file-dialog": "File dialogs",
+      "color-picker": "Colour pickers",
+      "glyph-picker": "Icon pickers",
+      "search-picker": "Search pickers",
+      "desktop-widget-editor": "Widget editors",
+      "lock-screen": "Lock-screen panels",
+      "annotation": "Annotation toolbars",
+      "screenshot": "Screenshot toolbars",
+      "windows": "Other native windows",
+      "popups": "Other native popups",
+      "surface-description": "Enable the haze on this native surface",
+      "plugin-layer": "Plugin layer:",
+      "plugin-panel": "Plugin panel:",
+      "desktop-widget": "Desktop widget:"
     }
   },
   "setup-wizard": {

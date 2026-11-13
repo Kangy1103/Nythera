@@ -28,6 +28,8 @@ struct ScreenWrap::Shared {
     std::optional<ScreenFrameSpan> toolSpan;
     int toolIslandIndex = -1;
     ScreenFrameBackdrop backdrop;
+    std::string hazeProfile;
+    std::array<float, 4> hazeBounds{};
     float toolDepth = 0, toolBufferDepth = 0;
   };
   struct Strip {
@@ -195,6 +197,7 @@ struct ScreenWrap::Shared {
     style.offsetX = static_cast<float>(strip.rect.x);
     style.offsetY = static_cast<float>(strip.rect.y);
     node->setStyle(style);
+    strip.surface->setHazeProfile(style.hazeProfile);
 
     if (strip.cornerLogo) {
       std::vector<BarConfig> visibleBars;
@@ -347,6 +350,9 @@ struct ScreenWrap::Shared {
         );
       }
       if (b.toolSpan) {
+        material.hazeProfile = b.hazeProfile;
+        material.hazeBounds = b.hazeBounds;
+        material.surfaceBackground = !b.hazeProfile.empty();
         if (b.backdrop.texture.valid()) {
           material.backdrop = b.backdrop;
           material.backdrop.opacity *= b.opacity;
@@ -510,13 +516,23 @@ std::vector<InputRect> ScreenWrap::blurRegion(const screen_wrap::Rect& rect) con
   return m_shared->blurRegion(rect);
 }
 
-void ScreenWrap::setAttachedTool(std::optional<ScreenFrameSpan> span, float depth, float bufferDepth, int islandIndex,
-                                 ScreenFrameBackdrop backdrop) {
+void ScreenWrap::setAttachedTool(
+    std::optional<ScreenFrameSpan> span, float depth, float bufferDepth, int islandIndex, ScreenFrameBackdrop backdrop,
+    std::string hazeProfile, std::array<float, 4> hazeBounds
+) {
   auto& b = m_shared->bars.at(m_id);
-  if (b.toolSpan == span && b.toolDepth == depth && b.toolBufferDepth == bufferDepth && b.toolIslandIndex == islandIndex
-      && b.backdrop == backdrop) return;
+  if (b.toolSpan == span
+      && b.toolDepth == depth
+      && b.toolBufferDepth == bufferDepth
+      && b.toolIslandIndex == islandIndex
+      && b.backdrop == backdrop
+      && b.hazeProfile == hazeProfile
+      && b.hazeBounds == hazeBounds)
+    return;
   b.toolSpan = span; b.toolDepth = depth; b.toolBufferDepth = bufferDepth;
   b.toolIslandIndex = islandIndex;
   b.backdrop = backdrop;
+  b.hazeProfile = std::move(hazeProfile);
+  b.hazeBounds = hazeBounds;
   m_shared->refresh();
 }

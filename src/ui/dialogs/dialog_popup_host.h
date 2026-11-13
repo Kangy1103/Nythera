@@ -1,5 +1,4 @@
 #pragma once
-
 #include "render/animation/animation_manager.h"
 #include "render/scene/input_dispatcher.h"
 #include "ui/dialogs/layer_popup_host.h"
@@ -9,6 +8,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string>
 
 class Box;
 class ConfigService;
@@ -57,6 +57,7 @@ public:
 
   // Surface invalidation helpers. Forward to the underlying PopupSurface.
   void requestLayout();
+  void setHazeProfile(std::string profile) { m_hazeProfile = std::move(profile); }
   void requestRedraw();
   void requestUpdateOnly();
 
@@ -182,6 +183,7 @@ protected:
 
   std::unique_ptr<PopupSurface> m_surface;
   popup_chrome::Geometry m_chrome;
+  std::string m_hazeProfile = "popups";
   AnimationManager m_animations;
   std::unique_ptr<Node> m_sceneRoot;
   Box* m_bgNode = nullptr;

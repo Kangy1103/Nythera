@@ -1,6 +1,4 @@
 #include "shell/panel/panel_manager.h"
-#include "shell/bar/dynamic_island_style.h"
-#include "shell/panel/panel_snapshot.h"
 
 #include "compositors/compositor_platform.h"
 #include "config/config_service.h"
@@ -11,13 +9,16 @@
 #include "core/ui_phase.h"
 #include "ipc/ipc_arg_parse.h"
 #include "ipc/ipc_service.h"
+#include "render/animation/surface_haze.h"
 #include "render/render_context.h"
 #include "render/scene/input_area.h"
 #include "render/scene/screen_frame_node.h"
 #include "scripting/plugin_id.h"
 #include "shell/bar/bar_corner_shape.h"
 #include "shell/bar/bar_reserved_zone.h"
+#include "shell/bar/dynamic_island_style.h"
 #include "shell/panel/panel.h"
+#include "shell/panel/panel_snapshot.h"
 #include "shell/panel/panel_surface_style.h"
 #include "shell/screen_position.h"
 #include "shell/surface/shadow.h"
@@ -532,6 +533,7 @@ void PanelManager::onAttachedBarRevealSettled(wl_output* output, std::string_vie
 }
 
 void PanelManager::registerPanel(const std::string& id, std::unique_ptr<Panel> content) {
+  SurfaceHaze::instance().registerProfile(id);
   if (content != nullptr && content->isPersistent()) {
     m_persistentHost.registerPanel(id, std::move(content));
     return;
@@ -1010,6 +1012,7 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
 
   const auto configureSurfaceCallbacks = [this](Surface& surface) {
     surface.setRenderContext(m_renderContext);
+    surface.setHazeProfile(m_activePanelId);
     surface.setConfigureCallback([this](std::uint32_t /*width*/, std::uint32_t /*height*/) {
       if (m_surface != nullptr) {
         m_surface->requestLayout();
@@ -2626,10 +2629,27 @@ void PanelManager::applyAttachedReveal(float progress) {
           shared.backdrop.bounds = {m_islandSurfaceX, m_islandSurfaceY, w, h};
         }
         shared.offsetX = m_islandSurfaceX; shared.offsetY = m_islandSurfaceY;
+        shared.surfaceBackground = true;
+        shared.hazeBounds = {
+            m_islandSurfaceX + static_cast<float>(m_panelInsetX), m_islandSurfaceY + static_cast<float>(m_panelInsetY),
+            static_cast<float>(m_panelVisualWidth), static_cast<float>(m_panelVisualHeight)
+        };
         m_islandFrame->setStyle(shared);
       } else {
-        m_islandFrame->setStyle({contour, colorForRole(ColorRole::Surface, opacity), resolveColorSpec(m_islandBar.border),
-                                m_islandBar.borderWidth, m_islandSurfaceX, m_islandSurfaceY});
+        ScreenFrameStyle panelStyle{
+            contour,
+            colorForRole(ColorRole::Surface, opacity),
+            resolveColorSpec(m_islandBar.border),
+            m_islandBar.borderWidth,
+            m_islandSurfaceX,
+            m_islandSurfaceY
+        };
+        panelStyle.surfaceBackground = true;
+        panelStyle.hazeBounds = {
+            m_islandSurfaceX + static_cast<float>(m_panelInsetX), m_islandSurfaceY + static_cast<float>(m_panelInsetY),
+            static_cast<float>(m_panelVisualWidth), static_cast<float>(m_panelVisualHeight)
+        };
+        m_islandFrame->setStyle(panelStyle);
       }
     }
   }
@@ -2787,6 +2807,7 @@ void PanelManager::publishAttachedPanelGeometry(float revealProgress) {
   }
 
   auto geometry = *m_attachedPanelGeometry;
+  geometry.hazeProfile = m_activePanelId;
   geometry.revealProgress = progress;
   if (m_islandPresentation) {
     const bool vertical = m_attachedRevealDirection == AttachedRevealDirection::Left

@@ -50,6 +50,7 @@ namespace settings {
     Umbriel,
     Bar,
     Plugins,
+    Haze,
   };
 
   struct SettingsSectionDescriptor {

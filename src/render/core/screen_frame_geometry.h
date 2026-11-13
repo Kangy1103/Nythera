@@ -2,6 +2,7 @@
 
 #include "render/core/color.h"
 #include "render/core/snapshot_backdrop.h"
+#include "render/core/surface_haze.h"
 
 #include <algorithm>
 #include <array>
@@ -225,5 +226,9 @@ struct ScreenFrameStyle {
   float borderWidth = 0, offsetX = 0, offsetY = 0;
   std::array<float, 4> exclusion{};
   ScreenFrameBackdrop backdrop;
+  bool surfaceBackground = false;
+  SurfaceHazeStyle haze;
+  std::string hazeProfile;
+  std::array<float, 4> hazeBounds{};
   bool operator==(const ScreenFrameStyle&) const = default;
 };

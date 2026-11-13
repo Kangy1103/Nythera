@@ -686,6 +686,7 @@ void TrayMenu::ensureSurface() {
   auto inst = std::make_unique<MenuInstance>();
   inst->output = output;
   inst->surface = std::make_unique<PopupSurface>(*m_wayland);
+  inst->surface->setHazeProfile("tray-menu");
   inst->surface->setRenderContext(m_renderContext);
   auto* instPtr = inst.get();
 
@@ -1159,6 +1160,7 @@ void TrayMenu::openSubmenuAtLevel(std::size_t levelIndex, std::int32_t parentEnt
   auto inst = std::make_unique<MenuInstance>();
   inst->output = parentMenu->output;
   inst->surface = std::make_unique<PopupSurface>(*m_wayland);
+  inst->surface->setHazeProfile("tray-menu");
   inst->surface->setRenderContext(m_renderContext);
   inst->submenuDirection = subDir;
   inst->chrome = chrome;

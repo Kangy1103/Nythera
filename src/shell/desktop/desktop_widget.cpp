@@ -154,6 +154,7 @@ void DesktopWidget::setRoot(std::unique_ptr<Node> root) {
   if (m_bgEnabled) {
     auto bg = ui::box({});
     m_bgBox = bg.get();
+    m_bgBox->setSurfaceBackground();
     m_outerRoot->addChild(std::move(bg));
   }
   m_outerRoot->addChild(std::move(root));

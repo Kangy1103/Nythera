@@ -105,6 +105,7 @@ void ContextMenuPopup::open(ContextMenuPopupRequest request) {
   popup_chrome::applyToConfig(popupCfg, chrome, resolvedPlacement.chromeAttachment);
 
   m_surface = std::make_unique<PopupSurface>(m_wayland);
+  m_surface->setHazeProfile(m_hazeProfile);
   m_surface->setRenderContext(&m_renderContext);
 
   auto* self = this;

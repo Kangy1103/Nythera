@@ -1337,6 +1337,8 @@ namespace capture {
         .borderWidth = Style::borderWidth,
     });
 
+    toolbar->setSurfaceBackground();
+
     const auto addSeparator = [&] {
       return static_cast<Separator*>(toolbar->addChild(
           ui::separator({
@@ -2742,6 +2744,7 @@ namespace capture {
         .visible = false,
         .participatesInLayout = false,
     });
+    panel->setSurfaceBackground();
 
     // Label on the left, switch flush with the panel's right edge.
     const auto toggleRow = [](const char* key, bool checked, bool strong, std::function<void(bool)> onChange) {
@@ -3056,6 +3059,7 @@ namespace capture {
         .visible = false,
         .participatesInLayout = false,
     });
+    panel->setSurfaceBackground();
 
     auto swatches = ui::row({.align = FlexAlign::Center, .justify = FlexJustify::SpaceBetween, .gap = Style::spaceSm});
     for (std::size_t i = 0; i < kSwatches.size(); ++i) {

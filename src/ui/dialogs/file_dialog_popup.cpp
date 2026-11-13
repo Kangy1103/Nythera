@@ -14,6 +14,7 @@ void FileDialogPopup::initialize(
     ThumbnailService& thumbnails
 ) {
   initializeBase(wayland, config, renderContext, popupHosts);
+  setHazeProfile("file-dialog");
   m_thumbnails = &thumbnails;
 }
 

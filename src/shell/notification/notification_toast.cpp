@@ -2817,6 +2817,7 @@ InputArea* NotificationToast::buildCard(
           .width = cardW,
           .height = cardHeight,
           .configure = [scale, bgAlpha, borderWidth, borderColor](Box& box) {
+            box.setSurfaceBackground();
             box.setCardStyle();
             box.setRadius(Style::scaledRadiusXl(scale));
             box.setFill(colorSpecFromRole(ColorRole::Surface, bgAlpha));

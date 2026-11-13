@@ -50,12 +50,14 @@ SearchPickerPopup::~SearchPickerPopup() { destroyPopup(); }
 
 void SearchPickerPopup::initialize(WaylandConnection& wayland, ConfigService& config, RenderContext& renderContext) {
   initializeBase(wayland, config, renderContext);
+  setHazeProfile("search-picker");
 }
 
 void SearchPickerPopup::initialize(
     WaylandConnection& wayland, ConfigService& config, RenderContext& renderContext, LayerPopupHostRegistry& popupHosts
 ) {
   initializeBase(wayland, config, renderContext, popupHosts);
+  setHazeProfile("search-picker");
 }
 
 void SearchPickerPopup::setOnSelect(SelectCallback callback) { m_onSelect = std::move(callback); }

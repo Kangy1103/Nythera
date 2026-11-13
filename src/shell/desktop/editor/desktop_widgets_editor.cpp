@@ -399,6 +399,7 @@ void DesktopWidgetsEditor::createSurface(const WaylandOutput& output) {
   overlay->output = output.output;
   overlay->sceneRebuildRequested = true;
   overlay->surface = std::make_unique<LayerSurface>(*m_wayland, std::move(surfaceConfig));
+  overlay->surface->setHazeProfile("desktop-widget-editor");
   overlay->surface->setRenderContext(m_renderContext);
   overlay->surface->setAnimationManager(&overlay->animations);
   overlay->inputDispatcher.setCursorShapeCallback([this](std::uint32_t serial, std::uint32_t shape) {
@@ -1117,6 +1118,7 @@ void DesktopWidgetsEditor::rebuildScene(OverlaySurface& surface) {
                       .configure =
                           [](Flex& flex) {
                             flex.setPadding(Style::spaceSm, Style::spaceMd);
+                            flex.setSurfaceBackground();
                             flex.setFill(colorSpecFromRole(ColorRole::Surface, 0.94F));
                             flex.setBorder(colorSpecFromRole(ColorRole::OutlineVariant), Style::borderWidth);
                             flex.setRadius(Style::scaledRadiusXl());

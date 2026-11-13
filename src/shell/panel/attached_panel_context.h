@@ -7,6 +7,7 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <string>
 #include <string_view>
 
 enum class AttachedRevealDirection : std::uint8_t {
@@ -17,6 +18,7 @@ enum class AttachedRevealDirection : std::uint8_t {
 };
 
 struct AttachedPanelGeometry {
+  std::string hazeProfile;
   // Dynamic-island hosts follow this same reveal instead of starting a second animation.
   float revealProgress = 1.0F;
   int islandIndex = -1;

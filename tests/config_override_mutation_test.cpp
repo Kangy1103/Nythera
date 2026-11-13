@@ -75,6 +75,12 @@ int main() {
     expect(config.setOverrides(std::move(create)), "ics account writes");
     expect(config.hasOverride(serverUrlPath), "server_url stored for the ics account");
 
+    const std::vector<std::string> launcherHaze{"shell", "panel", "haze_surfaces", "launcher"};
+    const std::vector<std::string> pluginHaze{"shell", "panel", "haze_surfaces", "author/plugin:panel"};
+    expect(config.setOverride(launcherHaze, false), "native haze override writes");
+    expect(config.setOverride(pluginHaze, true), "plugin haze override writes");
+    expect(!config.config().shell.panel.hazeSurfaces.at("launcher"), "native haze override is independent");
+    expect(config.config().shell.panel.hazeSurfaces.at("author/plugin:panel"), "plugin haze override is independent");
     int reloads = 0;
     config.addReloadCallback([&reloads]() { ++reloads; }, "mutation-test");
 

@@ -1975,6 +1975,7 @@ void WindowSwitcher::buildScene(Instance& instance, std::uint32_t width, std::ui
           .radius = Style::scaledRadiusXl(scale),
           .visible = layout.boxed,
           .participatesInLayout = false,
+          .configure = [](Box& box) { box.setSurfaceBackground(); },
       })
   );
   std::optional<ColorSpec> iconTint;

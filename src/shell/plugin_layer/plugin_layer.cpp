@@ -12,6 +12,7 @@
 #include "scripting/plugin_runtime_context.h"
 #include "ui/builders.h"
 #include "ui/controls/flex.h"
+#include "ui/controls/surface_background.h"
 #include "wayland/wayland_connection.h"
 #include "wayland/wayland_seat.h"
 
@@ -286,6 +287,7 @@ void PluginLayer::layoutScene(Renderer& renderer) {
   if (m_tree.has_value() && m_treeDirty) {
     m_reconciler.setScale(contentScale());
     (void)m_reconciler.reconcile(*m_flex, *m_tree, renderer);
+    (void)ui::markRootSurfaceBackground(*m_flex);
   }
   m_treeDirty = false;
 

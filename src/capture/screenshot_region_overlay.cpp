@@ -211,7 +211,11 @@ namespace capture {
               .gap = Style::spaceSm,
               .paddingV = Style::spaceSm,
               .paddingH = Style::spaceMd,
-              .configure = [](Flex& control) { control.setCardStyle(1.0F, 0.94F, true); },
+              .configure =
+                  [](Flex& control) {
+                    control.setCardStyle(1.0F, 0.94F, true);
+                    control.setSurfaceBackground();
+                  },
           },
           ui::label({
               .text = i18n::tr("bar.screenshot.choose-display"),
@@ -244,7 +248,11 @@ namespace capture {
               .paddingV = Style::spaceSm,
               .paddingH = Style::spaceMd,
               .visible = false,
-              .configure = [](Flex& control) { control.setCardStyle(1.0F, 0.94F, true); },
+              .configure =
+                  [](Flex& control) {
+                    control.setCardStyle(1.0F, 0.94F, true);
+                    control.setSurfaceBackground();
+                  },
           },
           ui::label({
               .out = &hintOut,

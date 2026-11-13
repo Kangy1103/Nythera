@@ -23,7 +23,22 @@ namespace settings {
     // opacity, so a full-strength card fill would match them. Mixing the theme's own elevated tone
     // partway toward Surface keeps the palette hue and still reads distinct from those controls.
     constexpr float kCardFillOpacity = 0.4F;
+    // The window backing still owns desktop opacity. These decorative layers
+    // should tint the haze rather than cover it; controls keep their own fills.
+    constexpr float kHazeCardFillOpacity = 0.2F;
   } // namespace
+
+  bool settingsHazeEnabled(const Config& config) {
+    const auto& panel = config.shell.panel;
+    const auto surface = panel.hazeSurfaces.find("settings");
+    return panel.hazeEnabled && (surface == panel.hazeSurfaces.end() || surface->second);
+  }
+
+  ColorSpec settingsSidebarFill(const Config& config) {
+    if (config.shell.settingsWindowTranslucent)
+      return clearColorSpec();
+    return colorSpecFromRole(ColorRole::Surface, settingsHazeEnabled(config) ? kCardFillOpacity : 1.0F);
+  }
 
   bool isMonitorOverrideSettingPath(const std::vector<std::string>& path) {
     return path.size() >= 5 && path[0] == "bar" && path[2] == "monitor";
@@ -191,16 +206,16 @@ namespace settings {
     });
   }
 
-  Flex* addSettingsCard(Flex& parent, std::string_view title, float scale) {
+  Flex* addSettingsCard(Flex& parent, std::string_view title, float scale, bool hazeEnabled) {
     Flex* bodyRaw = nullptr;
     auto card = ui::column(
         {
             .align = FlexAlign::Stretch,
             .gap = Style::spaceSm * scale,
             .configure =
-                [scale](Flex& container) {
+                [scale, hazeEnabled](Flex& container) {
                   container.setPadding(Style::spaceSm * scale, Style::spaceMd * scale);
-                  container.setCardStyle(scale, kCardFillOpacity);
+                  container.setCardStyle(scale, hazeEnabled ? kHazeCardFillOpacity : kCardFillOpacity);
                 },
         },
         makeLabel(title, Style::fontSizeTitle * scale, colorSpecFromRole(ColorRole::OnSurface), FontWeight::Bold),
@@ -215,10 +230,13 @@ namespace settings {
   }
 
   Flex* addSettingsGroupCard(SettingsGroupCardProps props) {
-    auto card = ui::column({.align = FlexAlign::Stretch, .configure = [scale = props.scale](Flex& container) {
-                              container.setPadding(Style::spaceSm * scale, Style::spaceMd * scale);
-                              container.setCardStyle(scale, kCardFillOpacity);
-                            }});
+    auto card = ui::column({
+        .align = FlexAlign::Stretch,
+        .configure = [scale = props.scale, hazeEnabled = props.hazeEnabled](Flex& container) {
+          container.setPadding(Style::spaceSm * scale, Style::spaceMd * scale);
+          container.setCardStyle(scale, hazeEnabled ? kHazeCardFillOpacity : kCardFillOpacity);
+        },
+    });
     auto body = ui::column({
         .align = FlexAlign::Stretch,
         .gap = Style::spaceSm * props.scale,
@@ -358,6 +376,7 @@ namespace settings {
     case SettingsSection::Desktop:
     case SettingsSection::LockScreen:
     case SettingsSection::Dock:
+    case SettingsSection::Haze:
     case SettingsSection::Panels:
     case SettingsSection::ControlCenter:
     case SettingsSection::Notifications:
@@ -396,6 +415,7 @@ namespace settings {
     case SettingsSection::Desktop:
     case SettingsSection::LockScreen:
     case SettingsSection::Dock:
+    case SettingsSection::Haze:
     case SettingsSection::Panels:
     case SettingsSection::ControlCenter:
     case SettingsSection::Notifications:

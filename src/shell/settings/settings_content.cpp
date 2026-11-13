@@ -1407,10 +1407,13 @@ namespace settings {
                     .expandedGroups = *expandedGroups,
                     .pill = pillByGroup[entry.group],
                     .scrollToTop = ctx.scrollContentToTop,
+                    .hazeEnabled = settingsHazeEnabled(ctx.config),
                 }
             );
           } else if (!entry.group.empty()) {
-            activeGroupBody = addSettingsCard(*activeSection, groupLabel(entry.group), scale);
+            activeGroupBody = addSettingsCard(
+                *activeSection, groupLabel(entry.group), scale, settingsHazeEnabled(ctx.config)
+            );
           } else {
             addGroupLabel(*activeSection, groupLabel(entry.group), isFirstGroup);
             activeGroupBody = activeSection;

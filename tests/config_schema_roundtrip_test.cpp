@@ -565,6 +565,10 @@ location = "https://example.invalid/bad"
     c.shell.shadow.direction = ShadowDirection::UpLeft;
     c.shell.panel.transparencyMode = PanelTransparencyMode::Glass;
     c.shell.panel.snapshotBlur = false;
+    c.shell.panel.hazeMode = PanelHazeMode::Static;
+    c.shell.panel.hazeEnabled = false;
+    c.shell.panel.hazeSurfaces = {{"launcher", false}, {"notifications", true}, {"author/plugin:panel", false}};
+    c.shell.panel.hazeBackground = PanelHazeBackground::Transparent;
     c.shell.panel.snapshotBlurStrength = 7.0F;
     c.shell.panel.floatingLayer = "top";
     c.shell.panel.launcherPlacement = PanelPlacement::Floating;
@@ -1556,6 +1560,53 @@ widget_spacing = 8
     const std::vector<std::string> path{"bar", "default", "transparency_mode"};
     if (std::ranges::find(entries, path, &settings::SettingEntry::path) == entries.end())
       fail("bar transparency not exposed in Settings");
+  }
+
+  {
+    const ShellConfig defaults;
+    if (!defaults.panel.hazeEnabled
+        || defaults.panel.hazeMode != PanelHazeMode::Animated
+        || defaults.panel.hazeBackground != PanelHazeBackground::Opaque)
+      fail("panel haze defaults must remain animated and opaque");
+    // Both settings must persist independently, including transparent/static.
+    for (const auto& mode : kPanelHazeModes) {
+      for (const auto& background : kPanelHazeBackgrounds) {
+        ShellConfig shell;
+        shell.panel.hazeMode = mode.value;
+        shell.panel.hazeBackground = background.value;
+        const auto table = writeTable(shell, shellSchema());
+        ShellConfig restored;
+        Diagnostics diagnostics;
+        readInto(table, restored, shellSchema(), "shell", diagnostics);
+        if (restored.panel.hazeMode != mode.value || restored.panel.hazeBackground != background.value)
+          fail("panel haze mode/background lost independence during round-trip");
+      }
+    }
+    ShellConfig shell;
+    Diagnostics diagnostics;
+    readInto(
+        toml::parse("[panel]\nhaze_mode = 'fast'\nhaze_background = 'invisible'\n"), shell, shellSchema(), "shell",
+        diagnostics
+    );
+    if (shell.panel.hazeMode != defaults.panel.hazeMode
+        || shell.panel.hazeBackground != defaults.panel.hazeBackground
+        || diagnostics.entries.size() != 2)
+      fail("invalid panel haze values must warn and retain safe defaults");
+    const auto entries = settings::buildSettingsRegistry(Config{}, nullptr, nullptr);
+    for (const auto* name : {"haze_enabled", "haze_mode", "haze_background"}) {
+      const std::vector<std::string> path{"shell", "panel", name};
+      const auto entry = std::ranges::find(entries, path, &settings::SettingEntry::path);
+      if (entry == entries.end())
+        fail(std::string("panel haze setting missing from Settings: ") + name);
+      else if (entry->section != settings::SettingsSection::Haze || entry->group != "general")
+        fail(std::string("panel haze setting must remain in the dedicated Haze section: ") + name);
+      else if (std::string_view(name) != "haze_enabled") {
+        Config disabled;
+        disabled.shell.panel.hazeEnabled = false;
+        if (!entry->visibleWhen || entry->visibleWhen(disabled) || !entry->visibleWhen(Config{}))
+          fail(std::string("panel haze controls must follow the master switch: ") + name);
+      }
+    }
   }
 
   checkPluginIdValidation();

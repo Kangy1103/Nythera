@@ -40,6 +40,7 @@
 #include "shell/session/session_panel.h"
 #include "shell/setup_wizard/setup_wizard_panel.h"
 #include "shell/test/test_panel.h"
+#include "shell/settings/settings_content_common.h"
 #include "shell/tooltip/tooltip_manager.h"
 #include "shell/tray/tray_drawer_panel.h"
 #include "shell/wallpaper/panel/wallpaper_panel.h"
@@ -119,6 +120,18 @@ void Application::initUiRenderSurfacesAndSettings() {
       &m_idleInhibitor, &m_compositorPlatform, m_accountsService.get()
   );
   m_settingsWindow.setPluginManager(&m_pluginManager);
+  // Rebuild Settings decoration when its effective haze enablement changes,
+  // including external config reloads. Other surface switches need no rebuild.
+  m_configService.addReloadCallback(
+      [this, enabled = settings::settingsHazeEnabled(m_configService.config())]() mutable {
+        const bool current = settings::settingsHazeEnabled(m_configService.config());
+        if (current != enabled) {
+          enabled = current;
+          m_settingsWindow.onExternalOptionsChanged();
+        }
+      },
+      "settings-haze-materials"
+  );
   m_settingsWindow.setPluginRecommendations(&m_pluginRecommendations);
   m_settingsWindow.setIpcService(&m_ipcService);
   m_settingsWindow.setAsyncTextureCache(&m_asyncTextureCache);

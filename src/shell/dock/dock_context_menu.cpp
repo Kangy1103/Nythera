@@ -351,6 +351,7 @@ namespace shell::dock {
     popup_chrome::applyToConfig(popupCfg, menuChrome, popupAttachmentForDockPosition(isBottom, isTop, isRight));
 
     menu->surface = std::make_unique<PopupSurface>(platform.wayland());
+    menu->surface->setHazeProfile("dock-context-menu");
     menu->surface->setRenderContext(&renderContext);
     menu->chrome = menuChrome;
 

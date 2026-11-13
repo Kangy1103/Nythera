@@ -461,6 +461,7 @@ void SettingsWindow::open(std::string context) {
   m_output = output;
 
   m_surface = std::make_unique<ToplevelSurface>(*m_wayland);
+  m_surface->setHazeProfile("settings");
   m_surface->setRenderContext(m_renderContext);
   m_surface->setAnimationManager(&m_animations);
 

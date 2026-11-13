@@ -68,6 +68,13 @@ Inside a hook, call the parent hook (for example `Flex::doLayout()`), not the pu
 
 **Rectangle shapes**: the rect shader is generic. Use per-corner `CornerShape::Convex` or `CornerShape::Concave` with `Radii` and `RectInsets logicalInset`. Panel and bar policy stays in shell code, not in shader enum names. Screen-corner overlays use the dedicated `ScreenCornerProgram` and `ScreenCornerNode` path.
 
+### Native background haze
+
+- Native surface hosts own haze profile IDs and per-instance pattern/time state. `SurfaceHaze` uses one shared TimerManager timer and normal Wayland frame readiness; static, disabled, closed and suspended hosts do not request haze frames. Haze redraws bypass unrelated content frame-tick callbacks.
+- Existing background materials opt in through Box/Flex or screen-frame style flags. RenderContext supplies neutral `SurfaceHazeStyle` data; GLES rectangle and contour programs reuse one shader function. Foreground alpha and native shape coverage remain independent.
+- Bars and islands are excluded. A bar/screen-wrap contour that includes an attached panel may shade only the explicit panel-body bounds under that panel's profile. Transparent input/capture planes do not gain synthetic backgrounds.
+- Configuration retains `shell.panel.haze_*` paths and an independent `haze_surfaces` map; the Settings UI owns a dedicated Haze section. See [Nebula panel background](docs/nebula-background-poc.md) for coverage and lifecycle details.
+
 ### Fractional Scaling
 
 - With `wp_fractional_scale_v1` and `wp_viewporter`, keep `set_buffer_scale(1)`, render at the preferred fractional scale, and set `wp_viewport.set_destination()` to the logical size.

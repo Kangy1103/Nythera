@@ -1,9 +1,11 @@
 #include "render/programs/screen_frame_program.h"
 
 #include "render/core/screen_frame_geometry.h"
+#include "render/programs/nebula_glsl.h"
 
 #include <array>
 #include <stdexcept>
+#include <string>
 
 namespace {
   constexpr char kVertex[] = R"(
@@ -23,6 +25,9 @@ void main() {
   constexpr char kFragment[] = R"(
 #extension GL_OES_standard_derivatives : require
 precision highp float;
+uniform vec4 u_haze;
+uniform vec4 u_haze_bounds;
+uniform vec2 u_haze_size;
 uniform vec4 u_frame; // width, height, rail, opening radius
 uniform vec3 u_shape; // island depth, island radius, junction smoothing
 uniform vec2 u_offset;
@@ -170,6 +175,16 @@ void main() {
     vec3 captured = texture2D(u_backdrop, uv).rgb;
     fill = vec4(mix(captured, materialFill.rgb, materialFill.a) * u_backdrop_opacity, u_backdrop_opacity);
   }
+  bool inHaze = u_haze_bounds.z <= 0.0 || (p.x >= u_haze_bounds.x && p.y >= u_haze_bounds.y
+      && p.x < u_haze_bounds.x + u_haze_bounds.z && p.y < u_haze_bounds.y + u_haze_bounds.w);
+  if (u_haze.x > 0.0 && inHaze) {
+    // Keep the same resolved native material policy as the rectangle path.
+    float backing = u_haze.w > 0.5 ? fill.a / max(u_haze.x, 0.001) : 1.0;
+    vec3 base = u_haze.w > 0.5 ? fill.rgb / max(fill.a, 0.001) : vec3(0.025, 0.028, 0.030);
+    vec2 hazeSize = u_haze_bounds.z > 0.0 ? u_haze_bounds.zw : u_haze_size;
+    vec2 hazeUv = u_haze_bounds.z > 0.0 ? (p - u_haze_bounds.xy) / hazeSize : v_local / hazeSize;
+    fill = nebulaBackground(hazeUv, hazeSize, u_haze.y, u_haze.z, backing, base) * u_haze.x;
+  }
   vec4 border = vec4(materialBorder.rgb * materialBorder.a, materialBorder.a);
   gl_FragColor = mix(fill, border, stroke) * coverage;
 }
@@ -179,7 +194,12 @@ void main() {
 void ScreenFrameProgram::ensureInitialized() {
   if (m_program.isValid())
     return;
-  m_program.create(kVertex, kFragment);
+  std::string fragment = kFragment;
+  fragment.insert(fragment.find("float roundedDistance"), kNebulaGlsl);
+  m_program.create(kVertex, fragment.c_str());
+  m_hazeLocation = glGetUniformLocation(m_program.id(), "u_haze");
+  m_hazeBoundsLocation = glGetUniformLocation(m_program.id(), "u_haze_bounds");
+  m_hazeSizeLocation = glGetUniformLocation(m_program.id(), "u_haze_size");
   m_positionLocation = glGetAttribLocation(m_program.id(), "a_position");
   m_surfaceSizeLocation = glGetUniformLocation(m_program.id(), "u_surface_size");
   m_sizeLocation = glGetUniformLocation(m_program.id(), "u_size");
@@ -246,6 +266,12 @@ void ScreenFrameProgram::draw(
     spans[i * 2 + 1] = g.islands[i].end;
   }
   glUseProgram(m_program.id());
+  glUniform4fv(m_hazeBoundsLocation, 1, style.hazeBounds.data());
+  glUniform2f(m_hazeSizeLocation, width, height);
+  glUniform4f(
+      m_hazeLocation, style.haze.enabled ? style.haze.opacity : 0.0F, style.haze.time, style.haze.seed,
+      style.haze.transparent ? 1.0F : 0.0F
+  );
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, style.backdrop.texture.value());
   glUniform1i(m_backdropLocation, 0);

@@ -177,7 +177,11 @@ void RenderContext::notifyFontConfigChanged() {
   ++m_textMetricsGeneration;
 }
 
-void RenderContext::renderScene(RenderTarget& target, Node* sceneRoot, const WallpaperMaskDrawParams* wallpaperMask) {
+void RenderContext::renderScene(
+    RenderTarget& target, Node* sceneRoot, const WallpaperMaskDrawParams* wallpaperMask, const SurfaceHazeStyle& haze
+) {
+  m_haze = haze;
+  m_hasSurfaceBackground = false;
   if (m_backend == nullptr || m_graphicsResetPending) {
     return;
   }
@@ -391,6 +395,15 @@ void RenderContext::renderNode(
   case NodeType::Rect: {
     const auto* rect = static_cast<const RectNode*>(node);
     auto style = rect->style();
+    if (style.surfaceBackground
+        && !style.outerShadow
+        && !style.invertFill
+        && effectiveOpacity > 0.001F
+        && (style.fill.a > 0.0F || style.backdrop.texture.valid())) {
+      m_hasSurfaceBackground = true;
+      style.haze = m_haze;
+      style.haze.opacity = effectiveOpacity;
+    }
     style.backdrop.opacity *= effectiveOpacity;
     style.fill.a *= effectiveOpacity;
     style.border.a *= effectiveOpacity;
@@ -504,6 +517,17 @@ void RenderContext::renderNode(
   }
   case NodeType::ScreenFrame: {
     auto style = static_cast<const ScreenFrameNode*>(node)->style();
+    const auto& bounds = style.hazeBounds;
+    const bool backgroundVisible = bounds[2] <= 0
+        || (bounds[0] < style.offsetX + node->width()
+            && bounds[1] < style.offsetY + node->height()
+            && bounds[0] + bounds[2] > style.offsetX
+            && bounds[1] + bounds[3] > style.offsetY);
+    if (style.surfaceBackground && backgroundVisible && effectiveOpacity > 0.001F) {
+      m_hasSurfaceBackground = true;
+      style.haze = m_haze;
+      style.haze.opacity = effectiveOpacity;
+    }
     style.backdrop.opacity *= effectiveOpacity;
     style.fill.a *= effectiveOpacity;
     style.border.a *= effectiveOpacity;

@@ -1,9 +1,11 @@
 #include "render/programs/rect_program.h"
 
 #include "render/core/render_styles.h"
+#include "render/programs/nebula_glsl.h"
 
 #include <array>
 #include <stdexcept>
+#include <string>
 
 namespace {
 
@@ -37,6 +39,7 @@ precision highp float;
 
 uniform vec2 u_rect_size;
 uniform vec4 u_color;
+uniform vec4 u_haze;
 uniform sampler2D u_backdrop;
 uniform vec4 u_backdrop_source;
 uniform float u_backdrop_opacity;
@@ -328,6 +331,14 @@ void main() {
         vec3 captured = texture2D(u_backdrop, sample_uv).rgb;
         fill_base = vec4(mix(captured, fill_base.rgb, fill_base.a), u_backdrop_opacity);
     }
+    if (u_haze.x > 0.0 && u_fill_mode != 0) {
+        // Transparent haze inherits the resolved native material, including its
+        // snapshot backing. Do not impose a second surface-opacity policy here.
+        float backing = u_haze.w > 0.5 ? fill_base.a / max(u_haze.x, 0.001) : 1.0;
+        vec3 base = u_haze.w > 0.5 ? fill_base.rgb : vec3(0.025, 0.028, 0.030);
+        vec4 haze = nebulaBackground(uv, u_rect_size, u_haze.y, u_haze.z, backing, base) * u_haze.x;
+        fill_base = vec4(haze.rgb / max(haze.a, 0.0001), haze.a);
+    }
     if (u_border_width <= 0.0 || u_border_color.a <= 0.0) {
         float out_alpha = fill_base.a * outer_coverage;
         if (out_alpha <= 0.0) {
@@ -388,7 +399,10 @@ void RectProgram::ensureInitialized() {
     return;
   }
 
-  m_program.create(kVertexShaderSource, kFragmentShaderSource);
+  std::string fragment = kFragmentShaderSource;
+  fragment.insert(fragment.find("float rounded_rect_distance"), kNebulaGlsl);
+  m_program.create(kVertexShaderSource, fragment.c_str());
+  m_hazeLocation = glGetUniformLocation(m_program.id(), "u_haze");
   m_backdropLocation = glGetUniformLocation(m_program.id(), "u_backdrop");
   m_backdropSourceLocation = glGetUniformLocation(m_program.id(), "u_backdrop_source");
   m_backdropOpacityLocation = glGetUniformLocation(m_program.id(), "u_backdrop_opacity");
@@ -515,6 +529,10 @@ void RectProgram::draw(
   const Mat3 quadTransform = transform * Mat3::translation(-padding, -padding);
 
   glUseProgram(m_program.id());
+  glUniform4f(
+      m_hazeLocation, style.haze.enabled ? style.haze.opacity : 0.0F, style.haze.time, style.haze.seed,
+      style.haze.transparent ? 1.0F : 0.0F
+  );
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, style.backdrop.texture.value());
   glUniform1i(m_backdropLocation, 0);
