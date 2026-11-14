@@ -1,6 +1,7 @@
 #pragma once
 
 #include "render/scene/input_area.h"
+#include "ui/palette.h"
 
 #include <cstddef>
 #include <functional>
@@ -32,6 +33,7 @@ public:
   void refreshThumbnail(Renderer& renderer);
   void clear(Renderer& renderer);
   void setVisualState(bool selected, bool hovered, bool disabled);
+  void setSelectionRoles(ColorRole background, ColorRole foreground);
 
 private:
   void doLayout(Renderer& renderer) override;
@@ -43,6 +45,8 @@ private:
   bool m_selected = false;
   bool m_hovered = false;
   bool m_disabled = false;
+  ColorRole m_selectedBackgroundRole = ColorRole::Primary;
+  ColorRole m_selectedForegroundRole = ColorRole::OnPrimary;
   bool m_thumbnailEligible = false;
   ThumbnailService* m_thumbnails = nullptr;
   Box* m_background = nullptr;

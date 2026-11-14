@@ -1,6 +1,7 @@
 #pragma once
 
 #include "render/scene/input_area.h"
+#include "ui/palette.h"
 
 #include <cstddef>
 #include <functional>
@@ -28,6 +29,7 @@ public:
   );
   void clear();
   void setVisualState(bool selected, bool hovered, bool disabled);
+  void setSelectionRoles(ColorRole background, ColorRole foreground);
 
 private:
   void applyVisualState();
@@ -38,6 +40,8 @@ private:
   bool m_selected = false;
   bool m_hovered = false;
   bool m_disabled = false;
+  ColorRole m_selectedBackgroundRole = ColorRole::Primary;
+  ColorRole m_selectedForegroundRole = ColorRole::OnPrimary;
   Box* m_background = nullptr;
   Flex* m_row = nullptr;
   Glyph* m_icon = nullptr;

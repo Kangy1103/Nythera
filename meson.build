@@ -459,6 +459,8 @@ _nythera_sources = files(
   'src/app/application_services.cpp',
   'src/app/application_ui.cpp',
   'src/app/main_loop.cpp',
+  'src/filemanager/file_manager.cpp',
+  'src/filemanager/gio_poll_source.cpp',
   'src/app/single_instance_lock.cpp',
   'src/auth/fingerprint_authenticator.cpp',
   'src/auth/pam_authenticator.cpp',
@@ -1203,6 +1205,15 @@ nythera_exe = executable('nythera',
   cpp_args: _nythera_cpp_args,
   objects: nythera_core_lib.extract_all_objects(recursive: false),
   install: true,
+)
+
+executable('nythera-file-manager',
+  sources: files('src/filemanager/main.cpp') + _protocol_headers,
+  dependencies: _nythera_dependencies,
+  include_directories: _nythera_inc,
+  cpp_args: _nythera_cpp_args,
+  objects: nythera_core_lib.extract_all_objects(recursive: false),
+  install: false,
 )
 
 install_subdir('assets',

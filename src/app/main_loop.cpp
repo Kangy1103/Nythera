@@ -307,7 +307,16 @@ namespace {
 } // namespace
 
 MainLoop::MainLoop(WaylandConnection& wayland, Bar& bar, PollSourcesProvider sourcesProvider)
-    : m_wayland(wayland), m_bar(bar), m_sourcesProvider(std::move(sourcesProvider)) {}
+    : m_wayland(wayland), m_bar(&bar), m_sourcesProvider(std::move(sourcesProvider)),
+      m_shouldStop([] { return Application::s_shutdownRequested.load(); }),
+      m_onShutdown([this] { m_bar->closeAllInstances(); }) {}
+
+MainLoop::MainLoop(
+    WaylandConnection& wayland, PollSourcesProvider sourcesProvider, std::function<bool()> shouldStop,
+    std::function<void()> onShutdown
+)
+    : m_wayland(wayland), m_sourcesProvider(std::move(sourcesProvider)), m_shouldStop(std::move(shouldStop)),
+      m_onShutdown(std::move(onShutdown)) {}
 
 void MainLoop::run() {
   if (idleProfileEnabled()) {
@@ -318,7 +327,7 @@ void MainLoop::run() {
     resetIdleProfile(idleProfile(), std::chrono::steady_clock::now());
   }
 
-  while (!Application::s_shutdownRequested) {
+  while (!(m_shouldStop ? m_shouldStop() : Application::s_shutdownRequested.load())) {
     if (idleProfileEnabled()) {
       ++idleProfile().iterations;
     }
@@ -685,8 +694,12 @@ void MainLoop::run() {
   }
 
   // Close all UI surfaces immediately and flush Wayland to make them disappear
-  kLog.debug("closing bar surfaces for clean shutdown");
-  m_bar.closeAllInstances();
+  if (m_onShutdown) {
+    m_onShutdown();
+  } else if (m_bar != nullptr) {
+    kLog.debug("closing bar surfaces for clean shutdown");
+    m_bar->closeAllInstances();
+  }
 
   if (dispatchPendingGuarded(m_wayland.display()) < 0) {
     const int dispatchErrno = errno;

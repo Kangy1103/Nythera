@@ -156,6 +156,12 @@ void FileEntryTile::setVisualState(bool selected, bool hovered, bool disabled) {
   applyVisualState();
 }
 
+void FileEntryTile::setSelectionRoles(ColorRole background, ColorRole foreground) {
+  m_selectedBackgroundRole = background;
+  m_selectedForegroundRole = foreground;
+  applyVisualState();
+}
+
 void FileEntryTile::doLayout(Renderer& renderer) {
   const float width = this->width();
   const float height = this->height();
@@ -190,11 +196,11 @@ void FileEntryTile::doLayout(Renderer& renderer) {
 }
 
 void FileEntryTile::applyVisualState() {
-  const Color bg = m_selected ? colorForRole(ColorRole::Primary)
+  const Color bg = m_selected ? colorForRole(m_selectedBackgroundRole)
       : m_hovered             ? colorForRole(ColorRole::Hover)
                               : clearColor();
   const Color glyphFg = colorForRole(ColorRole::OnSurface); // glyph sits on the preview's Surface bg
-  const Color labelFg = m_selected ? colorForRole(ColorRole::OnPrimary)
+  const Color labelFg = m_selected ? colorForRole(m_selectedForegroundRole)
       : m_hovered                  ? colorForRole(ColorRole::OnHover)
                                    : colorForRole(ColorRole::OnSurface);
   const float alpha = m_disabled ? 0.55F : 1.0F;

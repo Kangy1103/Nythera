@@ -141,6 +141,7 @@ public:
   enum class Purpose : std::uint8_t {
     Shell,
     Screencopy,
+    ApplicationClient,
   };
 
   explicit WaylandConnection(Purpose purpose = Purpose::Shell);

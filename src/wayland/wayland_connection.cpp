@@ -718,7 +718,7 @@ bool WaylandConnection::connect() {
   if (m_display != nullptr) {
     return true;
   }
-  if (m_purpose != Purpose::Shell) {
+  if (m_purpose == Purpose::Screencopy) {
     throw std::runtime_error("screencopy Wayland connections require a bounded primary connection");
   }
 
@@ -1443,6 +1443,20 @@ void WaylandConnection::bindGlobal(
     wl_registry* registry, std::uint32_t name, const char* interface, std::uint32_t version
 ) {
   const std::string interfaceName = interface;
+
+  if (m_purpose == Purpose::ApplicationClient
+      && interfaceName != wl_compositor_interface.name
+      && interfaceName != wl_shm_interface.name
+      && interfaceName != wl_output_interface.name
+      && interfaceName != wl_seat_interface.name
+      && interfaceName != wl_subcompositor_interface.name
+      && interfaceName != xdg_wm_base_interface.name
+      && interfaceName != zxdg_output_manager_v1_interface.name
+      && interfaceName != wp_cursor_shape_manager_v1_interface.name
+      && interfaceName != wp_fractional_scale_manager_v1_interface.name
+      && interfaceName != wp_viewporter_interface.name) {
+    return;
+  }
 
   if (m_purpose == Purpose::Screencopy
       && interfaceName != wl_shm_interface.name

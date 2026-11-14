@@ -7,6 +7,7 @@ This file describes the architecture inherited from Noctalia and the technical i
 The main loop is poll based (`MainLoop` plus the `PollSource` interface). Every event source (Wayland, D-Bus, inotify, timers) exposes file descriptors that are polled together.
 
 A new service implements `PollSource`, is added as an `Application` member, and is returned from `buildPollSources()`.
+The shell uses the `MainLoop` constructor that owns bar shutdown by default. Independent native applications may supply their own stop predicate, poll-source provider and shutdown callback; shell lifecycle handling remains the default.
 
 ## UI Phases
 
@@ -129,6 +130,7 @@ Desktop widgets live under `src/shell/desktop/` and do not use the bar `Widget` 
 ## Compositor Integration
 
 - `WaylandConnection` is protocol transport only, with no compositor-specific branches. Compositor behavior goes through `CompositorPlatform`.
+- `WaylandConnection::Purpose::ApplicationClient` binds the ordinary xdg application protocols needed by standalone native apps and skips shell-only layer-shell and service globals. Shell remains the default purpose; screencopy connections retain their bounded sibling-connection path.
 - Prefer passing `CompositorPlatform&` over passing both `WaylandConnection&` and `CompositorPlatform&`.
 - `CompositorPlatform::outputWorkArea()` optionally supplies global logical bounds excluding reserved bars. Compositor-specific queries and parsing stay in the integration backend; callers fall back to full output bounds when metadata is unavailable.
 - Detect compositors with `compositors::detect()`, `isHyprland()`, `isNiri()`, `isSway()`, and `isMango()` from `compositor_detect.h`; do not sniff environment variables again.
